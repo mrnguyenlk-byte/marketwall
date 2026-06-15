@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { useLang } from "@/lib/i18n"
 import { useWatchlist } from "@/lib/use-watchlist"
 import { WATCHLIST_CATALOG, type WatchlistSymbol } from "@/lib/watchlist"
-import { buildWatchlistQuoteMap, type WatchlistQuote } from "@/lib/watchlist-quotes"
+import { buildWatchlistQuoteMap, getWatchlistQuote, type WatchlistQuote } from "@/lib/watchlist-quotes"
 import type { CryptoAsset } from "@/lib/providers/crypto-provider"
 import type { GlobalQuote } from "@/lib/providers/global-market-provider"
 import type { VietnamMarketIndex } from "@/lib/providers/vietnam-market-provider"
@@ -156,7 +156,7 @@ export function Watchlist() {
                 <WatchlistRow
                   key={symbol}
                   symbol={symbol}
-                  quote={quotes.get(symbol) ?? buildWatchlistQuoteMap([symbol]).get(symbol)!}
+                  quote={quotes.get(symbol) ?? getWatchlistQuote(symbol)}
                   onRemove={remove}
                 />
               ))}

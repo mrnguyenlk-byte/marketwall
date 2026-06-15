@@ -10,7 +10,6 @@ import {
 } from "react"
 
 import { resolveSymbolDetail, type SymbolDetailRecord } from "@/lib/symbol-detail"
-import { SymbolDetailModal } from "@/components/marketwall/symbol-detail-modal"
 
 type SymbolDetailContextValue = {
   openSymbol: string | null
@@ -43,7 +42,6 @@ export function SymbolDetailProvider({ children }: { children: ReactNode }) {
   return (
     <SymbolDetailContext.Provider value={value}>
       {children}
-      <SymbolDetailModal />
     </SymbolDetailContext.Provider>
   )
 }

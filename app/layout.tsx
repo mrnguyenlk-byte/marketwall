@@ -13,6 +13,7 @@ import { SITE_NAME, SITE_LOGO } from '@/lib/brand'
 import { SITE_URL } from '@/lib/seo'
 
 import { ContactFab } from '@/components/marketwall/contact-fab'
+import { SymbolDetailModal } from '@/components/marketwall/symbol-detail-modal'
 
 import './globals.css'
 
@@ -129,6 +130,7 @@ export default function RootLayout({
           <LanguageProvider>
             <SymbolDetailProvider>
               {children}
+              <SymbolDetailModal />
               <ContactFab />
             </SymbolDetailProvider>
           </LanguageProvider>

@@ -5,6 +5,7 @@ import { getMockData as getCryptoMock } from "@/lib/providers/crypto-provider"
 import { getMockData as getNewsMock } from "@/lib/providers/news-provider"
 import { getMockData as getCalendarMock } from "@/lib/providers/calendar-provider"
 import { fearGreedData } from "@/lib/market-data"
+import type { HeatmapMarket } from "@/lib/providers/heatmap-provider"
 import { homeMetadata } from "@/lib/seo"
 import { Header } from "@/components/marketwall/header"
 import { TickerBar } from "@/components/marketwall/ticker-bar"
@@ -20,6 +21,13 @@ import { Footer } from "@/components/marketwall/footer"
 
 export const metadata = homeMetadata
 
+function pickHeatmapMarket(
+  markets: HeatmapMarket[],
+  id: HeatmapMarket["id"],
+): HeatmapMarket | null {
+  return markets.find((market) => market.id === id) ?? null
+}
+
 export default async function Page() {
   let dashboard
   try {
@@ -28,13 +36,18 @@ export default async function Page() {
     const marketMock = getMarketMock()
     const heatmapMock = getHeatmapMock()
     const crypto = getCryptoMock()
+    const vnMarket = pickHeatmapMarket(heatmapMock.markets, "vn")
+    const usMarket = pickHeatmapMarket(heatmapMock.markets, "us")
+    const cryptoMarket = pickHeatmapMarket(heatmapMock.markets, "crypto")
     dashboard = {
       dashboardTickerBarItems: marketMock.dashboardTickerBarItems,
       overviewByCategory: marketMock.overviewByCategory,
       heatmapMarkets: [
-        heatmapMock.markets.find((m) => m.id === "vn")!,
-        heatmapMock.markets.find((m) => m.id === "us")!,
-        { ...heatmapMock.markets.find((m) => m.id === "crypto")!, tiles: crypto.heatmapTiles },
+        ...(vnMarket ? [vnMarket] : []),
+        ...(usMarket ? [usMarket] : []),
+        ...(cryptoMarket
+          ? [{ ...cryptoMarket, tiles: crypto.heatmapTiles }]
+          : []),
       ],
       fearGreedItems: fearGreedData,
     }

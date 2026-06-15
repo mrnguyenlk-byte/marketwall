@@ -97,3 +97,7 @@ export function buildWatchlistQuoteMap(
 
   return result
 }
+
+export function getWatchlistQuote(symbol: WatchlistSymbol): WatchlistQuote {
+  return mockQuote(symbol)
+}

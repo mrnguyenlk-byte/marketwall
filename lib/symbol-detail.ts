@@ -1,5 +1,5 @@
 import type { Bi } from "@/lib/market-utils"
-import { getMockData as getVietnamMock } from "@/lib/providers/vietnam-market-provider"
+import { buildHeatmapSymbolRecords } from "@/lib/symbol-heatmap-registry"
 import type { WatchlistSymbol } from "@/lib/watchlist"
 
 export type SymbolCategory = "index" | "crypto" | "commodity" | "equity"
@@ -135,36 +135,7 @@ const CORE_SYMBOLS: SymbolDetailRecord[] = [
   },
 ]
 
-const EXCHANGE_LABELS: Record<string, string> = {
-  hose: "HOSE",
-  hnx: "HNX",
-  upcom: "UPCOM",
-}
-
-function buildHeatmapRegistry(): SymbolDetailRecord[] {
-  const vn = getVietnamMock()
-  const records: SymbolDetailRecord[] = []
-
-  for (const [exchangeId, stocks] of Object.entries(vn.heatmapStocks)) {
-    for (const stock of stocks) {
-      records.push({
-        slug: stock.symbol.toLowerCase(),
-        symbol: stock.symbol,
-        name: stock.name,
-        category: "equity",
-        exchange: EXCHANGE_LABELS[exchangeId] ?? exchangeId.toUpperCase(),
-        sector: stock.sector,
-        region: { vi: "Việt Nam", en: "Vietnam" },
-        mockPrice: stock.price,
-        mockChangePercent: stock.changePercent,
-      })
-    }
-  }
-
-  return records
-}
-
-const HEATMAP_REGISTRY = buildHeatmapRegistry()
+const HEATMAP_REGISTRY = buildHeatmapSymbolRecords()
 
 const SYMBOL_REGISTRY: Map<string, SymbolDetailRecord> = new Map()
 

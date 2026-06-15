@@ -26,6 +26,13 @@ export type DashboardData = {
   fearGreedItems: FearGreedItem[]
 }
 
+function pickHeatmapMarket(
+  markets: HeatmapMarket[],
+  id: HeatmapMarket["id"],
+): HeatmapMarket | null {
+  return markets.find((market) => market.id === id) ?? null
+}
+
 type QuoteOverlay = {
   price: number
   changePercent: number
@@ -134,16 +141,15 @@ export async function buildDashboardData(): Promise<DashboardData> {
     ),
   ) as Record<OverviewCategory, OverviewListItem[]>
 
-  const usMarket = heatmapMock.markets.find((m) => m.id === "us")!
-  const cryptoMarket = heatmapMock.markets.find((m) => m.id === "crypto")!
+  const usMarket = pickHeatmapMarket(heatmapMock.markets, "us")
+  const cryptoMarket = pickHeatmapMarket(heatmapMock.markets, "crypto")
 
   const heatmapMarkets: HeatmapMarket[] = [
     vietnam.heatmapMarket,
-    usMarket,
-    {
-      ...cryptoMarket,
-      tiles: crypto.heatmapTiles,
-    },
+    ...(usMarket ? [usMarket] : []),
+    ...(cryptoMarket
+      ? [{ ...cryptoMarket, tiles: crypto.heatmapTiles }]
+      : []),
   ]
 
   return {
