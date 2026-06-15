@@ -13,6 +13,24 @@ function resolveSiteUrl(): string {
 
 export const SITE_URL = resolveSiteUrl()
 
+export const LEGAL_SITEMAP_PATHS = [
+  "/legal/terms",
+  "/legal/privacy",
+  "/legal/cookies",
+  "/legal/risk-disclosure",
+  "/legal/disclaimer",
+  "/legal/partner-disclosure",
+] as const
+
+const DEFAULT_ROBOTS: Metadata["robots"] = {
+  index: true,
+  follow: true,
+  googleBot: {
+    index: true,
+    follow: true,
+  },
+}
+
 type PageSeoInput = {
   title: string
   description: string
@@ -31,6 +49,7 @@ export function buildPageMetadata({ title, description, path }: PageSeoInput): M
   return {
     title,
     description,
+    robots: DEFAULT_ROBOTS,
     alternates: {
       canonical,
     },
@@ -60,7 +79,7 @@ export function buildPageMetadata({ title, description, path }: PageSeoInput): M
 export const homeMetadata = buildPageMetadata({
   title: "BTrading Market Insights | Global Market Analytics",
   description:
-    "Market data, heatmaps, economic calendar, market analytics and platform comparisons.",
+    "Market data, heatmaps, economic calendar, market analytics and platform comparisons in one place.",
   path: "/",
 })
 

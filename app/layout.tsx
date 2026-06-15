@@ -40,7 +40,18 @@ export const metadata: Metadata = {
     template: '%s | BTrading Market Insights',
   },
   description:
-    'Market data, heatmaps, economic calendar, market analytics and platform comparisons.',
+    'Market data, heatmaps, economic calendar, market analytics and platform comparisons in one place.',
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+    },
+  },
+  alternates: {
+    canonical: SITE_URL,
+  },
   icons: {
     icon: '/brand/logo.png',
     apple: '/brand/logo.png',
@@ -48,11 +59,18 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_US',
+    url: SITE_URL,
+    title: 'BTrading Market Insights | Global Market Analytics',
+    description:
+      'Market data, heatmaps, economic calendar, market analytics and platform comparisons in one place.',
     siteName: SITE_NAME,
     images: [{ url: SITE_LOGO, alt: SITE_NAME }],
   },
   twitter: {
     card: 'summary_large_image',
+    title: 'BTrading Market Insights | Global Market Analytics',
+    description:
+      'Market data, heatmaps, economic calendar, market analytics and platform comparisons in one place.',
     images: [SITE_LOGO],
   },
 }
