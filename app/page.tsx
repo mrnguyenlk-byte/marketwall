@@ -2,7 +2,6 @@ import { buildDashboardData } from "@/lib/providers/build-dashboard-data"
 import { features } from "@/lib/config/features"
 import { getMockData as getMarketMock } from "@/lib/providers/market-provider"
 import { getMockData as getHeatmapMock } from "@/lib/providers/heatmap-provider"
-import { getMockData as getCryptoMock } from "@/lib/providers/crypto-provider"
 import { getMockData as getNewsMock } from "@/lib/providers/news-provider"
 import { getMockData as getCalendarMock } from "@/lib/providers/calendar-provider"
 import { fearGreedData } from "@/lib/fear-greed"
@@ -37,20 +36,11 @@ export default async function Page() {
   } catch {
     const marketMock = getMarketMock()
     const heatmapMock = getHeatmapMock()
-    const crypto = getCryptoMock()
     const vnMarket = pickHeatmapMarket(heatmapMock.markets, "vn")
-    const usMarket = pickHeatmapMarket(heatmapMock.markets, "us")
-    const cryptoMarket = pickHeatmapMarket(heatmapMock.markets, "crypto")
     dashboard = {
       dashboardTickerBarItems: marketMock.dashboardTickerBarItems,
       overviewByCategory: marketMock.overviewByCategory,
-      heatmapMarkets: [
-        ...(vnMarket ? [vnMarket] : []),
-        ...(usMarket ? [usMarket] : []),
-        ...(cryptoMarket
-          ? [{ ...cryptoMarket, tiles: crypto.heatmapTiles }]
-          : []),
-      ],
+      heatmapMarkets: vnMarket ? [vnMarket] : [],
       fearGreedItems: fearGreedData,
     }
   }

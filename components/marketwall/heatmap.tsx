@@ -7,25 +7,14 @@ import { Button } from "@/components/ui/button"
 import { clientDebug, features } from "@/lib/config/features"
 import { useLang } from "@/lib/i18n"
 import { useSymbolDetail } from "@/lib/symbol-detail-context"
-import {
-  useCryptoMarkets,
-  useMarketsLoading,
-  useVietnamMarkets,
-} from "@/lib/swr/use-market-apis"
-import type { HeatmapMarket, HeatmapMarketId, HeatmapTile, VnExchangeId } from "@/lib/market-types"
-import { SectionHeading, fmt, heatStyle } from "./shared"
+import { useMarketsLoading, useVietnamMarkets } from "@/lib/swr/use-market-apis"
+import type { HeatmapMarket, HeatmapTile, VnExchangeId } from "@/lib/market-types"
+import { SectionHeading, heatStyle } from "./shared"
 import { HeatmapGridSkeleton } from "./data-skeletons"
 import { cn } from "@/lib/utils"
 
 const timeframes = ["1D", "7D", "1M"] as const
 const VN_EXCHANGE_IDS: VnExchangeId[] = ["hose", "hnx", "upcom"]
-
-function cryptoPrice(n: number) {
-  if (n >= 1000) return fmt(n)
-  if (n >= 1) return fmt(n, { maximumFractionDigits: 2, minimumFractionDigits: 2 })
-  if (n >= 0.01) return fmt(n, { maximumFractionDigits: 4, minimumFractionDigits: 2 })
-  return fmt(n, { maximumFractionDigits: 6, minimumFractionDigits: 2 })
-}
 
 function tileSpan(weight: number) {
   if (weight >= 12) return "col-span-4 row-span-4"
@@ -54,13 +43,6 @@ function changeSize(weight: number) {
   return "text-[10px] sm:text-xs"
 }
 
-function priceSize(weight: number) {
-  if (weight >= 12) return "text-sm sm:text-base lg:text-lg"
-  if (weight >= 10) return "text-xs sm:text-sm lg:text-base"
-  if (weight >= 7) return "text-[10px] sm:text-xs lg:text-sm"
-  return "text-[9px] sm:text-[10px]"
-}
-
 function HeatGrid({ tiles }: { tiles: HeatmapTile[] }) {
   const { lang } = useLang()
   const { openDetail } = useSymbolDetail()
@@ -70,8 +52,7 @@ function HeatGrid({ tiles }: { tiles: HeatmapTile[] }) {
     <div className="grid h-full grid-flow-dense auto-rows-[minmax(48px,1fr)] grid-cols-6 gap-px bg-heatmap-gap sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12">
       {tiles.map((tile) => {
         const up = tile.changePercent >= 0
-        const isCryptoTile = tile.price != null
-        const showName = !isCryptoTile && tile.weight >= 7
+        const showName = tile.weight >= 7
         const className = cn(
           "group/tile flex flex-col items-start justify-between rounded-none border border-black/20 p-1.5 text-left transition-[filter,transform] lg:p-2.5",
           symbolClickEnabled && "hover:z-10 hover:brightness-110",
@@ -87,16 +68,6 @@ function HeatGrid({ tiles }: { tiles: HeatmapTile[] }) {
             >
               {tile.symbol}
             </span>
-            {isCryptoTile && (
-              <span
-                className={cn(
-                  "truncate font-mono font-semibold tabular-nums text-white/90 drop-shadow-sm",
-                  priceSize(tile.weight),
-                )}
-              >
-                ${cryptoPrice(tile.price!)}
-              </span>
-            )}
             {showName && (
               <span className="hidden truncate text-[10px] leading-tight text-white/75 sm:block lg:text-xs">
                 {tile.name[lang]}
@@ -120,11 +91,7 @@ function HeatGrid({ tiles }: { tiles: HeatmapTile[] }) {
               key={tile.symbol}
               style={heatStyle(tile.changePercent)}
               className={className}
-              title={
-                isCryptoTile
-                  ? `${tile.symbol} $${cryptoPrice(tile.price!)} ${up ? "+" : ""}${tile.changePercent.toFixed(2)}%`
-                  : `${tile.name[lang]} ${up ? "+" : ""}${tile.changePercent.toFixed(2)}%`
-              }
+              title={`${tile.name[lang]} ${up ? "+" : ""}${tile.changePercent.toFixed(2)}%`}
             >
               {content}
             </div>
@@ -138,11 +105,7 @@ function HeatGrid({ tiles }: { tiles: HeatmapTile[] }) {
             onClick={() => openDetail(tile.symbol)}
             style={heatStyle(tile.changePercent)}
             className={className}
-            title={
-              isCryptoTile
-                ? `${tile.symbol} $${cryptoPrice(tile.price!)} ${up ? "+" : ""}${tile.changePercent.toFixed(2)}%`
-                : `${tile.name[lang]} ${up ? "+" : ""}${tile.changePercent.toFixed(2)}%`
-            }
+            title={`${tile.name[lang]} ${up ? "+" : ""}${tile.changePercent.toFixed(2)}%`}
           >
             {content}
           </button>
@@ -161,49 +124,31 @@ function filterVnExchanges(market: HeatmapMarket): HeatmapMarket {
 
 export function HeatmapSection({ markets }: { markets: HeatmapMarket[] }) {
   const { t } = useLang()
-  const [activeMarket, setActiveMarket] = useState<HeatmapMarketId>("vn")
   const [activeExchange, setActiveExchange] = useState<VnExchangeId>("hose")
   const [timeframe, setTimeframe] = useState<(typeof timeframes)[number]>("1D")
 
   const vietnam = useVietnamMarkets()
-  const crypto = useCryptoMarkets()
-  const loading = useMarketsLoading(vietnam, crypto)
+  const loading = useMarketsLoading(vietnam)
 
-  const { resolvedMarkets, cryptoTiles } = useMemo(() => {
+  const vnMarket = useMemo(() => {
+    const staticVn = markets.find((m) => m.id === "vn")
+
     if (!features.liveClientFetch) {
       clientDebug("HeatmapSection", "using static fallback")
-      return {
-        resolvedMarkets: markets.map((m) => (m.id === "vn" ? filterVnExchanges(m) : m)),
-        cryptoTiles: null as HeatmapTile[] | null,
-      }
+      return staticVn ? filterVnExchanges(staticVn) : null
     }
 
-    const cryptoTiles = crypto.data?.heatmapTiles?.length ? crypto.data.heatmapTiles : null
-    const vnMarket =
-      vietnam.data?.heatmapMarket?.exchanges?.length
-        ? filterVnExchanges(vietnam.data.heatmapMarket)
-        : null
+    if (vietnam.data?.heatmapMarket?.exchanges?.length) {
+      return filterVnExchanges(vietnam.data.heatmapMarket)
+    }
 
-    const resolvedMarkets = markets.map((market) => {
-      if (market.id === "vn") {
-        return vnMarket ?? filterVnExchanges(market)
-      }
-      if (market.id === "crypto" && cryptoTiles) {
-        return { ...market, tiles: cryptoTiles }
-      }
-      return market
-    })
+    return staticVn ? filterVnExchanges(staticVn) : null
+  }, [markets, vietnam.data])
 
-    return { resolvedMarkets, cryptoTiles }
-  }, [markets, vietnam.data, crypto.data])
-
-  const current =
-    resolvedMarkets.find((m) => m.id === activeMarket) ?? resolvedMarkets[0]
-
-  if (!current) {
+  if (!vnMarket) {
     return (
       <section aria-labelledby="heatmap-title" className="min-w-0">
-        <SectionHeading title={t("sec.heatmaps")} />
+        <SectionHeading title={t("sec.vnHeatmap")} />
         <div className="h-[520px] rounded-lg border border-border bg-card/40 p-px">
           <HeatmapGridSkeleton />
         </div>
@@ -211,18 +156,13 @@ export function HeatmapSection({ markets }: { markets: HeatmapMarket[] }) {
     )
   }
 
-  const vnExchanges = current.exchanges ?? []
-  const activeTiles =
-    activeMarket === "vn"
-      ? vnExchanges.find((e) => e.id === activeExchange)?.tiles ?? []
-      : activeMarket === "crypto" && cryptoTiles
-        ? cryptoTiles
-        : current.tiles ?? []
+  const vnExchanges = vnMarket.exchanges ?? []
+  const activeTiles = vnExchanges.find((e) => e.id === activeExchange)?.tiles ?? []
 
   return (
     <section aria-labelledby="heatmap-title" className="min-w-0">
       <SectionHeading
-        title={t("sec.heatmaps")}
+        title={t("sec.vnHeatmap")}
         badge={
           <Badge variant="secondary" className="gap-1 text-[10px]">
             {t("label.weighted")}
@@ -232,29 +172,9 @@ export function HeatmapSection({ markets }: { markets: HeatmapMarket[] }) {
 
       <div className="overflow-hidden rounded-lg border border-border bg-card/40 shadow-sm ring-1 ring-border/80">
         <div className="flex flex-col gap-2 border-b border-border bg-gradient-to-r from-card/90 to-card/60 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
-          <div
-            role="tablist"
-            aria-label="Market"
-            className="flex flex-wrap items-center gap-1"
-          >
-            {resolvedMarkets.map((m) => (
-              <button
-                key={m.id}
-                type="button"
-                role="tab"
-                aria-selected={activeMarket === m.id}
-                onClick={() => setActiveMarket(m.id)}
-                className={cn(
-                  "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors sm:text-sm",
-                  activeMarket === m.id
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground",
-                )}
-              >
-                <span aria-hidden>{m.flag}</span>
-                {t(m.labelKey)}
-              </button>
-            ))}
+          <div className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+            <span aria-hidden>{vnMarket.flag}</span>
+            {t(vnMarket.labelKey)}
           </div>
 
           <div className="flex shrink-0 items-center gap-2">
@@ -288,7 +208,7 @@ export function HeatmapSection({ markets }: { markets: HeatmapMarket[] }) {
           </div>
         </div>
 
-        {activeMarket === "vn" && vnExchanges.length > 0 && (
+        {vnExchanges.length > 0 && (
           <div
             role="tablist"
             aria-label="Exchange"
