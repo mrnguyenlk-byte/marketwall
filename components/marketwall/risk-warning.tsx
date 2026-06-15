@@ -8,7 +8,7 @@ export function RiskWarning() {
   return (
     <section
       aria-labelledby="risk-title"
-      className="rounded-lg border border-warn/30 bg-warn/5 p-4 sm:p-5"
+      className="rounded-lg border border-warn/30 bg-warn/5 p-4"
     >
       <div className="flex items-start gap-3">
         <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-warn/15 text-warn">
@@ -21,17 +21,7 @@ export function RiskWarning() {
           >
             {t("risk.title")}
           </h2>
-          <p className="text-xs leading-relaxed text-muted-foreground">
-            {t("risk.body")}
-          </p>
-          <div className="pt-1">
-            <p className="text-xs font-semibold text-foreground">
-              {t("risk.disclaimer")}
-            </p>
-            <p className="text-xs leading-relaxed text-muted-foreground">
-              {t("risk.disclaimerBody")}
-            </p>
-          </div>
+          <p className="text-xs leading-relaxed text-muted-foreground">{t("risk.body")}</p>
         </div>
       </div>
     </section>

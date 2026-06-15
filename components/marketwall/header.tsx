@@ -1,88 +1,80 @@
 "use client"
 
-import { Bell, TrendingUp } from "lucide-react"
+import { Search } from "lucide-react"
+import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { BrandLogo } from "./brand-logo"
 import { LanguageSwitcher } from "./language-switcher"
+import { ThemeToggle } from "./theme-toggle"
 import { useLang } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
 
-const NAV_ITEMS: { key: string; href: string; active?: boolean }[] = [
-  { key: "nav.dashboard", href: "#", active: true },
-  { key: "nav.markets", href: "#" },
-  { key: "nav.heatmaps", href: "#" },
-  { key: "nav.events", href: "#" },
-  { key: "nav.news", href: "#" },
-  { key: "nav.brokers", href: "#" },
+const NAV_ITEMS: { key: string; href: string; match?: string }[] = [
+  { key: "nav.dashboard", href: "/" },
+  { key: "nav.brokers", href: "/brokers", match: "/brokers" },
+  { key: "nav.contact", href: "/contact", match: "/contact" },
 ]
 
 export function Header() {
   const { t } = useLang()
+  const pathname = usePathname()
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-      <div className="flex h-14 w-full items-center gap-3 px-3 lg:gap-4 lg:px-4">
-        <a href="#" className="flex shrink-0 items-center gap-2">
-          <span className="flex size-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
-            <TrendingUp className="size-5" aria-hidden />
-          </span>
-          <span className="text-lg font-bold tracking-tight text-foreground">
-            Market<span className="text-primary">Wall</span>
-          </span>
-        </a>
+    <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur">
+      <div className="grid h-20 w-full grid-cols-[1fr_auto_1fr] items-center gap-4 px-8 lg:px-12">
+        <div className="flex items-center pl-5">
+          <BrandLogo height={76} priority />
+        </div>
 
-        <nav
-          aria-label="Main navigation"
-          className="hidden items-center gap-0.5 xl:flex"
-        >
-          {NAV_ITEMS.map((item) => (
-            <a
-              key={item.key}
-              href={item.href}
-              className={cn(
-                "rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors",
-                item.active
-                  ? "bg-primary/15 text-primary"
-                  : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground",
-              )}
-              aria-current={item.active ? "page" : undefined}
-            >
-              {t(item.key)}
-            </a>
-          ))}
-        </nav>
-
-        <div className="relative mx-auto hidden w-full max-w-sm md:block lg:max-w-md">
+        <div className="relative hidden w-full min-w-[300px] max-w-2xl md:block">
+          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             type="search"
             placeholder={t("action.searchFull")}
             aria-label={t("action.searchFull")}
-            className="h-9 border-border bg-secondary/60 text-sm"
+            className="h-9 w-full rounded-lg border-border bg-surface-muted pl-9 text-sm"
           />
         </div>
 
-        <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
+        <div className="flex items-center justify-end gap-2 pr-3">
           <LanguageSwitcher />
-          <Button
-            variant="ghost"
-            size="icon"
-            className="text-muted-foreground"
-            aria-label={t("action.notifications")}
-          >
-            <Bell className="size-5" aria-hidden />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="hidden text-foreground sm:inline-flex"
-          >
+          <ThemeToggle />
+          <Button variant="ghost" size="sm" className="hidden text-foreground sm:inline-flex">
             {t("action.login")}
           </Button>
-          <Button size="sm" className="hidden font-semibold sm:inline-flex">
+          <Button size="sm" className="hidden bg-primary font-semibold text-white sm:inline-flex">
             {t("action.register")}
           </Button>
         </div>
       </div>
+
+      <nav
+        aria-label="Main navigation"
+        className="flex h-10 items-center justify-center gap-0.5 border-t border-border/80 px-8 lg:px-12"
+      >
+        {NAV_ITEMS.map((item) => {
+          const active = item.match
+            ? pathname === item.match
+            : item.href === "/" && pathname === "/"
+          return (
+            <a
+              key={item.key}
+              href={item.href}
+              className={cn(
+                "relative px-4 py-2 text-sm font-medium transition-colors",
+                active ? "text-primary" : "text-muted-foreground hover:text-foreground",
+              )}
+              aria-current={active ? "page" : undefined}
+            >
+              {t(item.key)}
+              {active && (
+                <span className="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-primary" />
+              )}
+            </a>
+          )
+        })}
+      </nav>
     </header>
   )
 }

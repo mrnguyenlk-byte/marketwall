@@ -1,14 +1,17 @@
 "use client"
 
+import { useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { useLang } from "@/lib/i18n"
-import { currencyStrength } from "@/lib/market-data"
+import { getData } from "@/lib/providers/currency-provider"
+
+const { items: currencyStrength, chartMeta: currencyStrengthChartMeta } = getData()
 import { SectionHeading } from "./shared"
 import { cn } from "@/lib/utils"
 
-const CHART_W = 640
-const CHART_H = 260
-const PAD = { top: 12, right: 12, bottom: 24, left: 36 }
+const CHART_W = 720
+const CHART_H = 228
+const PAD = { top: 12, right: 8, bottom: 8, left: 40 }
 
 const LINE_COLORS = [
   "var(--gain)",
@@ -22,21 +25,31 @@ const LINE_COLORS = [
   "#f87171",
 ]
 
-function strengthBoxClass(rankKey: string) {
-  if (rankKey === "strength.strongest" || rankKey === "strength.veryStrong")
-    return "border-gain/40 bg-gain/15 text-gain"
-  if (rankKey === "strength.strong") return "border-primary/40 bg-primary/10 text-primary"
-  if (rankKey === "strength.neutral") return "border-border bg-secondary/40 text-foreground"
-  if (rankKey === "strength.weak") return "border-warn/40 bg-warn/10 text-warn"
-  return "border-loss/40 bg-loss/15 text-loss"
+function strengthBoxClass(rankKey: string, active: boolean) {
+  const base =
+    rankKey === "strength.strongest" || rankKey === "strength.veryStrong"
+      ? "border-gain/40 bg-gain/15 text-gain"
+      : rankKey === "strength.strong"
+        ? "border-primary/40 bg-primary/10 text-primary"
+        : rankKey === "strength.neutral"
+          ? "border-border bg-secondary/40 text-foreground"
+          : rankKey === "strength.weak"
+            ? "border-warn/40 bg-warn/10 text-warn"
+            : "border-loss/40 bg-loss/15 text-loss"
+  return cn(base, !active && "opacity-40 saturate-50")
 }
 
-function StrengthChart() {
+type StrengthChartProps = {
+  visible: Set<string>
+}
+
+function StrengthChart({ visible }: StrengthChartProps) {
   const plotW = CHART_W - PAD.left - PAD.right
   const plotH = CHART_H - PAD.top - PAD.bottom
-  const allValues = currencyStrength.flatMap((c) => c.series)
-  const min = Math.min(...allValues)
-  const max = Math.max(...allValues)
+  const visibleItems = currencyStrength.filter((c) => visible.has(c.code))
+  const allValues = visibleItems.flatMap((c) => c.series)
+  const min = allValues.length ? Math.min(...allValues) : 0
+  const max = allValues.length ? Math.max(...allValues) : 1
   const range = max - min || 1
 
   return (
@@ -58,10 +71,31 @@ function StrengthChart() {
             stroke="var(--border)"
             strokeOpacity={0.5}
             strokeWidth="1"
+            vectorEffect="non-scaling-stroke"
           />
         )
       })}
+
+      {currencyStrengthChartMeta.timeLabels.map((label, i) => {
+        const x =
+          PAD.left + (i / (currencyStrengthChartMeta.timeLabels.length - 1)) * plotW
+        return (
+          <line
+            key={label}
+            x1={x}
+            y1={PAD.top}
+            x2={x}
+            y2={PAD.top + plotH}
+            stroke="var(--border)"
+            strokeOpacity={0.25}
+            strokeWidth="1"
+            vectorEffect="non-scaling-stroke"
+          />
+        )
+      })}
+
       {currencyStrength.map((c, ci) => {
+        if (!visible.has(c.code)) return null
         const step = plotW / (c.series.length - 1)
         const points = c.series
           .map((v, i) => {
@@ -87,57 +121,142 @@ function StrengthChart() {
   )
 }
 
-export function CurrencyStrength() {
+function TimeAxis() {
+  const { timezone, timeLabels } = currencyStrengthChartMeta
+  const leftPct = `${(PAD.left / CHART_W) * 100}%`
+  const rightPct = `${(PAD.right / CHART_W) * 100}%`
+
+  return (
+    <div className="shrink-0 border-t border-border/50 pt-1.5">
+      <div
+        className="grid items-center gap-0"
+        style={{
+          paddingLeft: leftPct,
+          paddingRight: rightPct,
+          gridTemplateColumns: `auto repeat(${timeLabels.length}, 1fr)`,
+        }}
+      >
+        <span className="w-8 pr-1 text-[9px] font-medium text-muted-foreground">
+          {timezone}
+        </span>
+        {timeLabels.map((label) => (
+          <span
+            key={label}
+            className="text-center font-mono text-[10px] tabular-nums text-muted-foreground"
+          >
+            {label}
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+type LegendProps = {
+  visible: Set<string>
+  onToggle: (code: string) => void
+}
+
+function StrengthLegend({ visible, onToggle }: LegendProps) {
   const { t } = useLang()
 
   return (
-    <section aria-labelledby="currency-strength-title">
+    <div className="flex w-[100px] shrink-0 flex-col border-l border-border/60 pl-2.5">
+      <div className="mb-2 grid grid-cols-[1fr_auto] gap-x-1 border-b border-border/50 pb-1.5 text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">
+        <span>{t("label.currency")}</span>
+        <span className="text-right">{t("label.strength")}</span>
+      </div>
+      <div className="flex min-h-0 flex-1 flex-col justify-between gap-1">
+        {currencyStrength.map((c, i) => {
+          const active = visible.has(c.code)
+          return (
+            <button
+              key={c.code}
+              type="button"
+              onClick={() => onToggle(c.code)}
+              className={cn(
+                "grid w-full grid-cols-[auto_1fr_auto] items-center gap-1 rounded px-0.5 py-0.5 text-left text-[10px] transition-opacity hover:bg-secondary/40",
+                !active && "opacity-40",
+              )}
+              aria-pressed={active}
+              title={active ? t("action.hideLine") : t("action.showLine")}
+            >
+              <span
+                className="size-2 shrink-0 rounded-full"
+                style={{ backgroundColor: LINE_COLORS[i % LINE_COLORS.length] }}
+              />
+              <span className="truncate font-medium text-foreground">{c.code}</span>
+              <span className="font-mono font-semibold tabular-nums text-foreground">
+                {c.strength.toFixed(1)}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+export function CurrencyStrength() {
+  const { t } = useLang()
+  const [visible, setVisible] = useState(
+    () => new Set(currencyStrength.map((c) => c.code)),
+  )
+
+  const toggle = (code: string) => {
+    setVisible((prev) => {
+      const next = new Set(prev)
+      if (next.has(code)) {
+        if (next.size > 1) next.delete(code)
+      } else {
+        next.add(code)
+      }
+      return next
+    })
+  }
+
+  return (
+    <section aria-labelledby="currency-strength-title" className="h-[400px]">
       <SectionHeading title={t("sec.currencyStrength1D")} />
-      <Card className="border-border/80 py-0 shadow-sm">
-        <CardContent className="px-3 py-2">
-          <div className="mb-2 grid grid-cols-3 gap-1.5 sm:grid-cols-5 lg:grid-cols-9">
-            {currencyStrength.map((c) => (
-              <div
-                key={c.code}
-                className={cn(
-                  "rounded-md border px-2 py-1 text-center",
-                  strengthBoxClass(c.rankKey),
-                )}
-              >
-                <p className="text-xs font-bold">{c.code}</p>
-                <p className="mt-0.5 font-mono text-[11px] font-semibold tabular-nums">
-                  {c.changePercent >= 0 ? "+" : ""}
-                  {c.strength.toFixed(1)}
-                </p>
-                <p className="mt-0.5 text-[10px] font-medium leading-tight">
-                  {t(c.rankKey)}
-                </p>
-              </div>
-            ))}
-          </div>
-          <div className="flex gap-2">
-            <div className="min-w-0 flex-1 overflow-hidden rounded-md border border-border bg-[#0a0e14]/60 p-1">
-              <div className="h-[260px] w-full">
-                <StrengthChart />
-              </div>
-            </div>
-            <div className="hidden w-[72px] shrink-0 flex-col justify-center gap-1.5 sm:flex">
-              {currencyStrength.map((c, i) => (
-                <div
+      <Card className="h-[calc(100%-1.75rem)] border-border bg-card py-0">
+        <CardContent className="flex h-full flex-col px-3 py-3">
+          <div className="mb-3 grid shrink-0 grid-cols-9 gap-2">
+            {currencyStrength.map((c) => {
+              const active = visible.has(c.code)
+              return (
+                <button
                   key={c.code}
-                  className="flex items-center gap-1.5 text-[10px] leading-tight"
+                  type="button"
+                  onClick={() => toggle(c.code)}
+                  className={cn(
+                    "rounded-md border px-2 py-2 text-center transition-all hover:ring-1 hover:ring-primary/30",
+                    strengthBoxClass(c.rankKey, active),
+                  )}
+                  aria-pressed={active}
                 >
-                  <span
-                    className="size-2 shrink-0 rounded-full"
-                    style={{ backgroundColor: LINE_COLORS[i % LINE_COLORS.length] }}
-                    aria-hidden
-                  />
-                  <span className="min-w-0 truncate font-mono tabular-nums text-muted-foreground">
-                    {c.code}
-                  </span>
-                </div>
-              ))}
+                  <p className="text-[11px] font-bold">{c.code}</p>
+                  <p className="mt-0.5 font-mono text-[10px] font-semibold tabular-nums">
+                    {c.strength.toFixed(1)}
+                  </p>
+                  <p className="mt-0.5 text-[9px] font-medium leading-tight">
+                    {t(c.rankKey)}
+                  </p>
+                </button>
+              )
+            })}
+          </div>
+          <div className="flex min-h-0 flex-1 gap-2">
+            <div
+              className="flex min-h-[260px] min-w-0 flex-1 flex-col overflow-hidden rounded-md border border-border bg-chart-bg p-1.5"
+              role="img"
+              aria-label={t("sec.currencyStrength1D")}
+            >
+              <div className="min-h-0 flex-1">
+                <StrengthChart visible={visible} />
+              </div>
+              <TimeAxis />
             </div>
+            <StrengthLegend visible={visible} onToggle={toggle} />
           </div>
         </CardContent>
       </Card>

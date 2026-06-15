@@ -1,7 +1,7 @@
 "use client"
 
 import { useLang } from "@/lib/i18n"
-import { fearGreedData, fgLabel } from "@/lib/market-data"
+import { fgLabel, type FearGreedItem } from "@/lib/market-data"
 import { cn } from "@/lib/utils"
 
 function sentimentTone(value: number) {
@@ -21,9 +21,9 @@ function sentimentColor(value: number) {
 }
 
 function Gauge({ value }: { value: number }) {
-  const r = 24
-  const cx = 36
-  const cy = 30
+  const r = 44
+  const cx = 60
+  const cy = 50
   const angle = 180 - (value / 100) * 180
   const rad = (angle * Math.PI) / 180
   const nx = cx + r * Math.cos(rad)
@@ -33,7 +33,7 @@ function Gauge({ value }: { value: number }) {
     { from: 0, to: 25, color: "var(--loss)" },
     { from: 25, to: 45, color: "var(--warn)" },
     { from: 45, to: 55, color: "var(--neutral)" },
-    { from: 55, to: 75, color: "color-mix(in oklch, var(--gain) 70%, var(--warn))" },
+    { from: 55, to: 75, color: "#7cb342" },
     { from: 75, to: 100, color: "var(--gain)" },
   ]
 
@@ -50,14 +50,14 @@ function Gauge({ value }: { value: number }) {
   const needleColor = sentimentColor(value)
 
   return (
-    <svg viewBox="0 0 72 36" className="mx-auto h-[28px] w-full max-w-[60px]" aria-hidden>
+    <svg viewBox="0 0 120 54" className="mx-auto h-[56px] w-full max-w-[120px]" aria-hidden>
       {segments.map((s, i) => (
         <path
           key={i}
           d={arc(s.from, s.to)}
           fill="none"
           stroke={s.color}
-          strokeWidth="4"
+          strokeWidth="7"
           strokeLinecap="butt"
         />
       ))}
@@ -67,45 +67,42 @@ function Gauge({ value }: { value: number }) {
         x2={nx}
         y2={ny}
         stroke={needleColor}
-        strokeWidth="1.5"
+        strokeWidth="2.5"
         strokeLinecap="round"
       />
-      <circle cx={cx} cy={cy} r="1.75" fill={needleColor} />
+      <circle cx={cx} cy={cy} r="3" fill={needleColor} />
     </svg>
   )
 }
 
-export function FearGreed() {
+export function FearGreed({ items }: { items: FearGreedItem[] }) {
   const { t } = useLang()
 
   return (
-    <section aria-labelledby="fg-title" className="max-h-[130px] overflow-hidden">
-      <div className="mb-1 flex items-center gap-2">
-        <span className="h-3.5 w-0.5 rounded-full bg-primary" aria-hidden />
-        <h2
-          id="fg-title"
-          className="text-xs font-semibold tracking-tight text-foreground sm:text-sm"
-        >
+    <section aria-labelledby="fg-title" className="h-[200px]">
+      <div className="mb-2 flex items-center gap-2">
+        <span className="h-4 w-0.5 rounded-full bg-primary" aria-hidden />
+        <h2 id="fg-title" className="text-sm font-semibold text-foreground">
           {t("sec.fearGreed")}
         </h2>
       </div>
-      <div className="grid h-[108px] grid-cols-3 gap-0 rounded-lg border border-border bg-gradient-to-b from-card/90 to-card/60">
-        {fearGreedData.map((g) => {
+      <div className="grid h-[172px] grid-cols-3 gap-0 overflow-hidden rounded-lg border border-border bg-card">
+        {items.map((g) => {
           const labelKey = fgLabel(g.value)
           const tone = sentimentTone(g.value)
           return (
             <div
               key={g.key}
-              className="flex min-w-0 flex-col items-center justify-center border-r border-border/80 px-1.5 py-1 last:border-r-0"
+              className="flex flex-col items-center justify-center border-r border-border px-3 py-2 last:border-r-0"
             >
-              <p className="mb-0.5 w-full truncate text-center text-[10px] font-semibold leading-tight text-foreground">
+              <p className="mb-1.5 text-xs font-semibold text-foreground">
                 {t(g.key)}
               </p>
-              <div className="relative w-full">
+              <div className="relative w-full py-1">
                 <Gauge value={g.value} />
                 <span
                   className={cn(
-                    "absolute inset-x-0 bottom-0 text-center font-mono text-xs font-bold tabular-nums leading-none",
+                    "absolute inset-x-0 bottom-1 text-center font-mono text-xl font-bold tabular-nums",
                     tone === "loss" && "text-loss",
                     tone === "warn" && "text-warn",
                     tone === "neutral" && "text-foreground",
@@ -117,7 +114,7 @@ export function FearGreed() {
               </div>
               <p
                 className={cn(
-                  "mt-0.5 truncate text-[9px] font-semibold leading-tight",
+                  "mt-1 text-xs font-semibold",
                   tone === "loss" && "text-loss",
                   tone === "warn" && "text-warn",
                   tone === "neutral" && "text-muted-foreground",

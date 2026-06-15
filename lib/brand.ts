@@ -1,0 +1,5 @@
+export const SITE_NAME = "BTrading Market Insights"
+export const SITE_NAME_SHORT = "BTrading"
+export const SITE_LOGO = "/brand/logo.png"
+export const SITE_EMAIL = "support@btrading.com"
+export const SITE_PRIVACY_EMAIL = "privacy@btrading.com"

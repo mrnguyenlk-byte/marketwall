@@ -1,3 +1,10 @@
+import { buildDashboardData } from "@/lib/providers/build-dashboard-data"
+import { getMockData as getMarketMock } from "@/lib/providers/market-provider"
+import { getMockData as getHeatmapMock } from "@/lib/providers/heatmap-provider"
+import { getMockData as getCryptoMock } from "@/lib/providers/crypto-provider"
+import { getMockData as getNewsMock } from "@/lib/providers/news-provider"
+import { getMockData as getCalendarMock } from "@/lib/providers/calendar-provider"
+import { fearGreedData } from "@/lib/market-data"
 import { Header } from "@/components/marketwall/header"
 import { TickerBar } from "@/components/marketwall/ticker-bar"
 import { Sidebar } from "@/components/marketwall/sidebar"
@@ -10,29 +17,50 @@ import { BrokerHighlights } from "@/components/marketwall/broker-highlights"
 import { RiskWarning } from "@/components/marketwall/risk-warning"
 import { Footer } from "@/components/marketwall/footer"
 
-export default function Page() {
-  return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      <TickerBar />
+export default async function Page() {
+  let dashboard
+  try {
+    dashboard = await buildDashboardData()
+  } catch {
+    const marketMock = getMarketMock()
+    const heatmapMock = getHeatmapMock()
+    const crypto = getCryptoMock()
+    dashboard = {
+      dashboardTickerBarItems: marketMock.dashboardTickerBarItems,
+      overviewByCategory: marketMock.overviewByCategory,
+      heatmapMarkets: [
+        heatmapMock.markets.find((m) => m.id === "vn")!,
+        heatmapMock.markets.find((m) => m.id === "us")!,
+        { ...heatmapMock.markets.find((m) => m.id === "crypto")!, tiles: crypto.heatmapTiles },
+      ],
+      fearGreedItems: fearGreedData,
+    }
+  }
+  const newsFallback = getNewsMock().items
+  const calendarFallback = getCalendarMock().events
 
-      <main className="w-full px-3 py-3 lg:px-4">
-        <div className="grid w-full grid-cols-1 gap-3 xl:grid-cols-[340px_minmax(0,1fr)] xl:items-start">
+  return (
+    <div className="min-h-screen w-full bg-background">
+      <Header />
+      <TickerBar items={dashboard.dashboardTickerBarItems} />
+
+      <main className="w-full px-3 py-4 lg:px-4">
+        <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[300px_minmax(0,1fr)]">
           <aside
             aria-label="Market sidebar"
-            className="w-full shrink-0 xl:sticky xl:top-[96px] xl:w-[340px]"
+            className="w-full lg:sticky lg:top-[104px] lg:w-[300px] lg:shrink-0"
           >
-            <Sidebar />
+            <Sidebar overviewByCategory={dashboard.overviewByCategory} />
           </aside>
 
           <section className="min-w-0 space-y-4">
-            <FearGreed />
-            <HeatmapSection />
+            <FearGreed items={dashboard.fearGreedItems} />
+            <HeatmapSection markets={dashboard.heatmapMarkets} />
             <CurrencyStrength />
 
-            <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-              <EconomicCalendar />
-              <MarketNews />
+            <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2">
+              <EconomicCalendar fallbackEvents={calendarFallback} />
+              <MarketNews fallbackItems={newsFallback} />
             </div>
 
             <BrokerHighlights />

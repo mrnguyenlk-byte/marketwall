@@ -130,17 +130,45 @@ export function SectionHeading({
 
 // Maps a percent change to a heatmap background color via inline style.
 export function heatStyle(pct: number): React.CSSProperties {
-  const clamped = Math.max(-3, Math.min(3, pct))
-  const intensity = Math.min(1, Math.abs(clamped) / 3)
-  if (clamped > 0.05) {
-    return {
-      backgroundColor: `color-mix(in oklch, var(--gain) ${50 + intensity * 45}%, #0c1810)`,
+  const clamped = Math.max(-5, Math.min(5, pct))
+
+  const stops: [number, number, number, number][] = [
+    [-5, 125, 48, 38],
+    [-2, 155, 62, 45],
+    [-0.5, 185, 90, 55],
+    [-0.05, 200, 130, 60],
+    [0, 210, 175, 48],
+    [0.15, 155, 168, 58],
+    [0.8, 75, 145, 55],
+    [1.5, 42, 118, 48],
+    [2.5, 28, 98, 42],
+    [3.5, 18, 82, 38],
+    [5, 14, 115, 48],
+  ]
+
+  if (clamped <= stops[0][0]) return { backgroundColor: rgb(stops[0]) }
+  if (clamped >= stops[stops.length - 1][0]) {
+    return { backgroundColor: rgb(stops[stops.length - 1]) }
+  }
+
+  for (let i = 0; i < stops.length - 1; i++) {
+    const [p0, r0, g0, b0] = stops[i]
+    const [p1, r1, g1, b1] = stops[i + 1]
+    if (clamped >= p0 && clamped <= p1) {
+      const t = (clamped - p0) / (p1 - p0)
+      return {
+        backgroundColor: `rgb(${lerp(r0, r1, t)}, ${lerp(g0, g1, t)}, ${lerp(b0, b1, t)})`,
+      }
     }
   }
-  if (clamped < -0.05) {
-    return {
-      backgroundColor: `color-mix(in oklch, var(--loss) ${50 + intensity * 45}%, #180c0c)`,
-    }
-  }
-  return { backgroundColor: "color-mix(in oklch, var(--neutral) 35%, #121820)" }
+
+  return { backgroundColor: "rgb(210, 175, 48)" }
+}
+
+function lerp(a: number, b: number, t: number) {
+  return Math.round(a + (b - a) * t)
+}
+
+function rgb(stop: [number, number, number, number]) {
+  return `rgb(${stop[1]}, ${stop[2]}, ${stop[3]})`
 }

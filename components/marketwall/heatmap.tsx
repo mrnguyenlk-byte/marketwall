@@ -1,26 +1,40 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { ArrowUpRight } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { useLang } from "@/lib/i18n"
-import {
-  heatmapMarkets,
-  type HeatmapMarketId,
-  type HeatmapTile,
-  type VnExchangeId,
-} from "@/lib/market-data"
-import { SectionHeading, heatStyle } from "./shared"
+import type { HeatmapMarket, HeatmapMarketId, HeatmapTile, VnExchangeId } from "@/lib/market-data"
+import { SectionHeading, fmt, heatStyle } from "./shared"
+import { HeatmapGridSkeleton } from "./data-skeletons"
 import { cn } from "@/lib/utils"
 
 const timeframes = ["1D", "7D", "1M"] as const
+const VN_EXCHANGE_IDS: VnExchangeId[] = ["hose", "hnx", "upcom"]
+
+type CryptoApiResponse = {
+  source?: "live" | "mock"
+  heatmapTiles?: HeatmapTile[]
+}
+
+type VietnamMarketsApiResponse = {
+  source?: "live" | "mock"
+  heatmapMarket?: HeatmapMarket
+}
+
+function cryptoPrice(n: number) {
+  if (n >= 1000) return fmt(n)
+  if (n >= 1) return fmt(n, { maximumFractionDigits: 2, minimumFractionDigits: 2 })
+  if (n >= 0.01) return fmt(n, { maximumFractionDigits: 4, minimumFractionDigits: 2 })
+  return fmt(n, { maximumFractionDigits: 6, minimumFractionDigits: 2 })
+}
 
 function tileSpan(weight: number) {
-  if (weight >= 12) return "col-span-5 row-span-5"
-  if (weight >= 11) return "col-span-4 row-span-4"
+  if (weight >= 12) return "col-span-4 row-span-4"
+  if (weight >= 11) return "col-span-3 row-span-3"
   if (weight >= 10) return "col-span-3 row-span-3"
-  if (weight >= 9) return "col-span-3 row-span-2"
+  if (weight >= 9) return "col-span-2 row-span-2"
   if (weight >= 8) return "col-span-2 row-span-2"
   if (weight >= 7) return "col-span-2 row-span-1"
   if (weight >= 5) return "col-span-1 row-span-2"
@@ -43,14 +57,22 @@ function changeSize(weight: number) {
   return "text-[10px] sm:text-xs"
 }
 
+function priceSize(weight: number) {
+  if (weight >= 12) return "text-sm sm:text-base lg:text-lg"
+  if (weight >= 10) return "text-xs sm:text-sm lg:text-base"
+  if (weight >= 7) return "text-[10px] sm:text-xs lg:text-sm"
+  return "text-[9px] sm:text-[10px]"
+}
+
 function HeatGrid({ tiles }: { tiles: HeatmapTile[] }) {
   const { lang } = useLang()
 
   return (
-    <div className="grid h-full grid-flow-dense auto-rows-[minmax(52px,1fr)] grid-cols-6 gap-px bg-[#030508] sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 lg:auto-rows-[minmax(56px,1fr)]">
+    <div className="grid h-full grid-flow-dense auto-rows-[minmax(48px,1fr)] grid-cols-6 gap-px bg-heatmap-gap sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12">
       {tiles.map((tile) => {
         const up = tile.changePercent >= 0
-        const showName = tile.weight >= 7
+        const isCryptoTile = tile.price != null
+        const showName = !isCryptoTile && tile.weight >= 7
         return (
           <button
             key={tile.symbol}
@@ -60,7 +82,11 @@ function HeatGrid({ tiles }: { tiles: HeatmapTile[] }) {
               "group/tile flex flex-col items-start justify-between rounded-none border border-black/20 p-1.5 text-left transition-[filter,transform] hover:z-10 hover:brightness-110 lg:p-2.5",
               tileSpan(tile.weight),
             )}
-            title={`${tile.name[lang]} ${up ? "+" : ""}${tile.changePercent.toFixed(2)}%`}
+            title={
+              isCryptoTile
+                ? `${tile.symbol} $${cryptoPrice(tile.price!)} ${up ? "+" : ""}${tile.changePercent.toFixed(2)}%`
+                : `${tile.name[lang]} ${up ? "+" : ""}${tile.changePercent.toFixed(2)}%`
+            }
           >
             <span
               className={cn(
@@ -70,6 +96,16 @@ function HeatGrid({ tiles }: { tiles: HeatmapTile[] }) {
             >
               {tile.symbol}
             </span>
+            {isCryptoTile && (
+              <span
+                className={cn(
+                  "truncate font-mono font-semibold tabular-nums text-white/90 drop-shadow-sm",
+                  priceSize(tile.weight),
+                )}
+              >
+                ${cryptoPrice(tile.price!)}
+              </span>
+            )}
             {showName && (
               <span className="hidden truncate text-[10px] leading-tight text-white/75 sm:block lg:text-xs">
                 {tile.name[lang]}
@@ -91,18 +127,77 @@ function HeatGrid({ tiles }: { tiles: HeatmapTile[] }) {
   )
 }
 
-export function HeatmapSection() {
+function filterVnExchanges(market: HeatmapMarket): HeatmapMarket {
+  return {
+    ...market,
+    exchanges: market.exchanges?.filter((ex) => VN_EXCHANGE_IDS.includes(ex.id)) ?? [],
+  }
+}
+
+export function HeatmapSection({ markets }: { markets: HeatmapMarket[] }) {
   const { t } = useLang()
   const [activeMarket, setActiveMarket] = useState<HeatmapMarketId>("vn")
   const [activeExchange, setActiveExchange] = useState<VnExchangeId>("hose")
   const [timeframe, setTimeframe] = useState<(typeof timeframes)[number]>("1D")
+  const [cryptoTiles, setCryptoTiles] = useState<HeatmapTile[] | null>(null)
+  const [vnMarket, setVnMarket] = useState<HeatmapMarket | null>(null)
+  const [loading, setLoading] = useState(true)
 
-  const current = heatmapMarkets.find((m) => m.id === activeMarket)!
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadHeatmapData() {
+      setLoading(true)
+      try {
+        const [cryptoRes, vietnamRes] = await Promise.all([
+          fetch("/api/crypto", { cache: "no-store" }),
+          fetch("/api/vietnam-markets", { cache: "no-store" }),
+        ])
+
+        if (!cancelled && cryptoRes.ok) {
+          const cryptoData = (await cryptoRes.json()) as CryptoApiResponse
+          if (cryptoData.heatmapTiles?.length) {
+            setCryptoTiles(cryptoData.heatmapTiles)
+          }
+        }
+
+        if (!cancelled && vietnamRes.ok) {
+          const vietnamData = (await vietnamRes.json()) as VietnamMarketsApiResponse
+          if (vietnamData.heatmapMarket?.exchanges?.length) {
+            setVnMarket(filterVnExchanges(vietnamData.heatmapMarket))
+          }
+        }
+      } catch {
+        // keep SSR fallback tiles
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    loadHeatmapData()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const resolvedMarkets = markets.map((market) => {
+    if (market.id === "vn") {
+      return vnMarket ?? filterVnExchanges(market)
+    }
+    if (market.id === "crypto" && cryptoTiles) {
+      return { ...market, tiles: cryptoTiles }
+    }
+    return market
+  })
+
+  const current = resolvedMarkets.find((m) => m.id === activeMarket)!
   const vnExchanges = current.exchanges ?? []
   const activeTiles =
     activeMarket === "vn"
       ? vnExchanges.find((e) => e.id === activeExchange)?.tiles ?? []
-      : current.tiles ?? []
+      : activeMarket === "crypto" && cryptoTiles
+        ? cryptoTiles
+        : current.tiles ?? []
 
   return (
     <section aria-labelledby="heatmap-title" className="min-w-0">
@@ -122,7 +217,7 @@ export function HeatmapSection() {
             aria-label="Market"
             className="flex flex-wrap items-center gap-1"
           >
-            {heatmapMarkets.map((market) => (
+            {resolvedMarkets.map((market) => (
               <button
                 key={market.id}
                 type="button"
@@ -142,22 +237,34 @@ export function HeatmapSection() {
             ))}
           </div>
 
-          <div className="flex shrink-0 items-center gap-0.5 rounded-md bg-secondary/60 p-0.5 ring-1 ring-border/50">
-            {timeframes.map((tf) => (
-              <button
-                key={tf}
-                type="button"
-                onClick={() => setTimeframe(tf)}
-                className={cn(
-                  "rounded px-2.5 py-1 text-[11px] font-semibold transition-colors",
-                  timeframe === tf
-                    ? "bg-card text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                {tf}
-              </button>
-            ))}
+          <div className="flex shrink-0 items-center gap-2">
+            <div className="flex items-center gap-0.5 rounded-md bg-secondary/60 p-0.5 ring-1 ring-border/50">
+              {timeframes.map((tf) => (
+                <button
+                  key={tf}
+                  type="button"
+                  onClick={() => setTimeframe(tf)}
+                  className={cn(
+                    "rounded px-2.5 py-1 text-[11px] font-semibold transition-colors",
+                    timeframe === tf
+                      ? "bg-card text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {tf}
+                </button>
+              ))}
+            </div>
+            <div className="hidden items-center gap-1 sm:flex">
+              {["-3%", "0%", "+3%"].map((label) => (
+                <span
+                  key={label}
+                  className="rounded px-2 py-0.5 text-[10px] font-medium text-muted-foreground ring-1 ring-border/50"
+                >
+                  {label}
+                </span>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -187,22 +294,12 @@ export function HeatmapSection() {
           </div>
         )}
 
-        <div className="min-h-[400px] bg-[#060a10] p-px sm:min-h-[520px] lg:min-h-[680px]">
-          <HeatGrid tiles={activeTiles} />
+        <div className="h-[520px] bg-chart-bg p-px">
+          {loading ? <HeatmapGridSkeleton /> : <HeatGrid tiles={activeTiles} />}
         </div>
 
-        <div className="flex items-center justify-between gap-3 border-t border-border bg-card/60 px-3 py-1.5 text-[10px] text-muted-foreground">
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="flex items-center gap-1">
-              <span className="size-2.5 rounded-none bg-loss" aria-hidden /> -3%
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="size-2.5 rounded-none bg-neutral/60" aria-hidden /> 0%
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="size-2.5 rounded-none bg-gain" aria-hidden /> +3%
-            </span>
-          </div>
+        <div className="flex items-center justify-between gap-3 border-t border-border bg-card/60 px-3 py-2 text-[10px] text-muted-foreground">
+          <span>{t("misc.delayed")}</span>
           <Button
             variant="link"
             size="sm"
