@@ -2,7 +2,6 @@
 
 import type { ReactNode } from "react"
 
-import Image from "next/image"
 import Link from "next/link"
 import { Check } from "lucide-react"
 import { useLang } from "@/lib/i18n"
@@ -33,36 +32,30 @@ function BannerShell({
   ariaLabel,
   bg,
   height,
-  priority,
   children,
 }: {
   href: string
   ariaLabel: string
   bg: string
   height: number
-  priority?: boolean
   children: ReactNode
 }) {
   return (
     <Link
       href={href}
       aria-label={ariaLabel}
-      className="group relative block w-full shrink-0 overflow-hidden rounded-[12px] border border-border shadow-md transition-opacity hover:opacity-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:border-white/10 dark:shadow-[0_4px_18px_rgba(0,0,0,0.35)]"
+      className="group relative block w-full shrink-0 overflow-hidden rounded-[12px] border border-border bg-[#060d17] shadow-md transition-opacity hover:opacity-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:border-white/10 dark:shadow-[0_4px_18px_rgba(0,0,0,0.35)]"
       style={{ width: SIDEBAR_W, height }}
     >
-      <Image
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
         src={bg}
         alt=""
-        fill
-        className="object-cover object-right"
-        sizes={`${SIDEBAR_W}px`}
-        priority={priority}
         aria-hidden
+        className="absolute inset-0 h-full w-full object-cover object-right"
       />
-      <div className="absolute inset-0">
-        <div className="flex h-full w-[58%] flex-col justify-between bg-gradient-to-r from-[#060d17]/75 via-[#060d17]/30 to-transparent px-4 py-4">
-          {children}
-        </div>
+      <div className="relative z-10 flex h-full w-[58%] flex-col justify-between bg-gradient-to-r from-[#060d17]/85 via-[#060d17]/40 to-transparent px-4 py-4">
+        {children}
       </div>
     </Link>
   )
@@ -77,7 +70,6 @@ function PromoBanner({ href }: { href: string }) {
       ariaLabel={t("ad.brokerPromo.title")}
       bg={BANNER_BG.promo}
       height={BANNER_H.promo}
-      priority
     >
       <div>
         <h3 className="text-[15px] font-bold leading-[1.25] tracking-tight text-white drop-shadow-sm">
