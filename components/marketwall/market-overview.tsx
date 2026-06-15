@@ -36,39 +36,53 @@ const TABS: OverviewCategory[] = ["indices", "commodities", "crypto", "forex"]
 function OverviewRow({
   item,
   onSelect,
+  interactive,
 }: {
   item: OverviewListItem
   onSelect: (symbol: string) => void
+  interactive: boolean
 }) {
   const up = item.trend === "up"
+  const className =
+    "flex w-full items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-secondary/50"
+  const content = (
+    <>
+      <SymbolLogo symbol={item.symbol} size="md" />
+      <span className="min-w-0 flex-1 truncate text-xs font-semibold text-foreground">
+        {item.symbol}
+      </span>
+      <Sparkline
+        data={item.sparkline}
+        positive={up}
+        className="h-4 w-10 shrink-0"
+        width={40}
+        height={16}
+      />
+      <div className="shrink-0 text-right">
+        <p className="font-mono text-[11px] tabular-nums text-foreground">
+          {fmt(item.price)}
+        </p>
+        <ChangePill
+          value={item.changePercent}
+          showIcon={false}
+          className="mt-0.5 px-0.5 py-0 text-[9px]"
+        />
+      </div>
+    </>
+  )
+
+  if (!interactive) {
+    return (
+      <li>
+        <div className={className}>{content}</div>
+      </li>
+    )
+  }
+
   return (
     <li>
-      <button
-        type="button"
-        onClick={() => onSelect(item.symbol)}
-        className="flex w-full items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-secondary/50"
-      >
-        <SymbolLogo symbol={item.symbol} size="md" />
-        <span className="min-w-0 flex-1 truncate text-xs font-semibold text-foreground">
-          {item.symbol}
-        </span>
-        <Sparkline
-          data={item.sparkline}
-          positive={up}
-          className="h-4 w-10 shrink-0"
-          width={40}
-          height={16}
-        />
-        <div className="shrink-0 text-right">
-          <p className="font-mono text-[11px] tabular-nums text-foreground">
-            {fmt(item.price)}
-          </p>
-          <ChangePill
-            value={item.changePercent}
-            showIcon={false}
-            className="mt-0.5 px-0.5 py-0 text-[9px]"
-          />
-        </div>
+      <button type="button" onClick={() => onSelect(item.symbol)} className={className}>
+        {content}
       </button>
     </li>
   )
@@ -115,6 +129,7 @@ export function MarketOverview({
   }, [fallbackOverview, vietnam.data, global.data, crypto.data])
 
   const items = overviewByCategory[tab]
+  const symbolClickEnabled = features.symbolModal
 
   return (
     <Card className="flex h-[600px] w-full max-w-[300px] flex-col gap-0 overflow-hidden border-border bg-card p-0">
@@ -147,7 +162,12 @@ export function MarketOverview({
       ) : (
         <ul className="min-h-0 flex-1 divide-y divide-border overflow-y-auto">
           {items.map((item) => (
-            <OverviewRow key={item.symbol} item={item} onSelect={openDetail} />
+            <OverviewRow
+              key={item.symbol}
+              item={item}
+              onSelect={openDetail}
+              interactive={symbolClickEnabled}
+            />
           ))}
         </ul>
       )}

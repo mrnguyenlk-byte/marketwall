@@ -1,4 +1,5 @@
 import { buildDashboardData } from "@/lib/providers/build-dashboard-data"
+import { features } from "@/lib/config/features"
 import { getMockData as getMarketMock } from "@/lib/providers/market-provider"
 import { getMockData as getHeatmapMock } from "@/lib/providers/heatmap-provider"
 import { getMockData as getCryptoMock } from "@/lib/providers/crypto-provider"
@@ -18,6 +19,7 @@ import { MarketNews } from "@/components/marketwall/market-news"
 import { BrokerHighlights } from "@/components/marketwall/broker-highlights"
 import { RiskWarning } from "@/components/marketwall/risk-warning"
 import { Footer } from "@/components/marketwall/footer"
+import { SectionErrorBoundary } from "@/components/marketwall/section-error-boundary"
 
 export const metadata = homeMetadata
 
@@ -58,7 +60,9 @@ export default async function Page() {
   return (
     <div className="min-h-screen w-full bg-background">
       <Header />
-      <TickerBar items={dashboard.dashboardTickerBarItems} />
+      <SectionErrorBoundary name="ticker">
+        <TickerBar items={dashboard.dashboardTickerBarItems} />
+      </SectionErrorBoundary>
 
       <main className="w-full px-3 py-4 lg:px-4">
         <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[300px_minmax(0,1fr)]">
@@ -70,16 +74,30 @@ export default async function Page() {
           </aside>
 
           <section className="min-w-0 space-y-4">
-            <FearGreed items={dashboard.fearGreedItems} />
-            <HeatmapSection markets={dashboard.heatmapMarkets} />
-            <CurrencyStrength />
+            <SectionErrorBoundary name="fear-greed">
+              <FearGreed items={dashboard.fearGreedItems} />
+            </SectionErrorBoundary>
+            <SectionErrorBoundary name="heatmap">
+              <HeatmapSection markets={dashboard.heatmapMarkets} />
+            </SectionErrorBoundary>
+            {features.currencyStrength && (
+              <SectionErrorBoundary name="currency-strength">
+                <CurrencyStrength />
+              </SectionErrorBoundary>
+            )}
 
             <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2">
-              <EconomicCalendar fallbackEvents={calendarFallback} />
-              <MarketNews fallbackItems={newsFallback} />
+              <SectionErrorBoundary name="calendar">
+                <EconomicCalendar fallbackEvents={calendarFallback} />
+              </SectionErrorBoundary>
+              <SectionErrorBoundary name="news">
+                <MarketNews fallbackItems={newsFallback} />
+              </SectionErrorBoundary>
             </div>
 
-            <BrokerHighlights />
+            <SectionErrorBoundary name="brokers">
+              <BrokerHighlights />
+            </SectionErrorBoundary>
             <RiskWarning />
           </section>
         </div>

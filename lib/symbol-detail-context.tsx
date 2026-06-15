@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react"
 
+import { features } from "@/lib/config/features"
 import { resolveSymbolDetail, type SymbolDetailRecord } from "@/lib/symbol-detail"
 
 type SymbolDetailContextValue = {
@@ -18,9 +19,16 @@ type SymbolDetailContextValue = {
   closeDetail: () => void
 }
 
+const NOOP_CONTEXT: SymbolDetailContextValue = {
+  openSymbol: null,
+  record: null,
+  openDetail: () => {},
+  closeDetail: () => {},
+}
+
 const SymbolDetailContext = createContext<SymbolDetailContextValue | null>(null)
 
-export function SymbolDetailProvider({ children }: { children: ReactNode }) {
+function SymbolDetailProviderEnabled({ children }: { children: ReactNode }) {
   const [openSymbol, setOpenSymbol] = useState<string | null>(null)
 
   const record = useMemo(
@@ -44,6 +52,18 @@ export function SymbolDetailProvider({ children }: { children: ReactNode }) {
       {children}
     </SymbolDetailContext.Provider>
   )
+}
+
+export function SymbolDetailProvider({ children }: { children: ReactNode }) {
+  if (!features.symbolModal) {
+    return (
+      <SymbolDetailContext.Provider value={NOOP_CONTEXT}>
+        {children}
+      </SymbolDetailContext.Provider>
+    )
+  }
+
+  return <SymbolDetailProviderEnabled>{children}</SymbolDetailProviderEnabled>
 }
 
 export function useSymbolDetail() {

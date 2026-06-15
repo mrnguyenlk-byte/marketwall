@@ -3,7 +3,6 @@
 import type { ReactNode } from "react"
 
 import Link from "next/link"
-import { Check } from "lucide-react"
 import { features } from "@/lib/config/features"
 import { useLang } from "@/lib/i18n"
 import { MarketOverview } from "./market-overview"
@@ -15,21 +14,17 @@ const SIDEBAR_W = 300
 
 const BANNER_H = {
   promo: 178,
-  partner: 198,
+  partner: 178,
 } as const
 
-/** Background-only art — text is rendered in code (i18n). */
+/** Background art with CSS gradient fallback when images are missing. */
 const BANNER_IMAGES = {
-  promo: "/banners/promo-trade-bg.png",
-  partner: "/banners/partner-platform-bg.png",
+  promo: "/ads/trade-smarter.png",
+  partner: "/ads/pro-broker.png",
 } as const
 
-const PRO_BULLETS = [
-  "ad.proBroker.b1",
-  "ad.proBroker.b2",
-  "ad.proBroker.b3",
-  "ad.proBroker.b4",
-] as const
+const BANNER_GRADIENT =
+  "linear-gradient(135deg, #060d17 0%, #0f2847 45%, #1a3a5c 100%)"
 
 function BannerShell({
   href,
@@ -53,7 +48,9 @@ function BannerShell({
     >
       <div
         className="relative h-full w-full bg-[#060d17] bg-cover bg-right bg-no-repeat"
-        style={{ backgroundImage: `url("${imageSrc}")` }}
+        style={{
+          backgroundImage: `${BANNER_GRADIENT}, url("${imageSrc}")`,
+        }}
       >
         <div
           aria-hidden
@@ -103,20 +100,12 @@ function PartnerBanner({ href }: { href: string }) {
       height={BANNER_H.partner}
     >
       <div>
-        <h3 className="text-[14px] font-bold leading-[1.25] tracking-tight text-white drop-shadow-sm">
+        <h3 className="text-[15px] font-bold leading-[1.25] tracking-tight text-white drop-shadow-sm">
           {t("ad.proBroker.title")}
         </h3>
-        <ul className="mt-2 space-y-1">
-          {PRO_BULLETS.map((key) => (
-            <li
-              key={key}
-              className="flex items-center gap-1.5 text-[11px] font-medium leading-tight text-white/95 drop-shadow-sm"
-            >
-              <Check className="size-3 shrink-0 text-warn" strokeWidth={2.5} aria-hidden />
-              {t(key)}
-            </li>
-          ))}
-        </ul>
+        <p className="mt-2 text-[12px] font-medium leading-[1.4] text-white/90 drop-shadow-sm">
+          {t("ad.proBroker.subtitle")}
+        </p>
       </div>
       <span className="inline-flex h-9 w-fit shrink-0 items-center rounded-lg bg-warn px-4 text-[12px] font-semibold text-[#0a0f16]">
         {t("ad.proBroker.cta")}

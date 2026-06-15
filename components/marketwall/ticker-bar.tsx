@@ -22,16 +22,23 @@ import { Sparkline, fmt, signClass } from "./shared"
 import { SymbolLogo } from "./symbol-logo"
 import { cn } from "@/lib/utils"
 
-function TickerItem({ item, onSelect }: { item: TickerBarItem; onSelect: (symbol: string) => void }) {
+function TickerItem({
+  item,
+  onSelect,
+  interactive,
+}: {
+  item: TickerBarItem
+  onSelect: (symbol: string) => void
+  interactive: boolean
+}) {
   const up = item.trend === "up"
   const absChange = (item.price * item.changePercent) / 100
-
-  return (
-    <button
-      type="button"
-      onClick={() => onSelect(item.symbol)}
-      className="flex items-center gap-2 whitespace-nowrap px-4 py-2 transition-colors hover:bg-secondary/40"
-    >
+  const className = cn(
+    "flex items-center gap-2 whitespace-nowrap px-4 py-2",
+    interactive && "transition-colors hover:bg-secondary/40",
+  )
+  const content = (
+    <>
       <SymbolLogo symbol={item.symbol} size="sm" />
       <span className="text-xs font-bold text-foreground">{item.symbol}</span>
       <span className="font-mono text-xs tabular-nums text-foreground">{fmt(item.price)}</span>
@@ -44,6 +51,16 @@ function TickerItem({ item, onSelect }: { item: TickerBarItem; onSelect: (symbol
         {item.changePercent.toFixed(2)}%
       </span>
       <Sparkline data={item.sparkline} positive={up} className="h-4 w-14" width={56} height={16} />
+    </>
+  )
+
+  if (!interactive) {
+    return <div className={className}>{content}</div>
+  }
+
+  return (
+    <button type="button" onClick={() => onSelect(item.symbol)} className={className}>
+      {content}
     </button>
   )
 }
@@ -82,6 +99,7 @@ export function TickerBar({ items: fallbackItems }: { items: TickerBarItem[] }) 
 
   const symbols = items.map((item) => item.symbol)
   const itemBySymbol = Object.fromEntries(items.map((item) => [item.symbol, item]))
+  const symbolClickEnabled = features.symbolModal
 
   return (
     <div className="flex w-full items-stretch border-b border-border bg-surface-elevated">
@@ -94,12 +112,26 @@ export function TickerBar({ items: fallbackItems }: { items: TickerBarItem[] }) 
           {symbols.map((s) => {
             const item = itemBySymbol[s]
             if (!item) return null
-            return <TickerItem key={`a-${s}`} item={item} onSelect={openDetail} />
+            return (
+              <TickerItem
+                key={`a-${s}`}
+                item={item}
+                onSelect={openDetail}
+                interactive={symbolClickEnabled}
+              />
+            )
           })}
           {symbols.map((s) => {
             const item = itemBySymbol[s]
             if (!item) return null
-            return <TickerItem key={`b-${s}`} item={item} onSelect={openDetail} />
+            return (
+              <TickerItem
+                key={`b-${s}`}
+                item={item}
+                onSelect={openDetail}
+                interactive={symbolClickEnabled}
+              />
+            )
           })}
         </div>
         <div className="pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-surface-elevated to-transparent" />

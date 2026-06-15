@@ -149,23 +149,27 @@ const dict: Dict = {
 
   // Sidebar ads
   "ad.brokerPromo.title": {
-    vi: "Giao dịch thông minh với Nền tảng hàng đầu",
-    en: "Trade Smarter With Top Platforms",
+    vi: "Trung Tâm Dữ Liệu Thị Trường",
+    en: "Market Intelligence Starts Here",
   },
   "ad.brokerPromo.subtitle": {
-    vi: "So sánh, lựa chọn và giao dịch tự tin",
-    en: "Compare, Choose, and Trade with Confidence",
+    vi: "Theo dõi thị trường. So sánh nền tảng. Ra quyết định tốt hơn.",
+    en: "Track markets. Compare platforms. Make better decisions.",
   },
   "ad.brokerPromo.cta": { vi: "Xem nền tảng", en: "View Platforms" },
   "ad.proBroker.title": {
-    vi: "Trở thành Đối tác Nền tảng chuyên nghiệp",
-    en: "Become A Professional Platform Partner",
+    vi: "Trở Thành Đối Tác BTrading",
+    en: "Partner With BTrading",
+  },
+  "ad.proBroker.subtitle": {
+    vi: "Phát triển mạng lưới tài chính cùng dữ liệu thị trường đáng tin cậy.",
+    en: "Build your financial network with trusted market insights.",
   },
   "ad.proBroker.b1": { vi: "Hoa hồng cao", en: "High commission" },
   "ad.proBroker.b2": { vi: "Hỗ trợ toàn diện", en: "Full support" },
   "ad.proBroker.b3": { vi: "Công nghệ tiên tiến", en: "Advanced technology" },
   "ad.proBroker.b4": { vi: "Phát triển bền vững", en: "Sustainable growth" },
-  "ad.proBroker.cta": { vi: "Tìm hiểu thêm", en: "Learn More" },
+  "ad.proBroker.cta": { vi: "Liên hệ", en: "Contact Us" },
 
   // Contact page
   "sec.contact": { vi: "Liên hệ", en: "Contact" },

@@ -64,6 +64,7 @@ function priceSize(weight: number) {
 function HeatGrid({ tiles }: { tiles: HeatmapTile[] }) {
   const { lang } = useLang()
   const { openDetail } = useSymbolDetail()
+  const symbolClickEnabled = features.symbolModal
 
   return (
     <div className="grid h-full grid-flow-dense auto-rows-[minmax(48px,1fr)] grid-cols-6 gap-px bg-heatmap-gap sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12">
@@ -71,22 +72,13 @@ function HeatGrid({ tiles }: { tiles: HeatmapTile[] }) {
         const up = tile.changePercent >= 0
         const isCryptoTile = tile.price != null
         const showName = !isCryptoTile && tile.weight >= 7
-        return (
-          <button
-            key={tile.symbol}
-            type="button"
-            onClick={() => openDetail(tile.symbol)}
-            style={heatStyle(tile.changePercent)}
-            className={cn(
-              "group/tile flex flex-col items-start justify-between rounded-none border border-black/20 p-1.5 text-left transition-[filter,transform] hover:z-10 hover:brightness-110 lg:p-2.5",
-              tileSpan(tile.weight),
-            )}
-            title={
-              isCryptoTile
-                ? `${tile.symbol} $${cryptoPrice(tile.price!)} ${up ? "+" : ""}${tile.changePercent.toFixed(2)}%`
-                : `${tile.name[lang]} ${up ? "+" : ""}${tile.changePercent.toFixed(2)}%`
-            }
-          >
+        const className = cn(
+          "group/tile flex flex-col items-start justify-between rounded-none border border-black/20 p-1.5 text-left transition-[filter,transform] lg:p-2.5",
+          symbolClickEnabled && "hover:z-10 hover:brightness-110",
+          tileSpan(tile.weight),
+        )
+        const content = (
+          <>
             <span
               className={cn(
                 "truncate font-extrabold leading-none tracking-tight text-white drop-shadow-sm",
@@ -119,6 +111,40 @@ function HeatGrid({ tiles }: { tiles: HeatmapTile[] }) {
               {up ? "+" : ""}
               {tile.changePercent.toFixed(2)}%
             </span>
+          </>
+        )
+
+        if (!symbolClickEnabled) {
+          return (
+            <div
+              key={tile.symbol}
+              style={heatStyle(tile.changePercent)}
+              className={className}
+              title={
+                isCryptoTile
+                  ? `${tile.symbol} $${cryptoPrice(tile.price!)} ${up ? "+" : ""}${tile.changePercent.toFixed(2)}%`
+                  : `${tile.name[lang]} ${up ? "+" : ""}${tile.changePercent.toFixed(2)}%`
+              }
+            >
+              {content}
+            </div>
+          )
+        }
+
+        return (
+          <button
+            key={tile.symbol}
+            type="button"
+            onClick={() => openDetail(tile.symbol)}
+            style={heatStyle(tile.changePercent)}
+            className={className}
+            title={
+              isCryptoTile
+                ? `${tile.symbol} $${cryptoPrice(tile.price!)} ${up ? "+" : ""}${tile.changePercent.toFixed(2)}%`
+                : `${tile.name[lang]} ${up ? "+" : ""}${tile.changePercent.toFixed(2)}%`
+            }
+          >
+            {content}
           </button>
         )
       })}
