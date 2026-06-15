@@ -9,15 +9,16 @@ import { MarketOverview } from "./market-overview"
 import type { OverviewCategory, OverviewListItem } from "@/lib/market-data"
 
 const SIDEBAR_W = 300
-/** ~1.45× natural height (123px) — taller box, image fills edge-to-edge */
+
 const BANNER_H = {
   promo: 178,
   partner: 198,
 } as const
 
-const BANNER_BG = {
-  promo: "/ads/banner-promo.png",
-  partner: "/ads/banner-partner.png",
+/** Avoid /ads/ path — blocked by common ad blockers and privacy filters. */
+const BANNER_IMAGES = {
+  promo: "/banners/promo-trade.png",
+  partner: "/banners/partner-platform.png",
 } as const
 
 const PRO_BULLETS = [
@@ -30,13 +31,13 @@ const PRO_BULLETS = [
 function BannerShell({
   href,
   ariaLabel,
-  bg,
+  imageSrc,
   height,
   children,
 }: {
   href: string
   ariaLabel: string
-  bg: string
+  imageSrc: string
   height: number
   children: ReactNode
 }) {
@@ -44,26 +45,18 @@ function BannerShell({
     <Link
       href={href}
       aria-label={ariaLabel}
-      className="group relative block w-full shrink-0 overflow-hidden rounded-[12px] border border-border bg-[#060d17] shadow-md transition-opacity hover:opacity-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:border-white/10 dark:shadow-[0_4px_18px_rgba(0,0,0,0.35)]"
+      className="group block w-full shrink-0 overflow-hidden rounded-[12px] border border-border shadow-md transition-opacity hover:opacity-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:border-white/10 dark:shadow-[0_4px_18px_rgba(0,0,0,0.35)]"
       style={{ width: SIDEBAR_W, height }}
     >
-      <div className="relative h-full w-full">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={bg}
-          alt=""
-          aria-hidden
-          width={SIDEBAR_W}
-          height={height}
-          loading="eager"
-          decoding="async"
-          className="pointer-events-none absolute inset-0 z-0 h-full w-full object-cover"
-        />
+      <div
+        className="relative h-full w-full bg-[#060d17] bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: `url("${imageSrc}")` }}
+      >
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 z-[1] bg-gradient-to-r from-[#060d17]/92 from-0% via-[#060d17]/55 via-50% to-transparent to-75%"
+          className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#060d17]/88 from-0% via-[#060d17]/45 via-48% to-transparent to-68%"
         />
-        <div className="relative z-10 flex h-full w-[58%] flex-col justify-between px-4 py-4">
+        <div className="relative flex h-full w-[62%] flex-col justify-between px-4 py-4">
           {children}
         </div>
       </div>
@@ -78,7 +71,7 @@ function PromoBanner({ href }: { href: string }) {
     <BannerShell
       href={href}
       ariaLabel={t("ad.brokerPromo.title")}
-      bg={BANNER_BG.promo}
+      imageSrc={BANNER_IMAGES.promo}
       height={BANNER_H.promo}
     >
       <div>
@@ -103,7 +96,7 @@ function PartnerBanner({ href }: { href: string }) {
     <BannerShell
       href={href}
       ariaLabel={t("ad.proBroker.title")}
-      bg={BANNER_BG.partner}
+      imageSrc={BANNER_IMAGES.partner}
       height={BANNER_H.partner}
     >
       <div>
