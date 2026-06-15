@@ -16,8 +16,8 @@ const BANNER_H = {
 } as const
 
 const BANNER_BG = {
-  promo: "/ads/banner-promo-bg.png",
-  partner: "/ads/banner-partner-bg.png",
+  promo: "/ads/banner-promo.png",
+  partner: "/ads/banner-partner.png",
 } as const
 
 const PRO_BULLETS = [
@@ -47,15 +47,25 @@ function BannerShell({
       className="group relative block w-full shrink-0 overflow-hidden rounded-[12px] border border-border bg-[#060d17] shadow-md transition-opacity hover:opacity-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:border-white/10 dark:shadow-[0_4px_18px_rgba(0,0,0,0.35)]"
       style={{ width: SIDEBAR_W, height }}
     >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={bg}
-        alt=""
-        aria-hidden
-        className="absolute inset-0 h-full w-full object-cover object-right"
-      />
-      <div className="relative z-10 flex h-full w-[58%] flex-col justify-between bg-gradient-to-r from-[#060d17]/85 via-[#060d17]/40 to-transparent px-4 py-4">
-        {children}
+      <div className="relative h-full w-full">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={bg}
+          alt=""
+          aria-hidden
+          width={SIDEBAR_W}
+          height={height}
+          loading="eager"
+          decoding="async"
+          className="pointer-events-none absolute inset-0 z-0 h-full w-full object-cover"
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 z-[1] bg-gradient-to-r from-[#060d17]/92 from-0% via-[#060d17]/55 via-50% to-transparent to-75%"
+        />
+        <div className="relative z-10 flex h-full w-[58%] flex-col justify-between px-4 py-4">
+          {children}
+        </div>
       </div>
     </Link>
   )
