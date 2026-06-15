@@ -25,17 +25,22 @@ const dict: Dict = {
 
   // Header actions
   "action.search": { vi: "Tìm kiếm thị trường, mã...", en: "Search markets, symbols..." },
+  "action.searchFull": { vi: "Tìm kiếm thị trường, mã, tin tức...", en: "Search markets, symbols, news..." },
+  "action.theme": { vi: "Giao diện", en: "Theme" },
   "action.login": { vi: "Đăng nhập", en: "Login" },
   "action.register": { vi: "Đăng ký", en: "Register" },
   "action.notifications": { vi: "Thông báo", en: "Notifications" },
   "action.viewAll": { vi: "Xem tất cả", en: "View all" },
+  "action.viewFullHeatmap": { vi: "Xem bản đồ nhiệt đầy đủ", en: "View full heatmap" },
   "action.language": { vi: "Ngôn ngữ", en: "Language" },
 
   // Section titles
   "sec.overview": { vi: "Tổng quan thị trường", en: "Market Overview" },
   "sec.currencies": { vi: "Hiệu suất tiền tệ chính", en: "Major Currency Performance" },
+  "sec.currencyStrength": { vi: "Sức mạnh tiền tệ", en: "Currency Strength" },
+  "sec.currencyStrength1D": { vi: "Sức mạnh tiền tệ (1D)", en: "Currency Strength (1D)" },
   "sec.calendar": { vi: "Lịch kinh tế toàn cầu", en: "Global Economic Calendar" },
-  "sec.news": { vi: "Tin tức thị trường mới nhất", en: "Latest Market News" },
+  "sec.news": { vi: "Tin nóng", en: "Breaking News" },
   "sec.usHeatmap": { vi: "Bản đồ nhiệt thị trường Mỹ", en: "US Market Heatmap" },
   "sec.vnHeatmap": { vi: "Bản đồ nhiệt thị trường Việt Nam", en: "Vietnam Market Heatmap" },
   "sec.cryptoHeatmap": { vi: "Bản đồ nhiệt tiền mã hóa", en: "Crypto Heatmap" },
@@ -43,7 +48,8 @@ const dict: Dict = {
   "sec.breadth": { vi: "Độ rộng thị trường", en: "Market Breadth" },
   "sec.topMovers": { vi: "Biến động mạnh nhất", en: "Top Movers" },
   "sec.watchlist": { vi: "Danh mục theo dõi", en: "Watchlist Preview" },
-  "sec.brokers": { vi: "Nhà môi giới nổi bật", en: "Broker Highlights" },
+  "sec.brokers": { vi: "Nhà môi giới hàng đầu", en: "Top Rated Brokers" },
+  "sec.heatmaps": { vi: "Bản đồ nhiệt thị trường", en: "Market Heatmaps" },
 
   // Generic labels
   "label.gainers": { vi: "Tăng giá", en: "Gainers" },
@@ -73,6 +79,9 @@ const dict: Dict = {
   "label.rating": { vi: "Đánh giá", en: "Rating" },
   "label.minDeposit": { vi: "Nạp tối thiểu", en: "Min. deposit" },
   "label.assets": { vi: "Loại tài sản", en: "Asset classes" },
+  "label.license": { vi: "Giấy phép", en: "License" },
+  "label.spreadFrom": { vi: "Spread từ", en: "Spread from" },
+  "label.platforms": { vi: "Nền tảng", en: "Platforms" },
 
   // Impact
   "impact.high": { vi: "Cao", en: "High" },
@@ -85,9 +94,52 @@ const dict: Dict = {
   "fg.neutral": { vi: "Trung lập", en: "Neutral" },
   "fg.greed": { vi: "Tham lam", en: "Greed" },
   "fg.extremeGreed": { vi: "Tham lam tột độ", en: "Extreme Greed" },
-  "fg.vnindex": { vi: "VNINDEX", en: "VNINDEX" },
-  "fg.crypto": { vi: "Tiền mã hóa", en: "Crypto" },
+  "fg.vnindex": { vi: "Thị trường VN", en: "VN Market" },
+  "fg.crypto": { vi: "Thị trường Crypto", en: "Crypto Market" },
   "fg.usStocks": { vi: "Cổ phiếu Mỹ", en: "US Stocks" },
+
+  // Heatmap tabs
+  "tab.usMarket": { vi: "Thị trường Mỹ", en: "US Market" },
+  "tab.vnMarket": { vi: "Thị trường Việt Nam", en: "Vietnam Market" },
+  "tab.cryptoMarket": { vi: "Thị trường Crypto", en: "Crypto Market" },
+  "tab.hose": { vi: "HOSE", en: "HOSE" },
+  "tab.hnx": { vi: "HNX", en: "HNX" },
+  "tab.upcom": { vi: "UPCOM", en: "UPCOM" },
+  "tab.derivatives": { vi: "Phái sinh", en: "Derivatives" },
+
+  // Sidebar ads
+  "ad.brokerPromo.title": {
+    vi: "Giao dịch thông minh với nhà môi giới hàng đầu",
+    en: "Trade Smarter With Top Brokers",
+  },
+  "ad.brokerPromo.subtitle": {
+    vi: "So sánh, lựa chọn và giao dịch tự tin",
+    en: "Compare, Choose, and Trade with Confidence",
+  },
+  "ad.brokerPromo.cta": { vi: "Xem nhà môi giới", en: "View Brokers" },
+  "ad.proBroker.title": {
+    vi: "Trở thành Nhà môi giới chuyên nghiệp",
+    en: "Become a Professional Broker",
+  },
+  "ad.proBroker.b1": { vi: "Hoa hồng cao", en: "High commission" },
+  "ad.proBroker.b2": { vi: "Hỗ trợ toàn diện", en: "Full support" },
+  "ad.proBroker.b3": { vi: "Công nghệ tiên tiến", en: "Advanced technology" },
+  "ad.proBroker.b4": { vi: "Phát triển bền vững", en: "Sustainable growth" },
+  "ad.proBroker.cta": { vi: "Tìm hiểu ngay", en: "Learn More" },
+
+  // Overview sidebar tabs
+  "overview.indices": { vi: "Chỉ số", en: "Indices" },
+  "overview.commodities": { vi: "Hàng hóa", en: "Commodities" },
+  "overview.crypto": { vi: "Crypto", en: "Crypto" },
+  "overview.forex": { vi: "Forex", en: "Forex" },
+
+  // Currency strength ranks
+  "strength.strongest": { vi: "Mạnh nhất", en: "Strongest" },
+  "strength.veryStrong": { vi: "Rất mạnh", en: "Very Strong" },
+  "strength.strong": { vi: "Mạnh", en: "Strong" },
+  "strength.neutral": { vi: "Trung lập", en: "Neutral" },
+  "strength.weak": { vi: "Yếu", en: "Weak" },
+  "strength.weakest": { vi: "Yếu nhất", en: "Weakest" },
 
   // Footer
   "footer.about": { vi: "Về chúng tôi", en: "About Us" },
@@ -135,6 +187,12 @@ const dict: Dict = {
   "misc.currencies": { vi: "Tiền tệ", en: "Currencies" },
   "misc.sentiment": { vi: "Tâm lý thị trường", en: "Market sentiment" },
   "misc.openBroker": { vi: "Xem chi tiết", en: "View details" },
+  "misc.visitBroker": { vi: "Truy cập", en: "Visit Broker" },
+  "misc.viewReview": { vi: "Xem đánh giá", en: "View Review" },
+  "broker.disclaimer": {
+    vi: "Thông tin nhà môi giới chỉ nhằm mục đích so sánh và không cấu thành lời khuyên tài chính.",
+    en: "Broker information is for comparison purposes only and does not constitute financial advice.",
+  },
 }
 
 type Ctx = {

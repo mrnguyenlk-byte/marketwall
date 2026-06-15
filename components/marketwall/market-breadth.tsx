@@ -2,7 +2,7 @@
 
 import { Card, CardContent } from "@/components/ui/card"
 import { useLang } from "@/lib/i18n"
-import { breadth } from "@/lib/market-data"
+import { marketBreadthData } from "@/lib/market-data"
 import { SectionHeading } from "./shared"
 
 function Stat({ label, value, tone }: { label: string; value: number; tone?: "gain" | "loss" }) {
@@ -34,7 +34,7 @@ export function MarketBreadth() {
     <section aria-labelledby="breadth-title">
       <SectionHeading title={t("sec.breadth")} />
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-        {breadth.map((b) => {
+        {marketBreadthData.map((b) => {
           const total = b.advancing + b.declining + b.unchanged
           const advPct = (b.advancing / total) * 100
           const uncPct = (b.unchanged / total) * 100

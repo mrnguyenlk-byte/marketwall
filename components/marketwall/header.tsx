@@ -1,38 +1,27 @@
 "use client"
 
-import { Bell, Menu, Search, TrendingUp } from "lucide-react"
+import { Bell, TrendingUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { LanguageSwitcher } from "./language-switcher"
 import { useLang } from "@/lib/i18n"
-import { notifications } from "@/lib/market-data"
+import { cn } from "@/lib/utils"
 
-const navKeys = [
-  "nav.dashboard",
-  "nav.markets",
-  "nav.heatmaps",
-  "nav.events",
-  "nav.news",
-  "nav.watchlist",
-  "nav.brokers",
-] as const
+const NAV_ITEMS: { key: string; href: string; active?: boolean }[] = [
+  { key: "nav.dashboard", href: "#", active: true },
+  { key: "nav.markets", href: "#" },
+  { key: "nav.heatmaps", href: "#" },
+  { key: "nav.events", href: "#" },
+  { key: "nav.news", href: "#" },
+  { key: "nav.brokers", href: "#" },
+]
 
 export function Header() {
-  const { t, lang } = useLang()
+  const { t } = useLang()
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/70">
-      <div className="mx-auto flex h-16 max-w-[1600px] items-center gap-4 px-4 lg:px-6">
-        {/* Logo */}
+    <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+      <div className="flex h-14 w-full items-center gap-3 px-3 lg:gap-4 lg:px-4">
         <a href="#" className="flex shrink-0 items-center gap-2">
           <span className="flex size-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
             <TrendingUp className="size-5" aria-hidden />
@@ -42,93 +31,46 @@ export function Header() {
           </span>
         </a>
 
-        {/* Primary nav */}
-        <nav className="hidden items-center gap-0.5 xl:flex" aria-label="Primary">
-          {navKeys.map((key, i) => (
+        <nav
+          aria-label="Main navigation"
+          className="hidden items-center gap-0.5 xl:flex"
+        >
+          {NAV_ITEMS.map((item) => (
             <a
-              key={key}
-              href="#"
-              className={
-                "rounded-md px-3 py-2 text-sm font-medium transition-colors " +
-                (i === 0
-                  ? "text-foreground"
-                  : "text-muted-foreground hover:text-foreground")
-              }
+              key={item.key}
+              href={item.href}
+              className={cn(
+                "rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors",
+                item.active
+                  ? "bg-primary/15 text-primary"
+                  : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground",
+              )}
+              aria-current={item.active ? "page" : undefined}
             >
-              {t(key)}
+              {t(item.key)}
             </a>
           ))}
         </nav>
 
-        <div className="flex flex-1 items-center justify-end gap-1.5 sm:gap-2">
-          {/* Search */}
-          <div className="relative hidden md:block md:w-44 lg:w-64">
-            <Search
-              className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-              aria-hidden
-            />
-            <Input
-              type="search"
-              placeholder={t("action.search")}
-              aria-label={t("action.search")}
-              className="h-9 border-border bg-secondary/60 pl-8 text-sm"
-            />
-          </div>
+        <div className="relative mx-auto hidden w-full max-w-sm md:block lg:max-w-md">
+          <Input
+            type="search"
+            placeholder={t("action.searchFull")}
+            aria-label={t("action.searchFull")}
+            className="h-9 border-border bg-secondary/60 text-sm"
+          />
+        </div>
 
+        <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
+          <LanguageSwitcher />
           <Button
             variant="ghost"
             size="icon"
-            className="md:hidden"
-            aria-label={t("action.search")}
+            className="text-muted-foreground"
+            aria-label={t("action.notifications")}
           >
-            <Search className="size-5" />
+            <Bell className="size-5" aria-hidden />
           </Button>
-
-          <LanguageSwitcher />
-
-          {/* Notifications */}
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="relative"
-                  aria-label={t("action.notifications")}
-                />
-              }
-            >
-              <Bell className="size-5" />
-              <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-loss ring-2 ring-background" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-80">
-              <DropdownMenuLabel className="flex items-center justify-between">
-                {t("action.notifications")}
-                <Badge variant="secondary" className="text-[10px]">
-                  {notifications.length}
-                </Badge>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {notifications.map((n, i) => (
-                <DropdownMenuItem
-                  key={i}
-                  className="flex-col items-start gap-0.5 py-2"
-                >
-                  <span className="text-sm font-medium text-foreground">
-                    {n.title[lang]}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {n.detail[lang]}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground/70">
-                    {n.time[lang]}
-                  </span>
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          {/* Auth */}
           <Button
             variant="ghost"
             size="sm"
@@ -139,34 +81,6 @@ export function Header() {
           <Button size="sm" className="hidden font-semibold sm:inline-flex">
             {t("action.register")}
           </Button>
-
-          {/* Mobile nav */}
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="xl:hidden"
-                  aria-label="Menu"
-                />
-              }
-            >
-              <Menu className="size-5" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-52">
-              {navKeys.map((key) => (
-                <DropdownMenuItem key={key}>{t(key)}</DropdownMenuItem>
-              ))}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem className="sm:hidden">
-                {t("action.login")}
-              </DropdownMenuItem>
-              <DropdownMenuItem className="sm:hidden font-semibold text-primary">
-                {t("action.register")}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
       </div>
     </header>

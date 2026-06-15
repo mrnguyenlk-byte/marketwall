@@ -1,22 +1,34 @@
 "use client"
 
-import { Card, CardContent } from "@/components/ui/card"
 import { useLang } from "@/lib/i18n"
-import { fearGreed, fgLabel } from "@/lib/market-data"
-import { SectionHeading } from "./shared"
+import { fearGreedData, fgLabel } from "@/lib/market-data"
+import { cn } from "@/lib/utils"
 
-// Semi-circular gauge (0-100). 180° arc from left to right.
+function sentimentTone(value: number) {
+  if (value < 25) return "loss"
+  if (value < 45) return "warn"
+  if (value < 55) return "neutral"
+  if (value < 75) return "gain"
+  return "gain"
+}
+
+function sentimentColor(value: number) {
+  const tone = sentimentTone(value)
+  if (tone === "loss") return "var(--loss)"
+  if (tone === "warn") return "var(--warn)"
+  if (tone === "neutral") return "var(--neutral)"
+  return "var(--gain)"
+}
+
 function Gauge({ value }: { value: number }) {
-  const r = 70
-  const cx = 90
-  const cy = 90
-  const startAngle = 180
-  const angle = startAngle - (value / 100) * 180
+  const r = 24
+  const cx = 36
+  const cy = 30
+  const angle = 180 - (value / 100) * 180
   const rad = (angle * Math.PI) / 180
   const nx = cx + r * Math.cos(rad)
   const ny = cy - r * Math.sin(rad)
 
-  // colored segments
   const segments = [
     { from: 0, to: 25, color: "var(--loss)" },
     { from: 25, to: 45, color: "var(--warn)" },
@@ -35,15 +47,17 @@ function Gauge({ value }: { value: number }) {
     return `M ${x1} ${y1} A ${r} ${r} 0 0 1 ${x2} ${y2}`
   }
 
+  const needleColor = sentimentColor(value)
+
   return (
-    <svg viewBox="0 0 180 108" className="w-full max-w-[180px]" aria-hidden>
+    <svg viewBox="0 0 72 36" className="mx-auto h-[28px] w-full max-w-[60px]" aria-hidden>
       {segments.map((s, i) => (
         <path
           key={i}
           d={arc(s.from, s.to)}
           fill="none"
           stroke={s.color}
-          strokeWidth="12"
+          strokeWidth="4"
           strokeLinecap="butt"
         />
       ))}
@@ -52,12 +66,11 @@ function Gauge({ value }: { value: number }) {
         y1={cy}
         x2={nx}
         y2={ny}
-        stroke="var(--foreground)"
-        strokeWidth="2.5"
+        stroke={needleColor}
+        strokeWidth="1.5"
         strokeLinecap="round"
       />
-      <circle cx={cx} cy={cy} r="6" fill="var(--foreground)" />
-      <circle cx={cx} cy={cy} r="3" fill="var(--background)" />
+      <circle cx={cx} cy={cy} r="1.75" fill={needleColor} />
     </svg>
   )
 }
@@ -66,34 +79,54 @@ export function FearGreed() {
   const { t } = useLang()
 
   return (
-    <section aria-labelledby="fg-title">
-      <SectionHeading title={t("sec.fearGreed")} />
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        {fearGreed.map((g) => {
+    <section aria-labelledby="fg-title" className="max-h-[130px] overflow-hidden">
+      <div className="mb-1 flex items-center gap-2">
+        <span className="h-3.5 w-0.5 rounded-full bg-primary" aria-hidden />
+        <h2
+          id="fg-title"
+          className="text-xs font-semibold tracking-tight text-foreground sm:text-sm"
+        >
+          {t("sec.fearGreed")}
+        </h2>
+      </div>
+      <div className="grid h-[108px] grid-cols-3 gap-0 rounded-lg border border-border bg-gradient-to-b from-card/90 to-card/60">
+        {fearGreedData.map((g) => {
           const labelKey = fgLabel(g.value)
+          const tone = sentimentTone(g.value)
           return (
-            <Card key={g.key}>
-              <CardContent className="flex flex-col items-center px-4">
-                <p className="text-xs font-medium text-muted-foreground">
-                  {t(g.key)}
-                </p>
-                <div className="relative">
-                  <Gauge value={g.value} />
-                  <div className="absolute inset-x-0 bottom-0 flex flex-col items-center">
-                    <span className="font-mono text-2xl font-bold tabular-nums text-foreground">
-                      {g.value}
-                    </span>
-                  </div>
-                </div>
-                <p className="mt-1 text-sm font-semibold text-foreground">
-                  {t(labelKey)}
-                </p>
-                <div className="mt-2 flex w-full justify-between text-[10px] text-muted-foreground">
-                  <span>{t("fg.extremeFear")}</span>
-                  <span>{t("fg.extremeGreed")}</span>
-                </div>
-              </CardContent>
-            </Card>
+            <div
+              key={g.key}
+              className="flex min-w-0 flex-col items-center justify-center border-r border-border/80 px-1.5 py-1 last:border-r-0"
+            >
+              <p className="mb-0.5 w-full truncate text-center text-[10px] font-semibold leading-tight text-foreground">
+                {t(g.key)}
+              </p>
+              <div className="relative w-full">
+                <Gauge value={g.value} />
+                <span
+                  className={cn(
+                    "absolute inset-x-0 bottom-0 text-center font-mono text-xs font-bold tabular-nums leading-none",
+                    tone === "loss" && "text-loss",
+                    tone === "warn" && "text-warn",
+                    tone === "neutral" && "text-foreground",
+                    tone === "gain" && "text-gain",
+                  )}
+                >
+                  {g.value}
+                </span>
+              </div>
+              <p
+                className={cn(
+                  "mt-0.5 truncate text-[9px] font-semibold leading-tight",
+                  tone === "loss" && "text-loss",
+                  tone === "warn" && "text-warn",
+                  tone === "neutral" && "text-muted-foreground",
+                  tone === "gain" && "text-gain",
+                )}
+              >
+                {t(labelKey)}
+              </p>
+            </div>
           )
         })}
       </div>

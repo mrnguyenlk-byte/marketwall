@@ -115,7 +115,7 @@ export function SectionHeading({
   action?: React.ReactNode
 }) {
   return (
-    <div className="mb-3 flex items-center justify-between gap-3">
+    <div className="mb-1.5 flex items-center justify-between gap-2">
       <div className="flex items-center gap-2">
         <span className="h-4 w-1 rounded-full bg-primary" aria-hidden />
         <h2 className="text-sm font-semibold tracking-tight text-foreground sm:text-base">
@@ -134,13 +134,13 @@ export function heatStyle(pct: number): React.CSSProperties {
   const intensity = Math.min(1, Math.abs(clamped) / 3)
   if (clamped > 0.05) {
     return {
-      backgroundColor: `color-mix(in oklch, var(--gain) ${20 + intensity * 60}%, var(--card))`,
+      backgroundColor: `color-mix(in oklch, var(--gain) ${50 + intensity * 45}%, #0c1810)`,
     }
   }
   if (clamped < -0.05) {
     return {
-      backgroundColor: `color-mix(in oklch, var(--loss) ${20 + intensity * 60}%, var(--card))`,
+      backgroundColor: `color-mix(in oklch, var(--loss) ${50 + intensity * 45}%, #180c0c)`,
     }
   }
-  return { backgroundColor: "color-mix(in oklch, var(--neutral) 18%, var(--card))" }
+  return { backgroundColor: "color-mix(in oklch, var(--neutral) 35%, #121820)" }
 }

@@ -21,9 +21,9 @@ export function Footer() {
   ]
 
   return (
-    <footer className="border-t border-border bg-card">
-      <div className="mx-auto max-w-[1600px] px-4 py-10 lg:px-6">
-        <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
+    <footer className="border-t border-border/80 bg-card/60">
+      <div className="w-full px-3 py-5 lg:px-4">
+        <div className="grid grid-cols-2 gap-5 md:grid-cols-4">
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-center gap-2">
               <span className="flex size-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
@@ -95,7 +95,7 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="mt-8 flex flex-col gap-2 border-t border-border pt-6 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-5 flex flex-col gap-1.5 border-t border-border/60 pt-4 text-[11px] text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
           <p>
             © {new Date().getFullYear()} MarketWall. {t("footer.rights")}
           </p>

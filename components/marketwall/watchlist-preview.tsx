@@ -4,7 +4,7 @@ import { Plus, Star } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useLang } from "@/lib/i18n"
-import { watchlist, spark } from "@/lib/market-data"
+import { watchlistItems, spark } from "@/lib/market-data"
 import { ChangePill, Sparkline, SectionHeading, fmt } from "./shared"
 
 export function WatchlistPreview() {
@@ -24,8 +24,8 @@ export function WatchlistPreview() {
       <Card className="h-[calc(100%-2.25rem)] py-0">
         <CardContent className="px-0">
           <ul className="divide-y divide-border">
-            {watchlist.map((w) => {
-              const up = w.changePct >= 0
+            {watchlistItems.map((w) => {
+              const up = w.trend === "up"
               return (
                 <li
                   key={w.symbol}
@@ -48,7 +48,7 @@ export function WatchlistPreview() {
                     <span className="font-mono text-sm tabular-nums text-foreground">
                       {fmt(w.price)}
                     </span>
-                    <ChangePill value={w.changePct} showIcon={false} />
+                    <ChangePill value={w.changePercent} showIcon={false} />
                   </div>
                 </li>
               )

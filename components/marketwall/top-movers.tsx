@@ -3,7 +3,7 @@
 import { TrendingDown, TrendingUp } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { useLang } from "@/lib/i18n"
-import { gainers, losers, type Mover } from "@/lib/market-data"
+import { topMovers, type TopMover } from "@/lib/market-data"
 import { ChangePill, SectionHeading, fmt } from "./shared"
 
 function MoverList({
@@ -13,7 +13,7 @@ function MoverList({
 }: {
   title: string
   icon: React.ReactNode
-  items: Mover[]
+  items: TopMover[]
 }) {
   const { lang } = useLang()
   return (
@@ -39,7 +39,7 @@ function MoverList({
                 <span className="font-mono text-sm tabular-nums text-foreground">
                   {fmt(m.price)}
                 </span>
-                <ChangePill value={m.changePct} className="w-[72px] justify-center" />
+                <ChangePill value={m.changePercent} className="w-[72px] justify-center" />
               </div>
             </li>
           ))}
@@ -58,12 +58,12 @@ export function TopMovers() {
         <MoverList
           title={t("label.gainers")}
           icon={<TrendingUp className="size-4 text-gain" aria-hidden />}
-          items={gainers}
+          items={topMovers.gainers}
         />
         <MoverList
           title={t("label.losers")}
           icon={<TrendingDown className="size-4 text-loss" aria-hidden />}
-          items={losers}
+          items={topMovers.losers}
         />
       </div>
     </section>

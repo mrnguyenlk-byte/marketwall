@@ -2,7 +2,7 @@
 
 import { Card, CardContent } from "@/components/ui/card"
 import { useLang } from "@/lib/i18n"
-import { currencies, spark } from "@/lib/market-data"
+import { currencyPerformance, spark } from "@/lib/market-data"
 import { ChangePill, Sparkline, SectionHeading, fmt, signClass } from "./shared"
 import { cn } from "@/lib/utils"
 
@@ -29,8 +29,8 @@ export function CurrencyPerformance() {
     <section aria-labelledby="currencies-title">
       <SectionHeading title={t("sec.currencies")} />
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {currencies.map((c) => {
-          const up = c.changePct >= 0
+        {currencyPerformance.map((c) => {
+          const up = c.trend === "up"
           return (
             <Card key={c.pair}>
               <CardContent className="px-4">
@@ -44,7 +44,7 @@ export function CurrencyPerformance() {
                     </p>
                   </div>
                   <div className="flex flex-col items-end gap-2">
-                    <ChangePill value={c.changePct} />
+                    <ChangePill value={c.changePercent} />
                     <Sparkline
                       data={spark(c.seed, 24, up ? 1 : -1)}
                       positive={up}
@@ -53,9 +53,9 @@ export function CurrencyPerformance() {
                   </div>
                 </div>
                 <div className="mt-3 flex items-center gap-6 border-t border-border pt-3">
-                  <MiniStat label="1D" value={c.changePct} />
-                  <MiniStat label="1W" value={c.weekPct} />
-                  <MiniStat label="1M" value={c.monthPct} />
+                  <MiniStat label="1D" value={c.changePercent} />
+                  <MiniStat label="1W" value={c.weekChangePercent} />
+                  <MiniStat label="1M" value={c.monthChangePercent} />
                 </div>
               </CardContent>
             </Card>

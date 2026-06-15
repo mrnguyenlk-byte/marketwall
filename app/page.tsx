@@ -1,14 +1,11 @@
 import { Header } from "@/components/marketwall/header"
 import { TickerBar } from "@/components/marketwall/ticker-bar"
-import { MarketOverview } from "@/components/marketwall/market-overview"
-import { CurrencyPerformance } from "@/components/marketwall/currency-performance"
+import { Sidebar } from "@/components/marketwall/sidebar"
+import { FearGreed } from "@/components/marketwall/fear-greed"
+import { HeatmapSection } from "@/components/marketwall/heatmap"
+import { CurrencyStrength } from "@/components/marketwall/currency-strength"
 import { EconomicCalendar } from "@/components/marketwall/economic-calendar"
 import { MarketNews } from "@/components/marketwall/market-news"
-import { HeatmapSection } from "@/components/marketwall/heatmap"
-import { FearGreed } from "@/components/marketwall/fear-greed"
-import { MarketBreadth } from "@/components/marketwall/market-breadth"
-import { TopMovers } from "@/components/marketwall/top-movers"
-import { WatchlistPreview } from "@/components/marketwall/watchlist-preview"
 import { BrokerHighlights } from "@/components/marketwall/broker-highlights"
 import { RiskWarning } from "@/components/marketwall/risk-warning"
 import { Footer } from "@/components/marketwall/footer"
@@ -19,24 +16,29 @@ export default function Page() {
       <Header />
       <TickerBar />
 
-      <main className="mx-auto max-w-[1600px] space-y-8 px-4 py-6 lg:px-6">
-        <MarketOverview />
-        <CurrencyPerformance />
+      <main className="w-full px-3 py-3 lg:px-4">
+        <div className="grid w-full grid-cols-1 gap-3 xl:grid-cols-[340px_minmax(0,1fr)] xl:items-start">
+          <aside
+            aria-label="Market sidebar"
+            className="w-full shrink-0 xl:sticky xl:top-[96px] xl:w-[340px]"
+          >
+            <Sidebar />
+          </aside>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <EconomicCalendar />
-          <MarketNews />
+          <section className="min-w-0 space-y-4">
+            <FearGreed />
+            <HeatmapSection />
+            <CurrencyStrength />
+
+            <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+              <EconomicCalendar />
+              <MarketNews />
+            </div>
+
+            <BrokerHighlights />
+            <RiskWarning />
+          </section>
         </div>
-
-        <HeatmapSection />
-        <FearGreed />
-        <MarketBreadth />
-        <TopMovers />
-
-        <WatchlistPreview />
-        <BrokerHighlights />
-
-        <RiskWarning />
       </main>
 
       <Footer />

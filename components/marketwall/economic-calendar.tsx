@@ -4,7 +4,7 @@ import { CalendarDays } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { useLang } from "@/lib/i18n"
-import { calendar } from "@/lib/market-data"
+import { economicEvents } from "@/lib/market-data"
 import { SectionHeading } from "./shared"
 import { cn } from "@/lib/utils"
 
@@ -50,7 +50,7 @@ export function EconomicCalendar() {
             <span className="text-right">{t("label.previous")}</span>
           </div>
           <ul className="divide-y divide-border">
-            {calendar.map((e, i) => (
+            {economicEvents.map((e, i) => (
               <li
                 key={i}
                 className="grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-1 px-4 py-2.5 text-sm transition-colors hover:bg-secondary/40 sm:grid-cols-[auto_1fr_auto_auto_auto]"

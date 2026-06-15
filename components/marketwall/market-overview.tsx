@@ -2,60 +2,59 @@
 
 import { Card } from "@/components/ui/card"
 import { useLang } from "@/lib/i18n"
-import { overviewCards, spark } from "@/lib/market-data"
-import { ChangePill, Sparkline, SectionHeading, fmt, signClass } from "./shared"
-import { cn } from "@/lib/utils"
+import { sidebarOverview } from "@/lib/market-data"
+import { ChangePill, Sparkline, fmt } from "./shared"
 
 export function MarketOverview() {
   const { t, lang } = useLang()
 
   return (
-    <section aria-labelledby="overview-title">
-      <SectionHeading title={t("sec.overview")} />
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
-        {overviewCards.map((c) => {
-          const up = c.changePct >= 0
+    <Card className="w-full gap-0 overflow-hidden border-border/80 p-0 shadow-sm">
+      <div className="border-b border-border bg-gradient-to-r from-card to-card/70 px-3 py-2.5">
+        <h2 className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+          <span className="h-3.5 w-0.5 rounded-full bg-primary" aria-hidden />
+          {t("sec.overview")}
+        </h2>
+      </div>
+      <ul className="divide-y divide-border/80">
+        {sidebarOverview.map((item) => {
+          const up = item.trend === "up"
           return (
-            <Card
-              key={c.symbol}
-              className="gap-0 overflow-hidden p-0 transition-colors hover:border-primary/40"
-            >
-              <div className="flex items-start justify-between gap-2 px-3 pt-3">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-foreground">
-                    {c.symbol}
+            <li key={item.symbol}>
+              <button
+                type="button"
+                className="flex w-full items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-secondary/50"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-xs font-semibold leading-tight text-foreground">
+                    {item.symbol}
                   </p>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {c.region[lang]}
-                  </p>
-                </div>
-                <ChangePill value={c.changePct} />
-              </div>
-              <div className="flex items-end justify-between gap-2 px-3 pb-1">
-                <div>
-                  <p className="font-mono text-lg font-semibold tabular-nums text-foreground">
-                    {fmt(c.price)}
-                  </p>
-                  <p
-                    className={cn(
-                      "font-mono text-xs tabular-nums",
-                      signClass(c.change),
-                    )}
-                  >
-                    {c.change >= 0 ? "+" : ""}
-                    {fmt(c.change)}
+                  <p className="truncate text-[11px] leading-tight text-muted-foreground">
+                    {item.market[lang]}
                   </p>
                 </div>
-              </div>
-              <Sparkline
-                data={spark(c.seed, 28, up ? 1 : -1)}
-                positive={up}
-                className="h-9 w-full"
-              />
-            </Card>
+                <Sparkline
+                  data={item.sparkline}
+                  positive={up}
+                  className="h-5 w-10 shrink-0"
+                  width={40}
+                  height={20}
+                />
+                <div className="w-[62px] shrink-0 text-right">
+                  <p className="font-mono text-[11px] tabular-nums leading-tight text-foreground">
+                    {fmt(item.price)}
+                  </p>
+                  <ChangePill
+                    value={item.changePercent}
+                    showIcon={false}
+                    className="mt-0.5 justify-end px-0.5 py-0 text-[9px]"
+                  />
+                </div>
+              </button>
+            </li>
           )
         })}
-      </div>
-    </section>
+      </ul>
+    </Card>
   )
 }
