@@ -19,8 +19,8 @@ const BANNER_H = {
 
 /** Background art with CSS gradient fallback when images are missing. */
 const BANNER_IMAGES = {
-  promo: "/ads/trade-smarter.png",
-  partner: "/ads/pro-broker.png",
+  promo: "/banners/promo-trade-bg.png",
+  partner: "/banners/partner-platform-bg.png",
 } as const
 
 const BANNER_GRADIENT =
