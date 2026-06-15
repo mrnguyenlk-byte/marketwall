@@ -182,6 +182,16 @@ const HOSE_SEEDS: StockSeed[] = [
   { symbol: "TPB", name: { vi: "TPBank", en: "TPBank" }, sector: "Banking", marketCap: 28000, price: 16.2, changePercent: 0.38, volume: 3900000 },
   { symbol: "FRT", name: { vi: "FPT Retail", en: "FPT Retail" }, sector: "Retail", marketCap: 26000, price: 48.7, changePercent: 0.52, volume: 920000 },
   { symbol: "CMG", name: { vi: "CMC", en: "CMC" }, sector: "Technology", marketCap: 24000, price: 42.8, changePercent: -0.28, volume: 780000 },
+  { symbol: "DGC", name: { vi: "Đức Giang", en: "Duc Giang" }, sector: "Chemicals", marketCap: 22000, price: 98.5, changePercent: 1.12, volume: 620000 },
+  { symbol: "DPM", name: { vi: "Đạm Phú Mỹ", en: "Dam Phu My" }, sector: "Chemicals", marketCap: 21000, price: 38.2, changePercent: 0.86, volume: 1100000 },
+  { symbol: "SBT", name: { vi: "Mía đường Thành Thành", en: "Thanh Thanh Sugar" }, sector: "Consumer", marketCap: 20000, price: 22.4, changePercent: -0.42, volume: 890000 },
+  { symbol: "DHG", name: { vi: "DHG Pharma", en: "DHG Pharma" }, sector: "Healthcare", marketCap: 19000, price: 112.6, changePercent: 0.64, volume: 340000 },
+  { symbol: "PAN", name: { vi: "PAN Group", en: "PAN Group" }, sector: "Agriculture", marketCap: 18000, price: 28.8, changePercent: 0.38, volume: 720000 },
+  { symbol: "DIG", name: { vi: "DIC Corp", en: "DIC Corp" }, sector: "Construction", marketCap: 17000, price: 24.6, changePercent: -0.56, volume: 2100000 },
+  { symbol: "NLG", name: { vi: "Nam Long", en: "Nam Long" }, sector: "Real Estate", marketCap: 16000, price: 32.1, changePercent: 0.72, volume: 980000 },
+  { symbol: "KBC", name: { vi: "Kinh Bắc", en: "Kinh Bac" }, sector: "Industrial", marketCap: 15000, price: 26.4, changePercent: -0.18, volume: 1500000 },
+  { symbol: "VCI", name: { vi: "Vietcap", en: "Vietcap" }, sector: "Brokerage", marketCap: 14000, price: 44.2, changePercent: 0.92, volume: 560000 },
+  { symbol: "MSR", name: { vi: "Maserco", en: "Maserco" }, sector: "Industrial", marketCap: 13000, price: 18.6, changePercent: -0.34, volume: 2300000 },
 ]
 
 const HNX_SEEDS: StockSeed[] = [
@@ -210,6 +220,11 @@ const HNX_SEEDS: StockSeed[] = [
   { symbol: "SHN", name: { vi: "SHN", en: "SHN" }, sector: "Real Estate", marketCap: 8500, price: 3.2, changePercent: 0.44, volume: 12000000 },
   { symbol: "TVB", name: { vi: "TVB", en: "TVB" }, sector: "Banking", marketCap: 8000, price: 9.6, changePercent: -0.56, volume: 3400000 },
   { symbol: "BVS", name: { vi: "BVS", en: "BVS" }, sector: "Brokerage", marketCap: 7500, price: 12.1, changePercent: 0.38, volume: 2700000 },
+  { symbol: "VNR", name: { vi: "Vinaconex", en: "Vinaconex" }, sector: "Construction", marketCap: 7200, price: 14.8, changePercent: -0.22, volume: 3200000 },
+  { symbol: "THD", name: { vi: "Thaiholdings", en: "Thaiholdings" }, sector: "Real Estate", marketCap: 6800, price: 9.2, changePercent: 0.48, volume: 4100000 },
+  { symbol: "EID", name: { vi: "Hải Dương", en: "Hai Duong" }, sector: "Construction", marketCap: 6400, price: 11.6, changePercent: -0.36, volume: 2800000 },
+  { symbol: "VTX", name: { vi: "VTX", en: "VTX" }, sector: "Technology", marketCap: 6000, price: 7.4, changePercent: 0.28, volume: 5200000 },
+  { symbol: "PVB", name: { vi: "PV Oil", en: "PV Oil" }, sector: "Energy", marketCap: 5600, price: 28.2, changePercent: -0.14, volume: 980000 },
 ]
 
 const UPCOM_SEEDS: StockSeed[] = [
@@ -238,6 +253,11 @@ const UPCOM_SEEDS: StockSeed[] = [
   { symbol: "LGL", name: { vi: "LGL", en: "LGL" }, sector: "Real Estate", marketCap: 3800, price: 3.2, changePercent: 0.48, volume: 12500000 },
   { symbol: "VNC", name: { vi: "VNC", en: "VNC" }, sector: "Transport", marketCap: 3600, price: 7.4, changePercent: -0.22, volume: 3400000 },
   { symbol: "VTS", name: { vi: "VTS", en: "VTS" }, sector: "Industrial", marketCap: 3400, price: 5.8, changePercent: 0.16, volume: 5200000 },
+  { symbol: "APC", name: { vi: "APC", en: "APC" }, sector: "Industrial", marketCap: 3200, price: 4.6, changePercent: 0.52, volume: 6800000 },
+  { symbol: "BBS", name: { vi: "BBS", en: "BBS" }, sector: "Consumer", marketCap: 3000, price: 8.2, changePercent: -0.28, volume: 3900000 },
+  { symbol: "DRL", name: { vi: "DRL", en: "DRL" }, sector: "Energy", marketCap: 2800, price: 6.4, changePercent: 0.34, volume: 4500000 },
+  { symbol: "HPW", name: { vi: "HPW", en: "HPW" }, sector: "Utilities", marketCap: 2600, price: 3.8, changePercent: -0.42, volume: 8200000 },
+  { symbol: "LSS", name: { vi: "LSS", en: "LSS" }, sector: "Agriculture", marketCap: 2400, price: 5.2, changePercent: 0.18, volume: 6100000 },
 ]
 
 function buildIndices(source: "mock" | "live"): VietnamMarketIndex[] {
