@@ -57,7 +57,7 @@ export default async function Page() {
       </SectionErrorBoundary>
 
       <main className="w-full px-3 py-3 lg:px-4">
-        <div className="grid grid-cols-1 items-start gap-3 md:grid-cols-[minmax(240px,280px)_minmax(0,1fr)] xl:grid-cols-[minmax(0,3fr)_minmax(220px,1fr)] xl:gap-4">
+        <div className="grid grid-cols-1 items-start gap-3 md:grid-cols-[minmax(240px,280px)_minmax(0,1fr)] xl:grid-cols-[39fr_11fr] xl:gap-4">
           <aside
             aria-label="Market sidebar"
             className="w-full md:col-start-1 md:row-start-1 md:sticky md:top-[104px] md:self-start xl:hidden"
@@ -88,7 +88,7 @@ export default async function Page() {
 
           <aside
             aria-label="Trader sidebar"
-            className="flex min-w-0 flex-col gap-3 md:col-span-2 md:col-start-1 md:row-start-2 xl:col-span-1 xl:col-start-2 xl:row-start-1 xl:sticky xl:top-[104px] xl:max-w-[360px] xl:justify-self-end xl:w-full"
+            className="flex min-w-0 flex-col gap-3 md:col-span-2 md:col-start-1 md:row-start-2 xl:col-span-1 xl:col-start-2 xl:row-start-1 xl:sticky xl:top-[104px] xl:w-full"
           >
             <SectionErrorBoundary name="fear-greed">
               <FearGreed items={dashboard.fearGreedItems} variant="sidebar" />

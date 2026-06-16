@@ -3,17 +3,11 @@
 import { useMemo } from "react"
 
 import type { Lang } from "@/lib/i18n"
+import { limitHeatmapAssets } from "@/lib/market/heatmap-limits"
 import {
   DEFAULT_VN_HEATMAP_SIZING,
-  sortBySizeMetric,
   type VnHeatmapSizingMode,
 } from "@/lib/vietnam/heatmap-sizing"
-import {
-  VN_SECTOR_GROUP_LABEL_KEYS,
-  VN_SECTOR_GROUP_ORDER,
-  normalizeVnSectorGroup,
-  type VnSectorGroupId,
-} from "@/lib/vietnam/sector-groups"
 import type { MarketAsset, MarketType } from "@/types/market"
 import { cn } from "@/lib/utils"
 
@@ -45,40 +39,7 @@ function tileSizeForRank(rank: number, total: number): TileSize {
   return "tiny"
 }
 
-function sortByMarketCap(assets: MarketAsset[]): MarketAsset[] {
-  return [...assets].sort((a, b) => b.marketCap - a.marketCap)
-}
 
-function sortForMarket(
-  assets: MarketAsset[],
-  marketType: MarketType,
-  sizingMode: VnHeatmapSizingMode,
-): MarketAsset[] {
-  if (marketType === "vn") return sortBySizeMetric(assets, sizingMode)
-  return sortByMarketCap(assets)
-}
-
-function groupBySector(
-  assets: MarketAsset[],
-  sizingMode: VnHeatmapSizingMode,
-): Array<{ id: VnSectorGroupId; labelKey: string; assets: MarketAsset[] }> {
-  const buckets = new Map<VnSectorGroupId, MarketAsset[]>()
-
-  for (const id of VN_SECTOR_GROUP_ORDER) {
-    buckets.set(id, [])
-  }
-
-  for (const asset of assets) {
-    const group = normalizeVnSectorGroup(asset.sector)
-    buckets.get(group)?.push(asset)
-  }
-
-  return VN_SECTOR_GROUP_ORDER.map((id) => ({
-    id,
-    labelKey: VN_SECTOR_GROUP_LABEL_KEYS[id],
-    assets: sortBySizeMetric(buckets.get(id) ?? [], sizingMode),
-  })).filter((group) => group.assets.length > 0)
-}
 
 function renderTiles(
   items: MarketAsset[],
@@ -108,20 +69,15 @@ export function MarketHeatmap({
   const vnSizing = marketType === "vn" ? sizingMode : DEFAULT_VN_HEATMAP_SIZING
   const detailedTooltip = marketType === "vn"
 
-  const sorted = useMemo(
-    () => sortForMarket(assets, marketType, vnSizing),
+  const limitedAssets = useMemo(
+    () => limitHeatmapAssets(assets, marketType, vnSizing),
     [assets, marketType, vnSizing],
   )
 
-  const sectorGroups = useMemo(() => {
-    if (marketType !== "vn" || groupingMode !== "sector") return null
-    return groupBySector(assets, vnSizing)
-  }, [assets, marketType, groupingMode, vnSizing])
-
-  if (sectorGroups) {
+  if (marketType === "vn" && groupingMode === "sector") {
     return (
       <SectorTreemap
-        assets={assets}
+        assets={limitedAssets}
         sizingMode={vnSizing}
         groupLabel={groupLabel}
         onTileClick={onTileClick}
@@ -136,7 +92,7 @@ export function MarketHeatmap({
       data-grouping="marketCap"
       data-sizing={marketType === "vn" ? vnSizing : "marketCap"}
     >
-      {renderTiles(sorted, onTileClick, detailedTooltip)}
+      {renderTiles(limitedAssets, onTileClick, detailedTooltip)}
     </div>
   )
 }

@@ -32,7 +32,7 @@ const DETAIL_MARKET_TABS: { id: MarketType; labelKey: string; flag: string }[] =
 ]
 
 const HEATMAP_VIEWPORT_CLASS =
-  "h-[clamp(680px,calc(100svh-200px),920px)] min-h-[680px] 2xl:min-h-[720px]"
+  "h-[clamp(520px,calc(100svh-260px),680px)] max-h-[680px] min-h-[480px]"
 
 function HeatmapViewport({ children }: { children: ReactNode }) {
   return (
@@ -69,6 +69,13 @@ function changeSize(weight: number) {
   return "text-[10px] sm:text-xs"
 }
 
+function legacyTileTier(weight: number): "large" | "medium" | "small" | "tiny" {
+  if (weight >= 11) return "large"
+  if (weight >= 8) return "medium"
+  if (weight >= 5) return "small"
+  return "tiny"
+}
+
 function HeatGrid({ tiles }: { tiles: HeatmapTile[] }) {
   const { lang } = useLang()
   const { openDetail } = useSymbolDetail()
@@ -78,36 +85,44 @@ function HeatGrid({ tiles }: { tiles: HeatmapTile[] }) {
     <div className="grid h-full grid-flow-dense auto-rows-[minmax(36px,1fr)] grid-cols-8 gap-px bg-heatmap-gap sm:grid-cols-10 md:grid-cols-12 lg:grid-cols-[repeat(14,minmax(0,1fr))] xl:grid-cols-[repeat(16,minmax(0,1fr))]">
       {tiles.map((tile) => {
         const up = tile.changePercent >= 0
-        const showName = tile.weight >= 7
+        const tier = legacyTileTier(tile.weight)
+        const showSymbol = tier !== "tiny"
+        const showChange = tier === "large" || tier === "medium"
+        const showPrice = tier === "large" && tile.price != null && tile.price > 0
         const className = cn(
-          "group/tile flex flex-col items-start justify-between rounded-none border border-black/20 p-1 text-left transition-[filter,transform] sm:p-1.5 lg:p-2",
+          "group/tile flex flex-col items-start justify-between rounded-none border border-black/20 text-left transition-[filter,transform]",
+          tier === "tiny" ? "min-h-[28px] p-0" : "p-1 sm:p-1.5 lg:p-2",
           symbolClickEnabled && "hover:z-10 hover:brightness-110",
           tileSpan(tile.weight),
         )
         const content = (
           <>
-            <span
-              className={cn(
-                "truncate font-extrabold leading-none tracking-tight text-white drop-shadow-sm",
-                symbolSize(tile.weight),
-              )}
-            >
-              {tile.symbol}
-            </span>
-            {showName && (
-              <span className="hidden truncate text-[10px] leading-tight text-white/75 sm:block lg:text-xs">
-                {tile.name[lang]}
+            {showSymbol && (
+              <span
+                className={cn(
+                  "truncate font-extrabold leading-none tracking-tight text-white drop-shadow-sm",
+                  symbolSize(tile.weight),
+                )}
+              >
+                {tile.symbol}
               </span>
             )}
-            <span
-              className={cn(
-                "mt-auto font-mono font-bold tabular-nums text-white drop-shadow-sm",
-                changeSize(tile.weight),
-              )}
-            >
-              {up ? "+" : ""}
-              {tile.changePercent.toFixed(2)}%
-            </span>
+            {showChange && (
+              <span
+                className={cn(
+                  "mt-auto font-mono font-bold tabular-nums text-white drop-shadow-sm",
+                  changeSize(tile.weight),
+                )}
+              >
+                {up ? "+" : ""}
+                {tile.changePercent.toFixed(2)}%
+              </span>
+            )}
+            {showPrice && (
+              <span className="font-mono text-[10px] tabular-nums text-white/85 sm:text-xs">
+                {tile.price!.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+              </span>
+            )}
           </>
         )
 
@@ -370,7 +385,7 @@ function LegacyHeatmapSection({ markets }: { markets: HeatmapMarket[] }) {
     return (
       <section aria-labelledby="heatmap-title" className="min-w-0">
         <SectionHeading id="heatmap-title" title={t("sec.vnHeatmap")} />
-        <div className="h-[clamp(680px,calc(100svh-200px),920px)] min-h-[680px] rounded-lg border border-border bg-card/40 p-px">
+        <div className="h-[clamp(520px,calc(100svh-260px),680px)] max-h-[680px] min-h-[480px] rounded-lg border border-border bg-card/40 p-px">
           <HeatmapGridSkeleton />
         </div>
       </section>

@@ -55,6 +55,10 @@ export type HeatmapAsset = {
   volume: number
   sector: string
   marketCap: number
+  /** Foreign buy volume in shares (VPS only). */
+  foreignBuy?: number
+  /** Foreign sell volume in shares (VPS only). */
+  foreignSell?: number
 }
 
 export type FinancialSnapshot = {

@@ -18,9 +18,9 @@ type SectorTreemapProps = {
 }
 
 function tileSizeForRank(rank: number, total: number): TileSize {
-  const largeCutoff = Math.max(1, Math.ceil(total * 0.1))
-  const mediumCutoff = Math.max(largeCutoff + 1, Math.ceil(total * 0.28))
-  const smallCutoff = Math.max(mediumCutoff + 1, Math.ceil(total * 0.55))
+  const largeCutoff = Math.max(1, Math.ceil(total * 0.08))
+  const mediumCutoff = Math.max(largeCutoff + 1, Math.ceil(total * 0.22))
+  const smallCutoff = Math.max(mediumCutoff + 1, Math.ceil(total * 0.45))
   if (rank < largeCutoff) return "large"
   if (rank < mediumCutoff) return "medium"
   if (rank < smallCutoff) return "small"

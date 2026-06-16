@@ -48,16 +48,16 @@ export function buildSectorTreemapBlocks(
 
   return blocks.map((block) => ({
     ...block,
-    flexGrow: Math.max(block.weight / totalWeight, 0.04),
+    flexGrow: Math.max(block.weight / totalWeight, 0.03),
   }))
 }
 
 /** Grid columns scale with symbol count to maximize tile density inside a block. */
 export function treemapBlockGridCols(symbolCount: number): number {
-  if (symbolCount <= 4) return 2
-  if (symbolCount <= 9) return 3
-  if (symbolCount <= 16) return 4
-  if (symbolCount <= 25) return 5
-  if (symbolCount <= 36) return 6
+  if (symbolCount <= 3) return 2
+  if (symbolCount <= 8) return 3
+  if (symbolCount <= 15) return 4
+  if (symbolCount <= 24) return 5
+  if (symbolCount <= 35) return 6
   return 7
 }

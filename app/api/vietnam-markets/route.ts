@@ -9,6 +9,7 @@ export async function GET() {
     return Response.json(
       toApiJson({
         source: data.source,
+        volumeUnit: data.volumeUnit,
         indices: data.indices,
         heatmapMarket: data.heatmapMarket,
         heatmapStocks: data.heatmapStocks,
@@ -23,6 +24,7 @@ export async function GET() {
     return Response.json(
       toApiJsonFromMock({
         source: mock.source,
+        volumeUnit: mock.volumeUnit,
         indices: mock.indices,
         heatmapMarket: mock.heatmapMarket,
         heatmapStocks: mock.heatmapStocks,

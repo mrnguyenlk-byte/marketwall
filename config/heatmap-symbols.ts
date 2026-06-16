@@ -130,8 +130,14 @@ export const US_HEATMAP_SEEDS: HeatmapStockSeed[] = US_TICKER_DEFS.slice(0, 100)
   }),
 )
 
-export const US_HEATMAP_SIZE = 100
-export const CRYPTO_HEATMAP_SIZE = 50
+/** Display limits (Sprint 23 usability). */
+export const VN_HEATMAP_LIMIT = 80
+export const US_HEATMAP_LIMIT = 50
+export const CRYPTO_HEATMAP_LIMIT = 40
+
+/** API fetch universe — US seeds stay broad; top N chosen by dollar volume at serve time. */
+export const US_HEATMAP_SIZE = US_HEATMAP_LIMIT
+export const CRYPTO_HEATMAP_SIZE = CRYPTO_HEATMAP_LIMIT
 
 /** Twelve Data API symbols for US live quotes. */
 export function getUsHeatmapApiSymbols(): string[] {

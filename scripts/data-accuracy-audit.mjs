@@ -75,14 +75,20 @@ async function fetchMarketWall() {
   const hm = await fetch(`${MW_API}/api/heatmaps/vietnam`).then((r) => r.json())
   const map = {}
   for (const item of hm.items ?? []) {
+    const tv =
+      item.value != null && item.value > 0
+        ? item.value
+        : Math.round(item.price * item.volume * SHARES_PER_LOT)
     map[item.symbol] = {
       price: item.price,
       changePct: item.changePercent,
       volume: item.volume,
-      tradingValue: Math.round(item.price * item.volume),
+      tradingValue: tv,
+      foreignBuy: item.foreignBuy ?? null,
+      foreignSell: item.foreignSell ?? null,
     }
   }
-  return { map, source: hm.source }
+  return { map, source: hm.source, volumeUnit: hm.volumeUnit ?? null }
 }
 
 async function fetchKbsForeign() {
@@ -137,7 +143,9 @@ async function main() {
         changePct_vs_ssi: classify(pctDiff(mw?.changePct, ssi[sym]?.changePct)),
         volume_vs_vps: classify(pctDiff(mw?.volume, vps[sym]?.volumeLots)),
         tradingValue_displayed_vs_ssi: classify(pctDiff(mw?.tradingValue, ssi[sym]?.tradingValue)),
-        tradingValue_corrected_vs_ssi: classify(pctDiff(mwTvCorrected, ssi[sym]?.tradingValue)),
+        tradingValue_corrected_vs_ssi: classify(pctDiff(mw?.tradingValue, ssi[sym]?.tradingValue)),
+        foreignBuy_mw_vs_vps: classify(pctDiff(mw?.foreignBuy, vps[sym]?.foreignBuy)),
+        foreignSell_mw_vs_vps: classify(pctDiff(mw?.foreignSell, vps[sym]?.foreignSell)),
         foreignBuy_vps_vs_ssi: classify(pctDiff(vps[sym]?.foreignBuy, ssi[sym]?.foreignBuy)),
         foreignSell_vps_vs_ssi: classify(pctDiff(vps[sym]?.foreignSell, ssi[sym]?.foreignSell)),
         netForeign_vps_vs_ssi: classify(pctDiff(vps[sym]?.netForeign, ssi[sym]?.netForeign)),

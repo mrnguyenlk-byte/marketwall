@@ -1,9 +1,11 @@
 import "server-only"
 
-import { CRYPTO_HEATMAP_SIZE, US_HEATMAP_SEEDS, US_HEATMAP_SIZE } from "@/config/heatmap-symbols"
+import { CRYPTO_HEATMAP_SIZE, US_HEATMAP_SEEDS, US_HEATMAP_SIZE, VN_HEATMAP_LIMIT } from "@/config/heatmap-symbols"
 import { toApiJson, toApiJsonFromMock } from "@/lib/api-response"
+import { VPS_VOLUME_UNIT } from "@/lib/vietnam/volume-units"
 import { getMockHeatmapAssets } from "@/lib/mockHeatmapData"
 import { overlayHeatmapQuotes } from "@/lib/market/normalize"
+import { limitHeatmapRows, sortHeatmapRows } from "@/lib/market/heatmap-limits"
 import { CACHE_KEYS, CACHE_TTL, cachedProvider } from "@/lib/providers/cache"
 import { getData as getCryptoData, getMockData as getCryptoMock } from "@/lib/providers/crypto-provider"
 import { getData as getVietnamData, getMockData as getVietnamMock, type VietnamMarketData } from "@/lib/providers/vietnam-market-provider"
@@ -12,9 +14,9 @@ import type { HeatmapAsset, MarketType } from "@/types/market"
 
 const HEATMAP_CACHE_TTL_MS = CACHE_TTL.heatmap
 const US_LIVE_MIN_PRICES = 5
-const US_HEATMAP_MIN_ITEMS = 50
-const VN_HEATMAP_SIZE = 150
-const VN_HEATMAP_MIN_ITEMS = 100
+const US_HEATMAP_MIN_ITEMS = US_HEATMAP_SIZE
+const VN_HEATMAP_SIZE = VN_HEATMAP_LIMIT
+const VN_HEATMAP_MIN_ITEMS = Math.min(60, VN_HEATMAP_LIMIT)
 
 type HeatmapRowResult = {
   items: HeatmapAsset[]
@@ -71,11 +73,17 @@ function vnStocksToRows(data: VietnamMarketData): HeatmapAsset[] {
     volume: stock.volume,
     sector: stock.sector,
     marketCap: stock.marketCap,
+    foreignBuy: stock.foreignBuy,
+    foreignSell: stock.foreignSell,
   }))
 }
 
 function sortByMarketCap(items: HeatmapAsset[]): HeatmapAsset[] {
   return [...items].sort((a, b) => b.marketCap - a.marketCap)
+}
+
+function finalizeHeatmapRows(items: HeatmapAsset[], market: MarketType): HeatmapAsset[] {
+  return limitHeatmapRows(items, market)
 }
 
 function countLivePrices(items: HeatmapAsset[]): number {
@@ -121,11 +129,11 @@ function buildHeatmapRowResult(
 async function fetchVietnamRows(): Promise<HeatmapRowResult> {
   const mock = getVietnamMock()
   const seedCount = VN_HEATMAP_SIZE
-  const baseItems = sortByMarketCap(vnStocksToRows(mock)).slice(0, VN_HEATMAP_SIZE)
+  const baseItems = sortHeatmapRows(vnStocksToRows(mock), "vn").slice(0, VN_HEATMAP_SIZE)
 
   try {
     const data = await getVietnamData()
-    const liveItems = sortByMarketCap(vnStocksToRows(data))
+    const liveItems = sortHeatmapRows(vnStocksToRows(data), "vn")
     const liveBySymbol = new Map(liveItems.map((row) => [row.symbol.toUpperCase(), row]))
 
     let items = baseItems.map((row) => {
@@ -151,7 +159,7 @@ async function fetchVietnamRows(): Promise<HeatmapRowResult> {
       items = ensureMinHeatmapRows(items, baseItems, VN_HEATMAP_MIN_ITEMS)
     }
 
-    items = sortByMarketCap(items).slice(0, seedCount)
+    items = finalizeHeatmapRows(items, "vn")
 
     const livePriceCount = countLivePrices(items)
     const source =
@@ -186,7 +194,7 @@ async function fetchUsRows(): Promise<HeatmapRowResult> {
       })),
     )
     if (liveQuotes.length > 0) {
-      items = sortByMarketCap(overlayHeatmapQuotes(seedRows, liveQuotes))
+      items = overlayHeatmapQuotes(seedRows, liveQuotes)
     }
   } catch {
     /* keep full seed universe */
@@ -195,6 +203,8 @@ async function fetchUsRows(): Promise<HeatmapRowResult> {
   if (items.length < US_HEATMAP_MIN_ITEMS) {
     items = ensureMinHeatmapRows(items, seedRows, US_HEATMAP_MIN_ITEMS)
   }
+
+  items = finalizeHeatmapRows(items, "us")
 
   const livePriceCount = countLivePrices(items)
   const source = livePriceCount >= US_LIVE_MIN_PRICES ? "live" : "mock"
@@ -212,7 +222,7 @@ async function fetchCryptoRows(): Promise<HeatmapRowResult> {
   try {
     const data = await getCryptoData()
     if (data.assets.length >= 10) {
-      const items = data.assets.slice(0, CRYPTO_HEATMAP_SIZE).map((asset) => ({
+      const items = data.assets.map((asset) => ({
         symbol: asset.symbol,
         name: asset.name,
         price: asset.price,
@@ -221,8 +231,7 @@ async function fetchCryptoRows(): Promise<HeatmapRowResult> {
         sector: "Crypto",
         marketCap: asset.marketCap,
       }))
-      const sorted = sortByMarketCap(items)
-      return buildHeatmapRowResult(sorted, data.source, seedCount)
+      return buildHeatmapRowResult(finalizeHeatmapRows(items, "crypto"), data.source, seedCount)
     }
   } catch {
     /* fall through */
@@ -230,7 +239,7 @@ async function fetchCryptoRows(): Promise<HeatmapRowResult> {
 
   try {
     const mock = getCryptoMock()
-    const items = mock.assets.slice(0, CRYPTO_HEATMAP_SIZE).map((asset) => ({
+    const items = mock.assets.map((asset) => ({
       symbol: asset.symbol,
       name: asset.name,
       price: asset.price,
@@ -239,9 +248,13 @@ async function fetchCryptoRows(): Promise<HeatmapRowResult> {
       sector: "Crypto",
       marketCap: asset.marketCap,
     }))
-    return buildHeatmapRowResult(sortByMarketCap(items), "mock", seedCount)
+    return buildHeatmapRowResult(finalizeHeatmapRows(items, "crypto"), "mock", seedCount)
   } catch {
-    return buildHeatmapRowResult(sortByMarketCap(mockAssetsToRows("crypto")), "mock", seedCount)
+    return buildHeatmapRowResult(
+      finalizeHeatmapRows(mockAssetsToRows("crypto"), "crypto"),
+      "mock",
+      seedCount,
+    )
   }
 }
 
@@ -300,6 +313,7 @@ export async function serveHeatmapMarket(market: MarketType) {
       toApiJson({
         source: payload.source,
         items: payload.items,
+        volumeUnit: market === "vn" ? VPS_VOLUME_UNIT : undefined,
         unavailable: payload.unavailable,
         itemCount: payload.itemCount,
         livePriceCount: payload.livePriceCount,

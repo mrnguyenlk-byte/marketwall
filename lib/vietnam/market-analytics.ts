@@ -1,5 +1,6 @@
 import type { VietnamHeatmapStock } from "@/lib/providers/vietnam-market-provider"
 import { sectorForSymbol } from "@/lib/vietnam/symbol-sectors"
+import { vpsTradingValue } from "@/lib/vietnam/volume-units"
 
 export type VietnamForeignNetRow = {
   symbol: string
@@ -75,7 +76,29 @@ export type KbsForeignTotalRow = {
 
 function stockTradingValue(stock: VietnamHeatmapStock): number {
   if (stock.value > 0) return stock.value
-  return Math.round(stock.price * stock.volume)
+  return vpsTradingValue(stock.price, stock.volume)
+}
+
+export function foreignRowsFromHeatmapStocks(stocks: {
+  hose: VietnamHeatmapStock[]
+  hnx: VietnamHeatmapStock[]
+  upcom: VietnamHeatmapStock[]
+}): KbsForeignTotalRow[] {
+  const rows: KbsForeignTotalRow[] = []
+
+  for (const stock of [...stocks.hose, ...stocks.hnx, ...stocks.upcom]) {
+    const foreignBuy = stock.foreignBuy ?? 0
+    const foreignSell = stock.foreignSell ?? 0
+    if (foreignBuy === 0 && foreignSell === 0) continue
+    rows.push({
+      symbol: stock.symbol,
+      price: stock.price,
+      foreignBuy,
+      foreignSell,
+    })
+  }
+
+  return rows
 }
 
 function flattenStocks(stocks: {

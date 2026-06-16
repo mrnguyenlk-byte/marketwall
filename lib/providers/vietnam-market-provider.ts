@@ -16,18 +16,18 @@ import {
 import { CACHE_KEYS, CACHE_TTL } from "@/lib/providers/cache"
 import { withFallback } from "@/lib/providers/fallback"
 import {
-  fetchKbsForeignTotalRows,
   fetchKbsIndexDailyBars,
   fetchKbsIndexSnapshot,
   fetchKbsMarketDashboard,
-  parseKbsForeignTotalRow,
   type KbsLeaderboardRow,
 } from "@/lib/providers/kbs-client"
 import {
   buildUnavailableAnalytics,
   buildVietnamMarketAnalytics,
+  foreignRowsFromHeatmapStocks,
   type VietnamMarketAnalytics,
 } from "@/lib/vietnam/market-analytics"
+import { VPS_VOLUME_UNIT, vpsTradingValue } from "@/lib/vietnam/volume-units"
 import type {
   HeatmapExchange,
   HeatmapMarket,
@@ -61,6 +61,10 @@ export type VietnamHeatmapStock = {
   volume: number
   value: number
   weight: number
+  /** Foreign buy volume in shares (VPS fBVol × 10). */
+  foreignBuy?: number
+  /** Foreign sell volume in shares (VPS fSVolume × 10). */
+  foreignSell?: number
 }
 
 export type VietnamDashboardRow = KbsLeaderboardRow
@@ -87,9 +91,11 @@ export type VietnamMarketData = {
   dashboard: VietnamMarketDashboard
   analytics: VietnamMarketAnalytics
   source: "mock" | "live"
+  /** VPS lot field unit for heatmap volume. */
+  volumeUnit: typeof VPS_VOLUME_UNIT
   /** Primary heatmap quote provider when live. */
   heatmapProvider?: "vps" | "kbs" | "tcbs" | "vietstock" | "fireant"
-  /** Secondary enrichment source for dashboard / foreign flow. */
+  /** Secondary enrichment source for dashboard leaderboards. */
   enrichmentProvider?: "kbs"
 }
 
@@ -110,7 +116,7 @@ function pctChange(price: number, changePercent: number): number {
 }
 
 function stockValue(price: number, volume: number): number {
-  return Math.round(price * volume)
+  return vpsTradingValue(price, volume)
 }
 
 function weightFromMarketCap(marketCap: number, maxCap: number): number {
@@ -250,6 +256,8 @@ function mergeHeatmapStockBucket(
       changePercent: liveStock.changePercent,
       volume: liveStock.volume,
       value: liveStock.value,
+      foreignBuy: liveStock.foreignBuy ?? seed.foreignBuy,
+      foreignSell: liveStock.foreignSell ?? seed.foreignSell,
     }
   })
   return assignWeights(merged)
@@ -301,7 +309,7 @@ function buildMockDashboard(): VietnamMarketDashboard {
   const all = [...HOSE_SEEDS, ...HNX_SEEDS, ...UPCOM_SEEDS]
   const byVolume = [...all].sort((a, b) => b.volume - a.volume).slice(0, 10)
   const byValue = [...all]
-    .sort((a, b) => b.price * b.volume - a.price * a.volume)
+    .sort((a, b) => vpsTradingValue(b.price, b.volume) - vpsTradingValue(a.price, a.volume))
     .slice(0, 10)
 
   const toRow = (seed: StockSeed, rank: number, metric: "volume" | "value"): VietnamDashboardRow => ({
@@ -366,6 +374,7 @@ export function getMockData(): VietnamMarketData {
     dashboard: buildMockDashboard(),
     analytics: buildUnavailableAnalytics(),
     source: "mock",
+    volumeUnit: VPS_VOLUME_UNIT,
   }
 }
 
@@ -377,13 +386,6 @@ async function fetchPreviousVnindexSession(): Promise<{
   if (bars.length < 2) return { volume: null, value: null }
   const prev = bars[bars.length - 2]
   return { volume: prev.volume, value: null }
-}
-
-async function fetchKbsForeignRowsForAnalytics() {
-  const raw = await fetchKbsForeignTotalRows()
-  return raw
-    .map(parseKbsForeignTotalRow)
-    .filter((row): row is NonNullable<typeof row> => row != null)
 }
 
 /** Try Vietnam adapters (TCBS public API) then fall back to enriched mock data. */
@@ -408,10 +410,9 @@ async function fetchLiveVietnamMarketData(): Promise<VietnamMarketData | null> {
   const mock = getMockData()
   const { data } = result
 
-  const [kbsDashboard, kbsIndices, foreignRows, previousSession] = await Promise.all([
+  const [kbsDashboard, kbsIndices, previousSession] = await Promise.all([
     fetchKbsMarketDashboard(),
     data.indices.length === 0 ? fetchLiveKbsIndices() : Promise.resolve([]),
-    fetchKbsForeignRowsForAnalytics(),
     fetchPreviousVnindexSession(),
   ])
 
@@ -449,6 +450,8 @@ async function fetchLiveVietnamMarketData(): Promise<VietnamMarketData | null> {
     ? mergeHeatmapStocks(mock.heatmapStocks, normalizedStocksToHeatmapBuckets(data.stocks))
     : mock.heatmapStocks
 
+  const foreignRows = foreignRowsFromHeatmapStocks(heatmapStocks)
+
   return {
     indices,
     heatmapStocks,
@@ -462,8 +465,9 @@ async function fetchLiveVietnamMarketData(): Promise<VietnamMarketData | null> {
       liveSymbols,
     }),
     source: "live",
+    volumeUnit: VPS_VOLUME_UNIT,
     heatmapProvider: data.provider,
-    enrichmentProvider: kbsDashboard || foreignRows.length > 0 ? "kbs" : undefined,
+    enrichmentProvider: kbsDashboard ? "kbs" : undefined,
   }
 }
 

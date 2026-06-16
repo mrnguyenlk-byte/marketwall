@@ -1,12 +1,14 @@
 import type { MarketAsset } from "@/types/market"
 
+import { vpsTradingValue } from "./volume-units"
+
 export type VnHeatmapSizingMode = "tradingValue" | "volume" | "marketCap"
 
 export const DEFAULT_VN_HEATMAP_SIZING: VnHeatmapSizingMode = "tradingValue"
 
-/** Trading value in VND (price × volume). */
+/** Trading value in VND (price × VPS lot × 10 shares). */
 export function tradingValue(price: number, volume: number): number {
-  return price * volume
+  return vpsTradingValue(price, volume)
 }
 
 export function sizeMetric(asset: MarketAsset, mode: VnHeatmapSizingMode): number {

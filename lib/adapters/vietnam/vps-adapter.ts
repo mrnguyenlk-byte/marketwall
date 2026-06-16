@@ -11,6 +11,8 @@ import type {
   NormalizedVietnamStock,
   VietnamMarketAdapter,
 } from "./types"
+import { vpsLotToShares, vpsTradingValue } from "@/lib/vietnam/volume-units"
+
 import { groupStocksByExchange } from "./normalize"
 
 const VPS_BASE = "https://bgapidatafeed.vps.com.vn"
@@ -22,6 +24,8 @@ type VpsQuoteRow = {
   closePrice?: string
   changePc?: string
   lot?: number
+  fBVol?: number
+  fSVolume?: number
   avePrice?: string
 }
 
@@ -66,6 +70,8 @@ function normalizeVpsRow(row: VpsQuoteRow, seeds: ReturnType<typeof seedLookup>)
   const changePercent = Number(row.changePc ?? seed?.changePercent ?? 0)
   const change = Number(((price * changePercent) / 100).toFixed(2))
   const volume = row.lot ?? seed?.volume ?? 0
+  const foreignBuyLots = row.fBVol ?? 0
+  const foreignSellLots = row.fSVolume ?? 0
 
   return {
     symbol,
@@ -83,7 +89,9 @@ function normalizeVpsRow(row: VpsQuoteRow, seeds: ReturnType<typeof seedLookup>)
     changePercent,
     marketCap: seed?.marketCap ?? 0,
     volume,
-    value: Math.round(price * volume),
+    value: vpsTradingValue(price, volume),
+    foreignBuyVolume: foreignBuyLots > 0 ? vpsLotToShares(foreignBuyLots) : undefined,
+    foreignSellVolume: foreignSellLots > 0 ? vpsLotToShares(foreignSellLots) : undefined,
     updatedAt: new Date().toISOString(),
   }
 }

@@ -356,6 +356,8 @@ function stockToHeatmapStock(stock: NormalizedVietnamStock): VietnamHeatmapStock
     volume: stock.volume,
     value: stock.value,
     weight: 0,
+    foreignBuy: stock.foreignBuyVolume,
+    foreignSell: stock.foreignSellVolume,
   }
 }
 
