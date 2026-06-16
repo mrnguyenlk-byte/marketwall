@@ -27,11 +27,11 @@ function worst(row: number[], length: number): number {
   return Math.max((l2 * max) / s2, s2 / (l2 * min))
 }
 
-/** Prefer vertical slices on very wide rects to avoid long horizontal strips. */
+/** Prefer vertical slices on wide rects to avoid long horizontal strips. */
 function chooseOrientation(rect: TreemapRect): boolean {
   const ratio = rect.w / Math.max(rect.h, 1e-9)
-  if (ratio > 2.2) return false
-  if (ratio < 1 / 2.2) return true
+  if (ratio > 1.6) return false
+  if (ratio < 1 / 1.6) return true
   return rect.w >= rect.h
 }
 
@@ -115,7 +115,7 @@ export function squarifyGroups<T, G>(
 
   return groupNodes.map((node) => {
     const group = node.data
-    const headerH = Math.min(node.rect.h * headerRatio, 0.032)
+    const headerH = Math.min(node.rect.h * headerRatio, 0.028)
     const inner: TreemapRect = {
       x: node.rect.x,
       y: node.rect.y + headerH,

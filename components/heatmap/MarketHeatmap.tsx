@@ -3,6 +3,7 @@
 import { useMemo } from "react"
 
 import { FinvizTreemap } from "@/components/heatmap/FinvizTreemap"
+import { VietnamSectorGridHeatmap } from "@/components/heatmap/VietnamSectorGridHeatmap"
 import { limitHeatmapAssets } from "@/lib/market/heatmap-limits"
 import {
   DEFAULT_VN_HEATMAP_SIZING,
@@ -49,6 +50,17 @@ export function MarketHeatmap({
     () => limitHeatmapAssets(assets, marketType, sizing),
     [assets, marketType, sizing],
   )
+
+  if (marketType === "vn" && groupingMode === "sector") {
+    return (
+      <VietnamSectorGridHeatmap
+        assets={limitedAssets}
+        sizing={sizing as VnHeatmapSizingMode}
+        groupLabel={groupLabel}
+        onTileClick={onTileClick}
+      />
+    )
+  }
 
   return (
     <FinvizTreemap

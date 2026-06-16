@@ -328,7 +328,7 @@ const dict: Dict = {
   "sector.retail": { vi: "Bán lẻ", en: "Retail" },
   "sector.technology": { vi: "Công nghệ", en: "Technology" },
   "sector.utilities": { vi: "Điện nước", en: "Utilities" },
-  "sector.industrial": { vi: "Công nghiệp", en: "Industrial" },
+  "sector.industrial": { vi: "KCN", en: "Industrial" },
   "sector.other": { vi: "Khác", en: "Other" },
   "label.updated": { vi: "Cập nhật", en: "Updated" },
   "label.rating": { vi: "Đánh giá", en: "Rating" },

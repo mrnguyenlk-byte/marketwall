@@ -52,16 +52,16 @@ export default async function Page() {
     <div className="min-h-screen w-full bg-background">
       <Header tickerItems={dashboard.dashboardTickerBarItems} />
 
-      <main className="w-full overflow-x-hidden px-3 pt-1.5 pb-3 lg:px-4">
-        <div className="grid grid-cols-1 items-start gap-3 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-3 min-[1440px]:grid-cols-[240px_minmax(0,1fr)_260px] min-[1920px]:grid-cols-[250px_minmax(0,1fr)_280px]">
+      <main className="w-full overflow-x-hidden px-3 pt-1 pb-3 lg:px-4">
+        <div className="grid grid-cols-1 items-start gap-2 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-2 min-[1440px]:grid-cols-[240px_minmax(0,1fr)_280px] min-[1920px]:grid-cols-[250px_minmax(0,1fr)_300px]">
           <aside
             aria-label="Market sidebar"
-            className="order-1 min-w-0 w-full lg:col-start-1 lg:row-start-1 lg:sticky lg:top-[98px] lg:self-start md:top-[76px] min-[1440px]:col-start-1 min-[1440px]:top-[76px] min-[1440px]:w-[240px] min-[1920px]:w-[250px]"
+            className="order-1 min-w-0 w-full lg:col-start-1 lg:row-start-1 lg:sticky lg:self-start top-[98px] md:top-[76px] min-[1440px]:col-start-1 min-[1440px]:w-[240px] min-[1920px]:w-[250px]"
           >
             <Sidebar overviewByCategory={dashboard.overviewByCategory} />
           </aside>
 
-          <section className="order-2 min-w-0 space-y-3 lg:col-start-2 lg:row-start-1 min-[1440px]:col-start-2">
+          <section className="order-2 min-w-0 space-y-2 lg:col-start-2 lg:row-start-1 min-[1440px]:col-start-2">
             <SectionErrorBoundary name="heatmap">
               <HeatmapSection markets={dashboard.heatmapMarkets} />
             </SectionErrorBoundary>
@@ -84,7 +84,7 @@ export default async function Page() {
 
           <aside
             aria-label="Trader sidebar"
-            className="order-3 flex min-w-0 w-full flex-col gap-3 lg:col-start-2 lg:row-start-2 min-[1440px]:col-start-3 min-[1440px]:row-start-1 min-[1440px]:sticky min-[1440px]:top-[76px] min-[1440px]:w-[260px] min-[1440px]:self-start min-[1920px]:w-[280px]"
+            className="order-3 flex min-w-0 w-full flex-col gap-2 lg:col-start-2 lg:row-start-2 lg:sticky lg:self-start top-[98px] md:top-[76px] min-[1440px]:col-start-3 min-[1440px]:row-start-1 min-[1440px]:w-[280px] min-[1920px]:w-[300px]"
           >
             <SectionErrorBoundary name="fear-greed">
               <FearGreed items={dashboard.fearGreedItems} variant="sidebar" />

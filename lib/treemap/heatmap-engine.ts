@@ -33,7 +33,7 @@ export type HeatmapTreemapLayout = {
 const MIN_TILE_VALUE = 0.0001
 
 /** Max share of unit-square area any single leaf may occupy after squarify. */
-export const MAX_LEAF_AREA_FRACTION = 0.1
+export const MAX_LEAF_AREA_FRACTION = 0.08
 
 function applySqrtSizing(value: number): number {
   return Math.sqrt(Math.max(value, 0))

@@ -25,7 +25,14 @@ type LeaderboardProps = {
   loading?: boolean
 }
 
-const TABLE_COLS = "1.25rem 2.75rem minmax(2.25rem,1fr) minmax(3.5rem,1fr)"
+const TABLE_COLS =
+  "1.25rem 2.75rem minmax(3rem,1fr) minmax(2.25rem,1fr) minmax(2.25rem,1fr) minmax(3.25rem,1fr)"
+
+function formatPriceChange(change: number | undefined): string {
+  if (change == null || !Number.isFinite(change)) return "—"
+  const sign = change > 0 ? "+" : ""
+  return `${sign}${fmt(change)}`
+}
 
 function formatChangeBadge(changePercent: number | undefined): string {
   if (changePercent == null) return "—"
@@ -41,6 +48,17 @@ function volumeForRow(row: VietnamDashboardRow): number {
   return row.volumeShares ?? row.volume ?? 0
 }
 
+function ChangeDelta({ value }: { value: number | undefined }) {
+  if (value == null || !Number.isFinite(value)) {
+    return <span className="font-mono text-xs tabular-nums text-muted-foreground">—</span>
+  }
+  return (
+    <span className={cn("font-mono text-xs font-semibold tabular-nums", signClass(value))}>
+      {formatPriceChange(value)}
+    </span>
+  )
+}
+
 function ChangeBadge({ value }: { value: number | undefined }) {
   if (value == null) {
     return <span className="font-mono text-[11px] tabular-nums text-muted-foreground">—</span>
@@ -50,7 +68,7 @@ function ChangeBadge({ value }: { value: number | undefined }) {
   return (
     <span
       className={cn(
-        "inline-flex min-w-[2.75rem] justify-end rounded px-1 py-0.5 font-mono text-[10px] font-semibold tabular-nums leading-none sm:text-[11px]",
+        "inline-flex min-w-[2.75rem] justify-end rounded px-1 py-0.5 font-mono text-xs font-semibold tabular-nums leading-none",
         up && "bg-gain/15 text-gain",
         down && "bg-loss/15 text-loss",
         !up && !down && "bg-secondary/50 text-muted-foreground",
@@ -119,19 +137,25 @@ function LeaderboardCard({ title, rows, metric, loading }: LeaderboardProps) {
           <TooltipProvider delay={120}>
             <div className="overflow-x-auto">
               <div
-                className="grid min-w-[240px] text-[11px] leading-none sm:text-xs"
+                className="grid min-w-[320px] text-xs leading-none"
                 style={{ gridTemplateColumns: TABLE_COLS }}
               >
-                <span className="border-b border-border/50 bg-secondary/20 px-1.5 py-1.5 text-center font-medium text-muted-foreground">
+                <span className="border-b border-border/50 bg-secondary/20 px-1.5 py-2 text-center text-xs font-medium text-muted-foreground">
                   #
                 </span>
-                <span className="border-b border-border/50 bg-secondary/20 px-1.5 py-1.5 font-medium text-muted-foreground">
+                <span className="border-b border-border/50 bg-secondary/20 px-1.5 py-2 text-xs font-medium text-muted-foreground">
                   {t("label.symbol")}
                 </span>
-                <span className="border-b border-border/50 bg-secondary/20 px-1.5 py-1.5 text-right font-medium text-muted-foreground">
+                <span className="border-b border-border/50 bg-secondary/20 px-1.5 py-2 text-right text-xs font-medium text-muted-foreground">
+                  {t("label.last")}
+                </span>
+                <span className="border-b border-border/50 bg-secondary/20 px-1.5 py-2 text-right text-xs font-medium text-muted-foreground">
+                  +/-
+                </span>
+                <span className="border-b border-border/50 bg-secondary/20 px-1.5 py-2 text-right text-xs font-medium text-muted-foreground">
                   %
                 </span>
-                <span className="border-b border-border/50 bg-secondary/20 px-1.5 py-1.5 text-right font-medium text-muted-foreground">
+                <span className="border-b border-border/50 bg-secondary/20 px-1.5 py-2 text-right text-xs font-medium text-muted-foreground">
                   {metricHeader}
                 </span>
 
@@ -143,18 +167,24 @@ function LeaderboardCard({ title, rows, metric, loading }: LeaderboardProps) {
                         render={
                           <div
                             role="row"
-                            className="contents cursor-default [&>*]:flex [&>*]:h-[28px] [&>*]:items-center [&>*]:border-b [&>*]:border-border/30 [&>*]:transition-colors hover:[&>*]:bg-secondary/25 sm:[&>*]:h-[30px]"
+                            className="contents cursor-default [&>*]:flex [&>*]:h-[30px] [&>*]:items-center [&>*]:border-b [&>*]:border-border/30 [&>*]:transition-colors hover:[&>*]:bg-secondary/25 sm:[&>*]:h-8"
                           >
-                            <span className="justify-center px-1 font-mono text-[10px] tabular-nums text-muted-foreground">
+                            <span className="justify-center px-1 font-mono text-xs tabular-nums text-muted-foreground">
                               {row.rank}
                             </span>
-                            <span className="whitespace-nowrap px-1.5 font-bold tracking-tight text-foreground">
+                            <span className="whitespace-nowrap px-1.5 text-xs font-bold tracking-tight text-foreground">
                               {row.symbol}
+                            </span>
+                            <span className="justify-end px-1.5 font-mono text-xs tabular-nums text-foreground">
+                              {row.price != null ? fmt(row.price) : "—"}
+                            </span>
+                            <span className="justify-end px-1.5">
+                              <ChangeDelta value={row.change} />
                             </span>
                             <span className="justify-end px-1">
                               <ChangeBadge value={row.changePercent} />
                             </span>
-                            <span className="justify-end px-1.5 font-mono font-semibold tabular-nums text-foreground">
+                            <span className="justify-end px-1.5 font-mono text-xs font-semibold tabular-nums text-foreground">
                               {metric === "volume"
                                 ? fmt(volumeForRow(row), { notation: "compact" })
                                 : fmt(tradingValueForRow(row), { notation: "compact" })}

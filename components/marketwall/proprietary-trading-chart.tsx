@@ -10,22 +10,108 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { useLang } from "@/lib/i18n"
-import type { VietnamMarketAnalytics } from "@/lib/vietnam/market-analytics"
+import type { VietnamMarketAnalytics, VietnamProprietaryNetRow } from "@/lib/vietnam/market-analytics"
 import {
   formatHistoryLabel,
   formatProprietaryBillions,
   maxHistoryNetMagnitude,
-  maxTopBuyMagnitude,
-  maxTopSellMagnitude,
   valueToBillionVnd,
 } from "@/lib/vietnam/proprietary-trading"
 import { cn } from "@/lib/utils"
 
-import { signClass } from "./shared"
-
 type ProprietaryTradingChartProps = {
   proprietary?: VietnamMarketAnalytics["proprietary"]
   loading?: boolean
+}
+
+type ProprietaryFlowSide = {
+  symbol: string
+  sector: string
+  displayValue: number
+  rawValue: number
+}
+
+type ProprietaryFlowRow = {
+  rank: number
+  buy?: ProprietaryFlowSide
+  sell?: ProprietaryFlowSide
+}
+
+function rowToSide(
+  row: VietnamProprietaryNetRow,
+  field: "buyValue" | "sellValue",
+): ProprietaryFlowSide | undefined {
+  const rawValue = row[field]
+  if (rawValue <= 0) return undefined
+  return {
+    symbol: row.symbol,
+    sector: row.sector,
+    rawValue,
+    displayValue: valueToBillionVnd(rawValue),
+  }
+}
+
+function buildProprietaryDivergingRows(
+  topBuy: VietnamProprietaryNetRow[],
+  topSell: VietnamProprietaryNetRow[],
+  limit = 10,
+): ProprietaryFlowRow[] {
+  const rows: ProprietaryFlowRow[] = []
+  for (let i = 0; i < limit; i++) {
+    const buyRow = topBuy[i]
+    const sellRow = topSell[i]
+    if (!buyRow && !sellRow) continue
+    rows.push({
+      rank: i + 1,
+      buy: buyRow ? rowToSide(buyRow, "buyValue") : undefined,
+      sell: sellRow ? rowToSide(sellRow, "sellValue") : undefined,
+    })
+  }
+  return rows
+}
+
+function maxDisplayMagnitude(rows: ProprietaryFlowRow[]): number {
+  let max = 0.01
+  for (const row of rows) {
+    if (row.buy) max = Math.max(max, row.buy.displayValue)
+    if (row.sell) max = Math.max(max, row.sell.displayValue)
+  }
+  return max
+}
+
+function FlowBar({
+  side,
+  direction,
+  widthPct,
+}: {
+  side: ProprietaryFlowSide
+  direction: "buy" | "sell"
+  widthPct: number
+}) {
+  const isBuy = direction === "buy"
+
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <button
+            type="button"
+            className={cn(
+              "group relative flex h-7 min-w-[2rem] items-center rounded-sm px-1 transition-opacity sm:h-8",
+              isBuy ? "justify-start bg-gain/85" : "justify-end bg-loss/85",
+            )}
+            style={{ width: `${Math.max(widthPct, 6)}%` }}
+            aria-label={`${side.symbol} ${formatProprietaryBillions(side.rawValue)}`}
+          />
+        }
+      />
+      <TooltipContent side="top" className="p-2.5 text-xs">
+        <p className="font-semibold">{side.symbol}</p>
+        <p>{formatProprietaryBillions(side.rawValue)} VND</p>
+        <p className="text-background/70">{side.sector}</p>
+      </TooltipContent>
+    </Tooltip>
+  )
 }
 
 function HistoryBar({
@@ -39,23 +125,23 @@ function HistoryBar({
 }) {
   const { t } = useLang()
   const netB = valueToBillionVnd(netValue)
-  const heightPct = (Math.abs(netB) / maxMag) * 100
+  const widthPct = (Math.abs(netB) / maxMag) * 100
   const isBuy = netValue >= 0
 
   return (
     <Tooltip>
       <TooltipTrigger
         render={
-          <div className="flex h-28 flex-1 flex-col items-center justify-end gap-1">
-            <div className="relative flex h-24 w-full items-center justify-center">
+          <div className="flex flex-1 flex-col items-center gap-1">
+            <div className="relative flex h-7 w-full items-center justify-center sm:h-8">
               <div className="absolute left-0 right-0 top-1/2 h-px -translate-y-1/2 bg-border" />
               {netValue !== 0 ? (
                 <div
                   className={cn(
-                    "absolute left-1/2 w-[72%] max-w-8 -translate-x-1/2 rounded-sm",
-                    isBuy ? "bottom-1/2 bg-gain/85" : "top-1/2 bg-loss/85",
+                    "absolute h-full max-w-full rounded-sm",
+                    isBuy ? "left-1/2 bg-gain/85" : "right-1/2 bg-loss/85",
                   )}
-                  style={{ height: `${Math.max(heightPct, 8)}%` }}
+                  style={{ width: `${Math.max(widthPct / 2, 4)}%` }}
                 />
               ) : null}
             </div>
@@ -75,64 +161,24 @@ function HistoryBar({
   )
 }
 
-function ValueBarRow({
-  row,
-  field,
-  maxMag,
-  tone,
-}: {
-  row: VietnamMarketAnalytics["proprietary"]["topBuy"][number]
-  field: "buyValue" | "sellValue"
-  maxMag: number
-  tone: "buy" | "sell"
-}) {
-  const value = row[field]
-  const widthPct = (valueToBillionVnd(value) / maxMag) * 100
-
-  return (
-    <div className="flex items-center gap-2 text-[10px]">
-      <span className="w-10 shrink-0 font-semibold">{row.symbol}</span>
-      <div className="relative h-5 flex-1 rounded-sm bg-secondary/30">
-        <div
-          className={cn(
-            "absolute left-0 top-0 h-full rounded-sm",
-            tone === "buy" ? "bg-gain/85" : "bg-loss/85",
-          )}
-          style={{ width: `${Math.max(widthPct, 6)}%` }}
-        />
-      </div>
-      <span className={cn("w-14 shrink-0 text-right font-mono tabular-nums", tone === "buy" ? "text-gain" : "text-loss")}>
-        {formatProprietaryBillions(value)}
-      </span>
-    </div>
-  )
-}
-
 export function ProprietaryTradingChart({ proprietary, loading }: ProprietaryTradingChartProps) {
   const { t } = useLang()
 
+  const rows = useMemo(
+    () => buildProprietaryDivergingRows(proprietary?.topBuy ?? [], proprietary?.topSell ?? []),
+    [proprietary?.topBuy, proprietary?.topSell],
+  )
+  const maxMag = useMemo(() => maxDisplayMagnitude(rows), [rows])
   const historyMax = useMemo(
     () => maxHistoryNetMagnitude(proprietary?.history ?? []),
     [proprietary?.history],
   )
-  const buyMax = useMemo(() => maxTopBuyMagnitude(proprietary?.topBuy ?? []), [proprietary?.topBuy])
-  const sellMax = useMemo(
-    () => maxTopSellMagnitude(proprietary?.topSell ?? []),
-    [proprietary?.topSell],
-  )
-
-  const historySessions = proprietary?.history.length ?? 0
 
   return (
-    <Card className="gap-0 border-border/80 py-0 shadow-sm">
+    <Card className="gap-0 border-border/80 py-0 shadow-sm md:col-span-2">
       <CardHeader className="flex flex-col gap-2 border-b border-border/60 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap items-center gap-2">
           <CardTitle className="text-sm font-semibold">{t("proprietaryTrading.title")}</CardTitle>
-          <span className="rounded border border-border/60 bg-secondary/40 px-2 py-0.5 text-[10px] font-semibold uppercase text-foreground">
-            {historySessions >= 10
-              ? t("proprietaryTrading.rangeSessions")
-              : t("proprietaryTrading.rangeToday")}
-          </span>
           <span className="rounded border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300">
             {t("proprietaryTrading.eodLabel")}
           </span>
@@ -151,41 +197,76 @@ export function ProprietaryTradingChart({ proprietary, loading }: ProprietaryTra
             {t("proprietaryTrading.unavailable")}
           </p>
         ) : (
-          <div className="space-y-4">
-            {(proprietary.topBuy.length > 0 || proprietary.topSell.length > 0) && (
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <p className="mb-1.5 text-[10px] font-semibold uppercase text-gain">
-                    {t("proprietaryTrading.topBuy")}
-                  </p>
-                  <div className="space-y-1">
-                    {proprietary.topBuy.map((row) => (
-                      <ValueBarRow key={`buy-${row.symbol}`} row={row} field="buyValue" maxMag={buyMax} tone="buy" />
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <p className="mb-1.5 text-[10px] font-semibold uppercase text-loss">
-                    {t("proprietaryTrading.topSell")}
-                  </p>
-                  <div className="space-y-1">
-                    {proprietary.topSell.map((row) => (
-                      <ValueBarRow
-                        key={`sell-${row.symbol}`}
-                        row={row}
-                        field="sellValue"
-                        maxMag={sellMax}
-                        tone="sell"
-                      />
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {proprietary.history.length > 0 && (
-              <TooltipProvider delay={120}>
+          <TooltipProvider delay={175}>
+            <div className="space-y-4">
+              {rows.length > 0 ? (
                 <div className="relative">
+                  <div className="mb-2 flex justify-between text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                    <span>{t("foreignFlow.netSell")}</span>
+                    <span>{t("foreignFlow.netBuy")}</span>
+                  </div>
+                  <div
+                    className="pointer-events-none absolute bottom-0 left-1/2 top-6 z-10 w-px -translate-x-1/2 bg-border"
+                    aria-hidden
+                  />
+                  <div className="space-y-1.5">
+                    {rows.map((row) => (
+                      <div
+                        key={`prop-flow-${row.rank}`}
+                        className="grid grid-cols-[1fr_auto_1fr] items-center gap-2"
+                      >
+                        <div className="flex items-center justify-end gap-2">
+                          {row.sell ? (
+                            <>
+                              <span className="hidden font-mono text-[10px] tabular-nums text-loss sm:inline">
+                                {formatProprietaryBillions(row.sell.rawValue)}
+                              </span>
+                              <FlowBar
+                                side={row.sell}
+                                direction="sell"
+                                widthPct={(row.sell.displayValue / maxMag) * 100}
+                              />
+                              <span className="w-10 shrink-0 text-right text-[10px] font-semibold text-foreground sm:w-11">
+                                {row.sell.symbol}
+                              </span>
+                            </>
+                          ) : (
+                            <span className="h-7 sm:h-8" />
+                          )}
+                        </div>
+                        <span className="w-5 text-center font-mono text-[9px] text-muted-foreground">
+                          {row.rank}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          {row.buy ? (
+                            <>
+                              <span className="w-10 shrink-0 text-[10px] font-semibold text-foreground sm:w-11">
+                                {row.buy.symbol}
+                              </span>
+                              <FlowBar
+                                side={row.buy}
+                                direction="buy"
+                                widthPct={(row.buy.displayValue / maxMag) * 100}
+                              />
+                              <span className="hidden font-mono text-[10px] tabular-nums text-gain sm:inline">
+                                {formatProprietaryBillions(row.buy.rawValue)}
+                              </span>
+                            </>
+                          ) : (
+                            <span className="h-7 sm:h-8" />
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="mt-3 text-center text-[10px] text-muted-foreground">
+                    {t("foreignFlow.unitBillionVnd")}
+                  </p>
+                </div>
+              ) : null}
+
+              {proprietary.history.length > 0 ? (
+                <div className="relative border-t border-border/50 pt-3">
                   <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                     {t("proprietaryTrading.netBuyChart")}
                   </p>
@@ -207,18 +288,9 @@ export function ProprietaryTradingChart({ proprietary, loading }: ProprietaryTra
                     {t("proprietaryTrading.unitBillionVnd")}
                   </p>
                 </div>
-              </TooltipProvider>
-            )}
-
-            {proprietary.netValue != null ? (
-              <p className="text-center text-[10px] text-muted-foreground">
-                {t("proprietaryTrading.netValue")}:{" "}
-                <span className={cn("font-mono font-semibold", signClass(proprietary.netValue))}>
-                  {formatProprietaryBillions(proprietary.netValue)} VND
-                </span>
-              </p>
-            ) : null}
-          </div>
+              ) : null}
+            </div>
+          </TooltipProvider>
         )}
       </CardContent>
     </Card>

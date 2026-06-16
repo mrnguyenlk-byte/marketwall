@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { Star, X } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { ChangePill, fmt } from "@/components/marketwall/shared"
+import { ChangePill, fmt, signClass } from "@/components/marketwall/shared"
 import { features } from "@/lib/config/features"
 import { isHeatmapOnlyAsset } from "@/lib/market/asset-detail-availability"
 import { useLang } from "@/lib/i18n"
@@ -55,6 +55,10 @@ function StockDetailContent({ asset, onClose }: { asset: MarketAsset; onClose: (
               <p className="font-mono text-xl font-bold tabular-nums sm:text-2xl">
                 {fmt(asset.price)} {asset.currency}
               </p>
+              <span className={cn("font-mono text-sm font-semibold tabular-nums", signClass(asset.change))}>
+                {asset.change >= 0 ? "+" : ""}
+                {fmt(asset.change)}
+              </span>
               <ChangePill value={asset.changePercent} />
             </div>
             {!heatmapOnly ? (

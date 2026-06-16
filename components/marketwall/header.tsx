@@ -28,14 +28,15 @@ export function Header({ tickerItems }: HeaderProps) {
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur">
-      {/* Row 1 — logo, centered nav (md+), utilities + search right */}
-      <div className="flex h-11 w-full items-center gap-2 px-3 sm:px-4 md:h-12 lg:px-6">
-        <BrandLogo height={36} priority className="shrink-0 md:hidden" />
-        <BrandLogo height={54} priority className="hidden shrink-0 md:inline-flex" />
+      <div className="grid h-11 w-full grid-cols-[auto_1fr_auto] items-center gap-2 px-3 sm:px-4 md:h-12 lg:px-6">
+        <div className="flex shrink-0 items-center">
+          <BrandLogo height={36} priority className="md:hidden" />
+          <BrandLogo height={54} priority className="hidden md:inline-flex" />
+        </div>
 
         <nav
           aria-label="Main navigation"
-          className="hidden min-w-0 flex-1 items-center justify-center gap-0 md:flex md:pl-[4%]"
+          className="hidden min-w-0 items-center justify-center gap-0 md:flex"
         >
           {NAV_ITEMS.map((item) => {
             const active = item.match
@@ -60,8 +61,8 @@ export function Header({ tickerItems }: HeaderProps) {
           })}
         </nav>
 
-        <div className="flex min-w-0 flex-1 items-center justify-end gap-1.5 sm:flex-nowrap sm:gap-2 md:flex-none">
-          <div className="relative w-full min-w-0 sm:w-44 md:w-48 lg:w-56">
+        <div className="flex min-w-0 items-center justify-end gap-1.5 sm:gap-2">
+          <div className="relative hidden w-44 min-w-0 sm:block md:w-48 lg:w-56">
             <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input
               type="search"
@@ -78,7 +79,6 @@ export function Header({ tickerItems }: HeaderProps) {
         </div>
       </div>
 
-      {/* Row 2 — mobile nav only */}
       <nav
         aria-label="Main navigation"
         className="flex h-[26px] items-center justify-center gap-0 border-t border-border/80 px-3 md:hidden"
@@ -106,7 +106,6 @@ export function Header({ tickerItems }: HeaderProps) {
         })}
       </nav>
 
-      {/* Row 3 — live ticker (dashboard only) */}
       {tickerItems ? <TickerBar items={tickerItems} compact /> : null}
     </header>
   )

@@ -145,7 +145,7 @@ export function HeatmapTile({ asset, size, rect, onClick }: HeatmapTileProps) {
         side="top"
         align="center"
         sideOffset={6}
-        className="pointer-events-none max-w-[160px] flex-col items-start p-2"
+        className="pointer-events-none max-w-[180px] flex-col items-start p-2"
       >
         <CompactTooltip asset={asset} up={up} />
       </TooltipContent>
