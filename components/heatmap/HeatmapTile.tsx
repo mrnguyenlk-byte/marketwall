@@ -15,15 +15,15 @@ export type TileSize = "large" | "medium" | "small"
 
 const sizeClasses: Record<TileSize, { grid: string; symbol: string; change: string; price: string }> = {
   large: {
-    grid: "col-span-3 row-span-3",
-    symbol: "text-xl sm:text-2xl lg:text-3xl",
-    change: "text-base sm:text-lg lg:text-xl",
-    price: "text-xs sm:text-sm",
+    grid: "col-span-2 row-span-2",
+    symbol: "text-lg sm:text-xl lg:text-2xl",
+    change: "text-sm sm:text-base lg:text-lg",
+    price: "text-[10px] sm:text-xs",
   },
   medium: {
-    grid: "col-span-2 row-span-2",
-    symbol: "text-base sm:text-lg lg:text-xl",
-    change: "text-sm sm:text-base",
+    grid: "col-span-2 row-span-1",
+    symbol: "text-sm sm:text-base lg:text-lg",
+    change: "text-xs sm:text-sm",
     price: "text-[10px] sm:text-xs",
   },
   small: {
@@ -52,7 +52,7 @@ export function HeatmapTile({ asset, size, onClick }: HeatmapTileProps) {
       onClick={() => onClick(asset)}
       style={heatStyle(asset.changePercent)}
       className={cn(
-        "group/tile flex flex-col items-start justify-between rounded-none border border-black/20 p-1.5 text-left transition-[filter,transform] hover:z-10 hover:brightness-110 lg:p-2.5",
+        "group/tile flex flex-col items-start justify-between rounded-none border border-black/20 p-1 text-left transition-[filter,transform] hover:z-10 hover:brightness-110 sm:p-1.5 lg:p-2",
         classes.grid,
       )}
     >

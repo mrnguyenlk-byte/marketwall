@@ -26,6 +26,9 @@ export type VietnamMarketsResponse = {
   source?: "live" | "mock"
   indices?: VietnamMarketIndex[]
   heatmapMarket?: import("@/lib/market-types").HeatmapMarket
+  dashboard?: import("@/lib/providers/vietnam-market-provider").VietnamMarketDashboard
+  heatmapProvider?: "vps" | "kbs" | "tcbs" | "vietstock" | "fireant"
+  enrichmentProvider?: "kbs"
 }
 
 export type GlobalMarketsResponse = {

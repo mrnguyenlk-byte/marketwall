@@ -221,6 +221,34 @@ export function normalizeVietstockStock(raw: {
   }
 }
 
+export function normalizeKbsIndex(
+  symbol: string,
+  snap: { price: number; change: number; changePercent: number; volume: number },
+): NormalizedVietnamIndex {
+  const canonical = normalizeIndexSymbol(symbol)
+  const exchange: VietnamExchangeLabel =
+    canonical === "HNX" ? "HNX" : canonical === "UPCOM" ? "UPCOM" : "HOSE"
+
+  const indexNames: Record<string, Bi> = {
+    VNINDEX: { vi: "VN-Index", en: "VN-Index" },
+    VN30: { vi: "VN30", en: "VN30" },
+    HNX: { vi: "HNX-Index", en: "HNX-Index" },
+    UPCOM: { vi: "UPCoM-Index", en: "UPCoM-Index" },
+  }
+
+  return {
+    symbol: canonical,
+    name: indexNames[canonical] ?? biLabel(canonical),
+    exchange,
+    price: snap.price,
+    change: snap.change,
+    changePercent: snap.changePercent,
+    volume: snap.volume,
+    value: 0,
+    updatedAt: new Date().toISOString(),
+  }
+}
+
 export function normalizeTcbsIndex(raw: {
   indexId?: string
   indexName?: string

@@ -1,12 +1,13 @@
 "use client"
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useVietnamChart } from "@/hooks/useVietnamChart"
 import { useLang } from "@/lib/i18n"
 import type { MarketAsset } from "@/types/market"
 import { fmt } from "@/components/marketwall/shared"
 
+import { StockChart } from "./StockChart"
 import { StockSummaryTable } from "./StockSummaryTable"
-import { TradingViewChart } from "./TradingViewChart"
 
 type StockTabsProps = {
   asset: MarketAsset
@@ -16,6 +17,22 @@ type StockTabsProps = {
 
 export function StockTabs({ asset, activeTab, onTabChange }: StockTabsProps) {
   const { t, lang } = useLang()
+  const isVn = asset.marketType === "vn"
+  const vnChart = useVietnamChart(isVn ? asset.symbol : null)
+
+  const historicalRows = isVn
+    ? (vnChart.data?.bars ?? [])
+        .slice(-30)
+        .reverse()
+        .map((bar) => ({
+          date: bar.time,
+          open: bar.open,
+          high: bar.high,
+          low: bar.low,
+          close: bar.close,
+          volume: bar.volume,
+        }))
+    : asset.historicalPrices
 
   return (
     <Tabs value={activeTab} onValueChange={onTabChange} className="flex min-h-0 flex-1 flex-col">
@@ -35,13 +52,24 @@ export function StockTabs({ asset, activeTab, onTabChange }: StockTabsProps) {
       <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-4">
         <TabsContent value="overview" className="mt-0">
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-            <TradingViewChart symbol={asset.tradingViewSymbol} />
+            <StockChart
+              asset={asset}
+              vnChartData={vnChart.data}
+              vnChartLoading={vnChart.isLoading}
+              vnChartError={Boolean(vnChart.error) || vnChart.data?.unavailable}
+            />
             <StockSummaryTable asset={asset} />
           </div>
         </TabsContent>
 
         <TabsContent value="chart" className="mt-0">
-          <TradingViewChart symbol={asset.tradingViewSymbol} className="min-h-[360px]" />
+          <StockChart
+            asset={asset}
+            className="min-h-[360px]"
+            vnChartData={vnChart.data}
+            vnChartLoading={vnChart.isLoading}
+            vnChartError={Boolean(vnChart.error) || vnChart.data?.unavailable}
+          />
           <p className="mt-2 text-[11px] text-muted-foreground">{t("misc.delayed")}</p>
         </TabsContent>
 
@@ -121,34 +149,38 @@ export function StockTabs({ asset, activeTab, onTabChange }: StockTabsProps) {
         </TabsContent>
 
         <TabsContent value="historical" className="mt-0">
-          <div className="overflow-x-auto rounded-md border border-border">
-            <table className="w-full min-w-[420px] text-left text-xs">
-              <thead className="border-b border-border bg-secondary/30">
-                <tr>
-                  <th className="px-3 py-2 font-medium">{t("label.time")}</th>
-                  <th className="px-3 py-2 font-medium">{t("heatmapDetail.open")}</th>
-                  <th className="px-3 py-2 font-medium">{t("label.high")}</th>
-                  <th className="px-3 py-2 font-medium">{t("label.low")}</th>
-                  <th className="px-3 py-2 font-medium">{t("label.last")}</th>
-                  <th className="px-3 py-2 font-medium">{t("label.volume")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {asset.historicalPrices.map((row) => (
-                  <tr key={row.date} className="border-b border-border/50 last:border-0">
-                    <td className="px-3 py-2">{row.date}</td>
-                    <td className="px-3 py-2 font-mono tabular-nums">{fmt(row.open)}</td>
-                    <td className="px-3 py-2 font-mono tabular-nums">{fmt(row.high)}</td>
-                    <td className="px-3 py-2 font-mono tabular-nums">{fmt(row.low)}</td>
-                    <td className="px-3 py-2 font-mono tabular-nums">{fmt(row.close)}</td>
-                    <td className="px-3 py-2 font-mono tabular-nums">
-                      {fmt(row.volume, { notation: "compact" })}
-                    </td>
+          {isVn && vnChart.isLoading && !historicalRows.length ? (
+            <p className="text-xs text-muted-foreground">{t("heatmapDetail.chartLoading")}</p>
+          ) : (
+            <div className="overflow-x-auto rounded-md border border-border">
+              <table className="w-full min-w-[420px] text-left text-xs">
+                <thead className="border-b border-border bg-secondary/30">
+                  <tr>
+                    <th className="px-3 py-2 font-medium">{t("label.time")}</th>
+                    <th className="px-3 py-2 font-medium">{t("heatmapDetail.open")}</th>
+                    <th className="px-3 py-2 font-medium">{t("label.high")}</th>
+                    <th className="px-3 py-2 font-medium">{t("label.low")}</th>
+                    <th className="px-3 py-2 font-medium">{t("label.last")}</th>
+                    <th className="px-3 py-2 font-medium">{t("label.volume")}</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {historicalRows.map((row) => (
+                    <tr key={row.date} className="border-b border-border/50 last:border-0">
+                      <td className="px-3 py-2">{row.date}</td>
+                      <td className="px-3 py-2 font-mono tabular-nums">{fmt(row.open)}</td>
+                      <td className="px-3 py-2 font-mono tabular-nums">{fmt(row.high)}</td>
+                      <td className="px-3 py-2 font-mono tabular-nums">{fmt(row.low)}</td>
+                      <td className="px-3 py-2 font-mono tabular-nums">{fmt(row.close)}</td>
+                      <td className="px-3 py-2 font-mono tabular-nums">
+                        {fmt(row.volume, { notation: "compact" })}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </TabsContent>
       </div>
     </Tabs>

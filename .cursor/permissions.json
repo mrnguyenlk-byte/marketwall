@@ -1,0 +1,19 @@
+{
+  "terminalAllowlist": [
+    "git",
+    "npm",
+    "npx:vercel*",
+    "vercel",
+    "pnpm"
+  ],
+  "autoRun": {
+    "allow_instructions": [
+      "Allow npm run build, git status, git add, git commit, git push, vercel deploy, and vercel inspect for MarketWall sprint workflow.",
+      "Allow npx vercel deploy, npx vercel inspect, and npx vercel ls.",
+      "Allow pnpm install when fixing lockfile before deploy."
+    ],
+    "block_instructions": [
+      "Block git push --force, git reset --hard, database reset, and destructive production operations unless user explicitly requests."
+    ]
+  }
+}

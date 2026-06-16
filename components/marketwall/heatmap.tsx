@@ -29,13 +29,13 @@ const DETAIL_MARKET_TABS: { id: MarketType; labelKey: string; flag: string }[] =
 ]
 
 function tileSpan(weight: number) {
-  if (weight >= 12) return "col-span-4 row-span-4"
-  if (weight >= 11) return "col-span-3 row-span-3"
-  if (weight >= 10) return "col-span-3 row-span-3"
+  if (weight >= 12) return "col-span-3 row-span-3"
+  if (weight >= 11) return "col-span-2 row-span-2"
+  if (weight >= 10) return "col-span-2 row-span-2"
   if (weight >= 9) return "col-span-2 row-span-2"
-  if (weight >= 8) return "col-span-2 row-span-2"
-  if (weight >= 7) return "col-span-2 row-span-1"
-  if (weight >= 5) return "col-span-1 row-span-2"
+  if (weight >= 8) return "col-span-2 row-span-1"
+  if (weight >= 7) return "col-span-1 row-span-2"
+  if (weight >= 5) return "col-span-1 row-span-1"
   return "col-span-1 row-span-1"
 }
 
@@ -61,12 +61,12 @@ function HeatGrid({ tiles }: { tiles: HeatmapTile[] }) {
   const symbolClickEnabled = features.symbolModal
 
   return (
-    <div className="grid h-full grid-flow-dense auto-rows-[minmax(48px,1fr)] grid-cols-6 gap-px bg-heatmap-gap sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12">
+    <div className="grid h-full grid-flow-dense auto-rows-[minmax(36px,1fr)] grid-cols-8 gap-px bg-heatmap-gap sm:grid-cols-10 md:grid-cols-12 lg:grid-cols-[repeat(14,minmax(0,1fr))] xl:grid-cols-[repeat(16,minmax(0,1fr))]">
       {tiles.map((tile) => {
         const up = tile.changePercent >= 0
         const showName = tile.weight >= 7
         const className = cn(
-          "group/tile flex flex-col items-start justify-between rounded-none border border-black/20 p-1.5 text-left transition-[filter,transform] lg:p-2.5",
+          "group/tile flex flex-col items-start justify-between rounded-none border border-black/20 p-1 text-left transition-[filter,transform] sm:p-1.5 lg:p-2",
           symbolClickEnabled && "hover:z-10 hover:brightness-110",
           tileSpan(tile.weight),
         )
@@ -240,7 +240,7 @@ function HeatmapDetailSection() {
           ))}
         </div>
 
-        <div className="h-[520px] bg-chart-bg p-px">
+        <div className="h-[min(640px,65vh)] min-h-[480px] bg-chart-bg p-px sm:min-h-[520px] lg:min-h-[600px]">
           {loading ? (
             <HeatmapGridSkeleton />
           ) : assets.length > 0 ? (
@@ -306,7 +306,7 @@ function LegacyHeatmapSection({ markets }: { markets: HeatmapMarket[] }) {
     return (
       <section aria-labelledby="heatmap-title" className="min-w-0">
         <SectionHeading id="heatmap-title" title={t("sec.vnHeatmap")} />
-        <div className="h-[520px] rounded-lg border border-border bg-card/40 p-px">
+        <div className="h-[min(640px,65vh)] min-h-[480px] rounded-lg border border-border bg-card/40 p-px sm:min-h-[520px] lg:min-h-[600px]">
           <HeatmapGridSkeleton />
         </div>
       </section>
@@ -392,7 +392,7 @@ function LegacyHeatmapSection({ markets }: { markets: HeatmapMarket[] }) {
           </div>
         )}
 
-        <div className="h-[520px] bg-chart-bg p-px">
+        <div className="h-[min(640px,65vh)] min-h-[480px] bg-chart-bg p-px sm:min-h-[520px] lg:min-h-[600px]">
           {loading ? <HeatmapGridSkeleton /> : <HeatGrid tiles={activeTiles} />}
         </div>
 

@@ -11,9 +11,15 @@ import {
   fetchVietnamMarketFromAdapters,
   normalizedStocksToHeatmapBuckets,
   normalizedToProviderIndices,
+  normalizeKbsIndex,
 } from "@/lib/adapters/vietnam"
 import { CACHE_KEYS, CACHE_TTL } from "@/lib/providers/cache"
 import { withFallback } from "@/lib/providers/fallback"
+import {
+  fetchKbsIndexSnapshot,
+  fetchKbsMarketDashboard,
+  type KbsLeaderboardRow,
+} from "@/lib/providers/kbs-client"
 import type {
   HeatmapExchange,
   HeatmapMarket,
@@ -49,6 +55,17 @@ export type VietnamHeatmapStock = {
   weight: number
 }
 
+export type VietnamDashboardRow = KbsLeaderboardRow
+
+export type VietnamMarketDashboard = {
+  source: "mock" | "live"
+  topVolume: VietnamDashboardRow[]
+  topValue: VietnamDashboardRow[]
+  topForeignBuy: VietnamDashboardRow[]
+  topForeignSell: VietnamDashboardRow[]
+  updatedAt: string
+}
+
 export type VietnamMarketData = {
   indices: VietnamMarketIndex[]
   heatmapStocks: {
@@ -57,7 +74,12 @@ export type VietnamMarketData = {
     upcom: VietnamHeatmapStock[]
   }
   heatmapMarket: HeatmapMarket
+  dashboard: VietnamMarketDashboard
   source: "mock" | "live"
+  /** Primary heatmap quote provider when live. */
+  heatmapProvider?: "vps" | "kbs" | "tcbs" | "vietstock" | "fireant"
+  /** Secondary enrichment source for dashboard / foreign flow. */
+  enrichmentProvider?: "kbs"
 }
 
 /** @deprecated Use VietnamMarketIndex */
@@ -264,12 +286,73 @@ function buildHeatmapMarket(stocks: VietnamMarketData["heatmapStocks"]): Heatmap
   }
 }
 
+function buildMockDashboard(): VietnamMarketDashboard {
+  const all = [...HOSE_SEEDS, ...HNX_SEEDS, ...UPCOM_SEEDS]
+  const byVolume = [...all].sort((a, b) => b.volume - a.volume).slice(0, 10)
+  const byValue = [...all]
+    .sort((a, b) => b.price * b.volume - a.price * a.volume)
+    .slice(0, 10)
+
+  const toRow = (seed: StockSeed, rank: number, metric: "volume" | "value"): VietnamDashboardRow => ({
+    rank,
+    symbol: seed.symbol,
+    exchange: seed.symbol.length <= 3 ? "HOSE" : undefined,
+    price: seed.price,
+    change: pctChange(seed.price, seed.changePercent),
+    changePercent: seed.changePercent,
+    volume: seed.volume,
+    value: stockValue(seed.price, seed.volume),
+    foreignBuy: metric === "volume" ? Math.round(seed.volume * 0.12) : undefined,
+    foreignSell: metric === "value" ? Math.round(seed.volume * 0.08) : undefined,
+  })
+
+  return {
+    source: "mock",
+    topVolume: byVolume.map((s, i) => toRow(s, i + 1, "volume")),
+    topValue: byValue.map((s, i) => toRow(s, i + 1, "value")),
+    topForeignBuy: byVolume.slice(0, 10).map((s, i) => ({
+      ...toRow(s, i + 1, "volume"),
+      foreignBuy: Math.round(s.volume * 0.15),
+    })),
+    topForeignSell: byValue.slice(0, 10).map((s, i) => ({
+      ...toRow(s, i + 1, "value"),
+      foreignSell: Math.round(s.volume * 0.1),
+    })),
+    updatedAt: MOCK_UPDATED_AT,
+  }
+}
+
+async function fetchLiveKbsIndices() {
+  const tickers = ["VNINDEX", "VN30", "HNX", "UPCOM"] as const
+  const rows = await Promise.all(
+    tickers.map(async (symbol) => {
+      const snap = await fetchKbsIndexSnapshot(symbol)
+      return snap ? normalizeKbsIndex(symbol, snap) : null
+    }),
+  )
+  return rows.filter((row): row is NonNullable<typeof row> => row != null)
+}
+
+function kbsDashboardToProvider(
+  dashboard: NonNullable<Awaited<ReturnType<typeof fetchKbsMarketDashboard>>>,
+): VietnamMarketDashboard {
+  return {
+    source: "live",
+    topVolume: dashboard.topVolume,
+    topValue: dashboard.topValue,
+    topForeignBuy: dashboard.topForeignBuy,
+    topForeignSell: dashboard.topForeignSell,
+    updatedAt: dashboard.fetchedAt,
+  }
+}
+
 export function getMockData(): VietnamMarketData {
   const heatmapStocks = buildHeatmapStocks()
   return {
     indices: buildIndices("mock"),
     heatmapStocks,
     heatmapMarket: buildHeatmapMarket(heatmapStocks),
+    dashboard: buildMockDashboard(),
     source: "mock",
   }
 }
@@ -296,20 +379,29 @@ async function fetchLiveVietnamMarketData(): Promise<VietnamMarketData | null> {
   const mock = getMockData()
   const { data } = result
 
-  const indices = normalizedToProviderIndices(
-    data.indices.length ? data.indices : mock.indices.map((i) => ({
-      symbol: i.symbol,
-      name: i.name,
-      exchange: i.exchange as "HOSE" | "HNX" | "UPCOM",
-      price: i.price,
-      change: i.change,
-      changePercent: i.changePercent,
-      volume: i.volume,
-      value: i.value,
-      updatedAt: i.updatedAt,
-    })),
-    "live",
-  )
+  const [kbsDashboard, kbsIndices] = await Promise.all([
+    fetchKbsMarketDashboard(),
+    data.indices.length === 0 ? fetchLiveKbsIndices() : Promise.resolve([]),
+  ])
+
+  const indexSource =
+    data.indices.length > 0
+      ? data.indices
+      : kbsIndices.length > 0
+        ? kbsIndices
+        : mock.indices.map((i) => ({
+            symbol: i.symbol,
+            name: i.name,
+            exchange: i.exchange as "HOSE" | "HNX" | "UPCOM",
+            price: i.price,
+            change: i.change,
+            changePercent: i.changePercent,
+            volume: i.volume,
+            value: i.value,
+            updatedAt: i.updatedAt,
+          }))
+
+  const indices = normalizedToProviderIndices(indexSource, "live")
 
   const hasLiveStocks =
     data.stocks.hose.length + data.stocks.hnx.length + data.stocks.upcom.length > 0
@@ -322,7 +414,10 @@ async function fetchLiveVietnamMarketData(): Promise<VietnamMarketData | null> {
     indices,
     heatmapStocks,
     heatmapMarket: buildHeatmapMarket(heatmapStocks),
+    dashboard: kbsDashboard ? kbsDashboardToProvider(kbsDashboard) : mock.dashboard,
     source: "live",
+    heatmapProvider: data.provider,
+    enrichmentProvider: kbsDashboard ? "kbs" : undefined,
   }
 }
 

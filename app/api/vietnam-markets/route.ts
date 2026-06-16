@@ -12,6 +12,9 @@ export async function GET() {
         indices: data.indices,
         heatmapMarket: data.heatmapMarket,
         heatmapStocks: data.heatmapStocks,
+        dashboard: data.dashboard,
+        heatmapProvider: data.heatmapProvider,
+        enrichmentProvider: data.enrichmentProvider,
       }),
     )
   } catch {
@@ -22,6 +25,7 @@ export async function GET() {
         indices: mock.indices,
         heatmapMarket: mock.heatmapMarket,
         heatmapStocks: mock.heatmapStocks,
+        dashboard: mock.dashboard,
       }),
     )
   }

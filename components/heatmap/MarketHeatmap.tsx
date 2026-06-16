@@ -15,8 +15,8 @@ type MarketHeatmapProps = {
 }
 
 function tileSizeForRank(rank: number, total: number): TileSize {
-  const largeCutoff = Math.max(1, Math.ceil(total * 0.15))
-  const mediumCutoff = Math.max(largeCutoff + 1, Math.ceil(total * 0.4))
+  const largeCutoff = Math.max(1, Math.ceil(total * 0.1))
+  const mediumCutoff = Math.max(largeCutoff + 1, Math.ceil(total * 0.3))
   if (rank < largeCutoff) return "large"
   if (rank < mediumCutoff) return "medium"
   return "small"
@@ -35,7 +35,7 @@ export function MarketHeatmap({
 
   return (
     <div
-      className="grid h-full grid-flow-dense auto-rows-[minmax(48px,1fr)] grid-cols-6 gap-px bg-heatmap-gap sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12"
+      className="grid h-full grid-flow-dense auto-rows-[minmax(36px,1fr)] grid-cols-8 gap-px bg-heatmap-gap sm:grid-cols-10 md:grid-cols-12 lg:grid-cols-[repeat(14,minmax(0,1fr))] xl:grid-cols-[repeat(16,minmax(0,1fr))]"
       data-market-type={marketType}
     >
       {sorted.map((asset, index) => (

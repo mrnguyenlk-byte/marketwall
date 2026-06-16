@@ -4,7 +4,7 @@ import type { Bi } from "@/lib/market-utils"
 import type { VnExchangeId } from "@/lib/providers/heatmap-provider"
 
 /** Adapter identifiers for Vietnam market data sources. */
-export type VietnamAdapterId = "vps" | "fireant" | "vietstock" | "tcbs"
+export type VietnamAdapterId = "vps" | "kbs" | "fireant" | "vietstock" | "tcbs"
 
 export type VietnamAdapterCapability =
   | "indices"
@@ -13,6 +13,7 @@ export type VietnamAdapterCapability =
   | "intraday"
   | "eod"
   | "derivatives"
+  | "foreign_flow"
 
 export type VietnamAdapterMeta = {
   id: VietnamAdapterId
@@ -55,6 +56,8 @@ export type NormalizedVietnamStock = {
   volume: number
   value: number
   updatedAt: string
+  foreignBuyVolume?: number
+  foreignSellVolume?: number
 }
 
 /**

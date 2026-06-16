@@ -28,6 +28,7 @@ export {
   normalizeExchangeLabel,
   normalizeFireantIndex,
   normalizeFireantStock,
+  normalizeKbsIndex,
   normalizeIndexSymbol,
   normalizeStockSymbol,
   normalizeTcbsIndex,
@@ -59,6 +60,12 @@ export {
   mapTcbsSnapshot,
   tcbsAdapter,
 } from "./tcbs-adapter"
+
+export {
+  KBS_ADAPTER_META,
+  isKbsConfigured,
+  kbsAdapter,
+} from "./kbs-adapter"
 
 export {
   VPS_ADAPTER_META,

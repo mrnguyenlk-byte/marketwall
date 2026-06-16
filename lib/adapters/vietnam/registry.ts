@@ -3,13 +3,15 @@ import "server-only"
 import { logVietnamAdapterResult } from "@/lib/providers/provider-diagnostics"
 import type { AdapterFetchResult, NormalizedVietnamMarket, VietnamAdapterId, VietnamMarketAdapter } from "./types"
 import { fireantAdapter } from "./fireant-adapter"
+import { kbsAdapter } from "./kbs-adapter"
 import { tcbsAdapter } from "./tcbs-adapter"
 import { vpsAdapter } from "./vps-adapter"
 import { vietstockAdapter } from "./vietstock-adapter"
 
-/** Default adapter priority — VPS first (free public datafeed, Sprint 9). */
+/** VPS primary for heatmap; KBS secondary (indices, foreign flow, fallback quotes). */
 export const VIETNAM_ADAPTER_PRIORITY: VietnamAdapterId[] = [
   "vps",
+  "kbs",
   "tcbs",
   "vietstock",
   "fireant",
@@ -17,6 +19,7 @@ export const VIETNAM_ADAPTER_PRIORITY: VietnamAdapterId[] = [
 
 export const VIETNAM_ADAPTERS: Record<VietnamAdapterId, VietnamMarketAdapter> = {
   vps: vpsAdapter,
+  kbs: kbsAdapter,
   fireant: fireantAdapter,
   vietstock: vietstockAdapter,
   tcbs: tcbsAdapter,

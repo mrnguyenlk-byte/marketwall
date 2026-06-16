@@ -12,6 +12,7 @@ import { TickerBar } from "@/components/marketwall/ticker-bar"
 import { Sidebar } from "@/components/marketwall/sidebar"
 import { FearGreed } from "@/components/marketwall/fear-greed"
 import { HeatmapSection } from "@/components/marketwall/heatmap"
+import { VietnamMarketDashboard } from "@/components/marketwall/vietnam-market-dashboard"
 import { CurrencyStrength } from "@/components/marketwall/currency-strength"
 import { EconomicCalendar } from "@/components/marketwall/economic-calendar"
 import { MarketNews } from "@/components/marketwall/market-news"
@@ -55,41 +56,46 @@ export default async function Page() {
       </SectionErrorBoundary>
 
       <main className="w-full px-3 py-4 lg:px-4">
-        <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[300px_minmax(0,1fr)]">
+        <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-[300px_minmax(0,1fr)] lg:grid-cols-[300px_minmax(0,1fr)_280px]">
           <aside
             aria-label="Market sidebar"
-            className="w-full lg:sticky lg:top-[104px] lg:w-[300px] lg:shrink-0"
+            className="w-full md:col-start-1 md:row-start-1 lg:sticky lg:top-[104px] lg:w-[300px] lg:shrink-0 lg:self-start"
           >
             <Sidebar overviewByCategory={dashboard.overviewByCategory} />
           </aside>
 
-          <section className="min-w-0 space-y-4">
+          <section className="min-w-0 space-y-4 md:col-start-2 md:row-start-1 lg:col-start-2">
+            <SectionErrorBoundary name="heatmap">
+              <HeatmapSection markets={dashboard.heatmapMarkets} />
+            </SectionErrorBoundary>
             <SectionErrorBoundary name="fear-greed">
               <FearGreed items={dashboard.fearGreedItems} />
             </SectionErrorBoundary>
-            <SectionErrorBoundary name="heatmap">
-              <HeatmapSection markets={dashboard.heatmapMarkets} />
+            <SectionErrorBoundary name="vn-dashboard">
+              <VietnamMarketDashboard />
             </SectionErrorBoundary>
             {features.currencyStrength && (
               <SectionErrorBoundary name="currency-strength">
                 <CurrencyStrength />
               </SectionErrorBoundary>
             )}
-
-            <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2">
-              <SectionErrorBoundary name="calendar">
-                <EconomicCalendar fallbackEvents={calendarFallback} />
-              </SectionErrorBoundary>
-              <SectionErrorBoundary name="news">
-                <MarketNews fallbackItems={newsFallback} />
-              </SectionErrorBoundary>
-            </div>
-
             <SectionErrorBoundary name="brokers">
               <BrokerHighlights />
             </SectionErrorBoundary>
             <RiskWarning />
           </section>
+
+          <aside
+            aria-label="Calendar and news"
+            className="flex min-w-0 flex-col gap-4 md:col-start-2 md:row-start-2 lg:col-start-3 lg:row-start-1 lg:sticky lg:top-[104px] lg:self-start"
+          >
+            <SectionErrorBoundary name="calendar">
+              <EconomicCalendar fallbackEvents={calendarFallback} />
+            </SectionErrorBoundary>
+            <SectionErrorBoundary name="news">
+              <MarketNews fallbackItems={newsFallback} />
+            </SectionErrorBoundary>
+          </aside>
         </div>
       </main>
 
