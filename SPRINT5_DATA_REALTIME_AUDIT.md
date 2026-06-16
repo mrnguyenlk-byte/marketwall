@@ -1,5 +1,7 @@
 # Sprint 5 — Data Quality & Realtime Audit
 
+> **Template note:** New sprint audits should follow this file's structure. Agents auto-generate `SPRINT_X_AUDIT.md` per [`.cursor/rules/sprint-deploy-workflow.mdc`](.cursor/rules/sprint-deploy-workflow.mdc) after each sprint deploy.
+
 **Date:** 2026-06-16  
 **Scope:** Live-first MarketWall data, 28-pair currency strength, heatmap REST APIs, SSE realtime, server cache  
 **Build:** `npm run build` ✅

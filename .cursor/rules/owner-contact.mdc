@@ -1,0 +1,17 @@
+---
+description: Owner contact info for support, deploy, and ops tasks
+alwaysApply: true
+---
+
+# Owner contact (BTrading Market Insights)
+
+Use `lib/contact.ts` as the single source of truth. Do not hardcode contact values elsewhere.
+
+| Channel  | Value |
+|----------|-------|
+| Phone    | +84922222889 (display: +84 922 222 889) |
+| Email    | btradingmarketinsights@gmail.com |
+| Telegram | https://t.me/btradingad |
+| Zalo     | https://zalo.me/922222889 |
+
+Import `SITE_PHONE`, `SITE_EMAIL`, `TELEGRAM_LINK`, and `ZALO_LINK` from `@/lib/contact` (or re-exports in `@/lib/brand` / `@/lib/social-links`). Use for support replies, deployment notifications, and wiring contact links — not for unsolicited UI redesign.

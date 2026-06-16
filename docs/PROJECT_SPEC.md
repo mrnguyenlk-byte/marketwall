@@ -93,6 +93,25 @@ DATABASE_URL=...               # PostgreSQL — broker clicks (Prisma)
 
 Realtime: browser connects to `GET /api/realtime/stream` (SSE). The server relay connects to Twelve Data WebSocket using `TWELVE_DATA_API_KEY` — the key is never exposed to the client. Disable via `features.realtimeStream` in `lib/config/features.ts`.
 
+## Post-Sprint Workflow
+
+At the end of **every sprint**, agents must run the automated deploy pipeline defined in [`.cursor/rules/sprint-deploy-workflow.mdc`](../.cursor/rules/sprint-deploy-workflow.mdc):
+
+1. **Build gate** — `npm run build` (includes `prisma generate`). No commit/push if it fails.
+2. **Commit & push** — `git add .` → `git commit -m "Sprint X complete"` → `git push origin main` (no force push).
+3. **Vercel verify** — wait for production deploy on project `marketwall`; confirm https://btrading.org serves the pushed commit.
+4. **Audit** — write `SPRINT_X_AUDIT.md` at repo root (see existing audits below for template).
+
+**Never:** commit secrets (`.env.local`), force push, reset database, or delete production data. If Vercel build fails (e.g. `pnpm-lock.yaml` out of sync), fix locally, rebuild, then push again.
+
+| Sprint audit examples |
+|-----------------------|
+| `SPRINT3_DATABASE_AUDIT.md` |
+| `SPRINT4_AUTH_AUDIT.md` |
+| `SPRINT5_CURRENCY_STRENGTH_AUDIT.md` |
+| `SPRINT5_REALTIME_AUDIT.md` |
+| `SPRINT5_DATA_REALTIME_AUDIT.md` (consolidated template) |
+
 ## Constraints
 
 - UI/UX locked — no layout redesigns

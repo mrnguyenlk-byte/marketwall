@@ -1,0 +1,121 @@
+---
+description: Post-sprint build, commit, deploy, and audit workflow for MarketWall
+alwaysApply: true
+---
+
+# Post-Sprint Deploy Workflow (MarketWall)
+
+Run this workflow **automatically at the end of every sprint** unless the user explicitly opts out.
+
+**Repo:** https://github.com/mrnguyenlk-byte/marketwall.git  
+**Production:** https://btrading.org (Vercel project `marketwall`, branch `main`)
+
+## Hard rules (never violate)
+
+- Do **NOT** push if `npm run build` fails
+- Do **NOT** force push (`--force`, `--force-with-lease`)
+- Do **NOT** reset the database (`prisma migrate reset`, `db push --force-reset`, drop tables)
+- Do **NOT** delete production data
+- Do **NOT** commit `.env.local`, `.env`, credentials, or API keys
+- Do **NOT** stage `tsconfig.tsbuildinfo` — unstage if accidentally added
+- Only ask the user for **credentials, billing, or irreversible/dangerous actions**
+
+## Step 1 — Determine sprint number
+
+Read `docs/PROJECT_SPEC.md` → **Sprint Progress**. Use the sprint number just completed (or the highest in-progress sprint being closed).
+
+## Step 2 — Local build gate
+
+```bash
+npm run build
+```
+
+**If build fails:** fix errors locally, then re-run. Do **not** commit or push until build passes.
+
+### Common fix: lockfile out of sync (Vercel/CI pattern)
+
+If logs mention `pnpm-lock.yaml` / lockfile mismatch / frozen lockfile:
+
+```bash
+pnpm install
+npm run build
+```
+
+Commit updated lockfile **only after** local build passes. Prefer `pnpm-lock.yaml` when Vercel uses pnpm; keep `package-lock.json` in sync if npm is the local package manager — do not leave conflicting lockfiles broken.
+
+## Step 3 — Commit (build must pass first)
+
+```bash
+git status
+git add .
+```
+
+Before committing, verify staged files:
+
+- **Reject:** `.env.local`, `.env`, `*.pem`, credentials, `.next/`, `node_modules/`
+- **Unstage:** `tsconfig.tsbuildinfo` (`git reset HEAD tsconfig.tsbuildinfo`)
+
+```bash
+git commit -m "Sprint X complete"
+```
+
+Replace `X` with the actual sprint number (e.g. `Sprint 5 complete`).
+
+## Step 4 — Push
+
+```bash
+git push origin main
+```
+
+No force push. If push is rejected (non-fast-forward), pull/rebase normally — never force.
+
+## Step 5 — Vercel deployment verification
+
+After push, wait for Vercel to deploy `main`:
+
+1. Record pushed SHA: `git rev-parse HEAD`
+2. Poll deployment status (prefer CLI; fallback to GitHub/Vercel dashboard):
+   - `npx vercel ls marketwall --prod` (requires Vercel auth)
+   - or `gh api repos/mrnguyenlk-byte/marketwall/deployments` and match `main` SHA
+3. Wait until status is **Ready** (poll ~30s, timeout ~15 min)
+4. Confirm production serves the latest commit:
+   - Deployment SHA matches `git rev-parse HEAD`
+   - https://btrading.org loads without 5xx
+
+**If Vercel deploy fails:** fetch build logs (`npx vercel inspect <deployment-url> --logs` or Vercel dashboard), fix the root cause, rebuild locally, commit fix, push again. Repeat until production is green.
+
+## Step 6 — Sprint audit
+
+Create `SPRINT_X_AUDIT.md` at repo root. Follow the established pattern (see `SPRINT5_DATA_REALTIME_AUDIT.md`):
+
+```markdown
+# Sprint X — <Title> Audit
+
+**Date:** YYYY-MM-DD
+**Scope:** <one-line summary>
+**Build:** `npm run build` ✅
+**Deploy:** https://btrading.org — commit `<short-sha>` ✅
+
+## Summary
+<what shipped, key behavior changes>
+
+## Files changed
+| File | Change |
+|------|--------|
+
+## Verification
+- [ ] Local build passed
+- [ ] Pushed to `main`
+- [ ] Vercel production Ready
+- [ ] btrading.org serves latest commit
+```
+
+Update `docs/PROJECT_SPEC.md` Sprint Progress table with a row linking the audit file.
+
+## When to stop and ask the user
+
+- Missing `TWELVE_DATA_API_KEY`, `DATABASE_URL`, Vercel token, or GitHub push access
+- Vercel billing / quota / team permission errors
+- Any action that would reset DB, wipe prod data, or force-push
+
+Otherwise: fix build/deploy issues autonomously and report results in the audit.
