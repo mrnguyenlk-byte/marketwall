@@ -54,7 +54,10 @@ export default async function Page() {
 
       <main className="w-full overflow-x-hidden px-3 pt-1 pb-3 lg:px-4">
         <div className="dashboard-grid">
-          <aside aria-label="Market sidebar" className="dashboard-sidebar-left">
+          <aside
+            aria-label="Market sidebar"
+            className="dashboard-sidebar-left min-[1440px]:w-[240px] min-[1920px]:w-[250px]"
+          >
             <Sidebar overviewByCategory={dashboard.overviewByCategory} />
           </aside>
 
@@ -81,7 +84,7 @@ export default async function Page() {
 
           <aside
             aria-label="Trader sidebar"
-            className="dashboard-sidebar-right flex min-w-0 flex-col gap-2"
+            className="dashboard-sidebar-right flex min-w-0 flex-col gap-2 min-[1440px]:w-[280px] min-[1920px]:w-[300px]"
           >
             <SectionErrorBoundary name="fear-greed">
               <FearGreed items={dashboard.fearGreedItems} variant="sidebar" />
