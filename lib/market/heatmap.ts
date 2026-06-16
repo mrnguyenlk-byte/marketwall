@@ -1,16 +1,20 @@
 import "server-only"
 
+import {
+  CRYPTO_HEATMAP_SIZE,
+  getUsHeatmapApiSymbols,
+  US_HEATMAP_SEEDS,
+} from "@/config/heatmap-symbols"
 import { toApiJson, toApiJsonFromMock } from "@/lib/api-response"
 import { getMockHeatmapAssets } from "@/lib/mockHeatmapData"
+import { overlayHeatmapQuotes } from "@/lib/market/normalize"
+import { CACHE_KEYS, CACHE_TTL, cachedProvider } from "@/lib/providers/cache"
 import { getData as getCryptoData, getMockData as getCryptoMock } from "@/lib/providers/crypto-provider"
 import { getData as getVietnamData, getMockData as getVietnamMock } from "@/lib/providers/vietnam-market-provider"
-import { getMockData as getGlobalMock } from "@/lib/providers/global-market-provider"
-import { CACHE_KEYS, cachedProvider } from "@/lib/providers/cache"
-import { getCryptoQuotes } from "@/lib/twelvedata/client"
+import { getStockQuotes } from "@/lib/twelvedata/client"
 import type { HeatmapAsset, MarketType } from "@/types/market"
-import { overlayHeatmapQuotes } from "./normalize"
 
-const CACHE_TTL_MS = 60_000
+const HEATMAP_CACHE_TTL_MS = CACHE_TTL.heatmap
 
 const CACHE_BY_MARKET: Record<MarketType, string> = {
   vn: CACHE_KEYS.heatmapVietnam,
@@ -18,10 +22,27 @@ const CACHE_BY_MARKET: Record<MarketType, string> = {
   crypto: CACHE_KEYS.heatmapCrypto,
 }
 
-function assetToHeatmapRow(
-  asset: ReturnType<typeof getMockHeatmapAssets>[number],
-): HeatmapAsset {
-  return {
+function seedsToRows(
+  seeds: Array<{
+    symbol: string
+    name: string
+    sector: string
+    marketCap: number
+  }>,
+): HeatmapAsset[] {
+  return seeds.map((seed) => ({
+    symbol: seed.symbol,
+    name: seed.name,
+    price: 0,
+    changePercent: 0,
+    volume: 0,
+    sector: seed.sector,
+    marketCap: seed.marketCap,
+  }))
+}
+
+function mockAssetsToRows(market: "us" | "crypto"): HeatmapAsset[] {
+  return getMockHeatmapAssets(market).map((asset) => ({
     symbol: asset.symbol,
     name: asset.name.en,
     price: asset.price,
@@ -29,7 +50,7 @@ function assetToHeatmapRow(
     volume: asset.volume,
     sector: asset.sector,
     marketCap: asset.marketCap,
-  }
+  }))
 }
 
 function vnTilesToRows(
@@ -47,65 +68,67 @@ function vnTilesToRows(
   }))
 }
 
+function sortByMarketCap(items: HeatmapAsset[]): HeatmapAsset[] {
+  return [...items].sort((a, b) => b.marketCap - a.marketCap)
+}
+
+function hasLivePrices(items: HeatmapAsset[], minCount: number): boolean {
+  return items.filter((row) => row.price > 0).length >= minCount
+}
+
 async function fetchVietnamRows(): Promise<{ items: HeatmapAsset[]; source: "live" | "mock" }> {
   try {
     const data = await getVietnamData()
-    const items = vnTilesToRows(data.heatmapMarket)
+    const items = sortByMarketCap(vnTilesToRows(data.heatmapMarket)).slice(0, 100)
     if (items.length) return { items, source: data.source }
   } catch {
     /* fall through */
   }
   const mock = getVietnamMock()
-  return { items: vnTilesToRows(mock.heatmapMarket), source: "mock" }
-}
-
-async function fetchUsRows(): Promise<{ items: HeatmapAsset[]; source: "live" | "mock" }> {
-  const mockAssets = getMockHeatmapAssets("us")
-  let items = mockAssets.map(assetToHeatmapRow)
-  try {
-    const global = getGlobalMock()
-    const liveOverlay = global.quotes.map((q) => ({
-      symbol: q.symbol,
-      name: q.name,
-      price: q.price,
-      change: q.change,
-      changePercent: q.changePercent,
-      open: q.price,
-      high: q.price,
-      low: q.price,
-      volume: 0,
-      updatedAt: q.updatedAt,
-    }))
-    items = overlayHeatmapQuotes(items, liveOverlay)
-    return { items, source: "mock" }
-  } catch {
-    return { items, source: "mock" }
+  return {
+    items: sortByMarketCap(vnTilesToRows(mock.heatmapMarket)).slice(0, 100),
+    source: "mock",
   }
 }
 
-async function fetchCryptoRows(): Promise<{ items: HeatmapAsset[]; source: "live" | "mock" }> {
-  const mockAssets = getMockHeatmapAssets("crypto")
-  let items = mockAssets.map(assetToHeatmapRow)
+async function fetchUsRows(): Promise<{ items: HeatmapAsset[]; source: "live" | "mock" }> {
+  const seedRows = seedsToRows(US_HEATMAP_SEEDS)
   try {
-    const live = await getCryptoQuotes()
-    if (live.length) {
-      items = overlayHeatmapQuotes(items, live)
-      return { items, source: "live" }
+    const liveQuotes = await getStockQuotes(getUsHeatmapApiSymbols())
+    if (liveQuotes.length >= 20) {
+      const items = overlayHeatmapQuotes(seedRows, liveQuotes)
+      if (hasLivePrices(items, 20)) {
+        return { items: sortByMarketCap(items), source: "live" }
+      }
     }
-    const data = await getCryptoData()
-    items = data.assets.slice(0, 50).map((asset) => ({
-      symbol: asset.symbol,
-      name: asset.name,
-      price: asset.price,
-      changePercent: asset.change24h,
-      volume: asset.volume24h,
-      sector: "Crypto",
-      marketCap: asset.marketCap,
-    }))
-    return { items, source: data.source }
   } catch {
+    /* fall through */
+  }
+  return { items: sortByMarketCap(mockAssetsToRows("us")), source: "mock" }
+}
+
+async function fetchCryptoRows(): Promise<{ items: HeatmapAsset[]; source: "live" | "mock" }> {
+  try {
+    const data = await getCryptoData()
+    if (data.assets.length >= 10) {
+      const items = data.assets.slice(0, CRYPTO_HEATMAP_SIZE).map((asset) => ({
+        symbol: asset.symbol,
+        name: asset.name,
+        price: asset.price,
+        changePercent: asset.change24h,
+        volume: asset.volume24h,
+        sector: "Crypto",
+        marketCap: asset.marketCap,
+      }))
+      return { items: sortByMarketCap(items), source: data.source }
+    }
+  } catch {
+    /* fall through */
+  }
+
+  try {
     const mock = getCryptoMock()
-    items = mock.assets.slice(0, 50).map((asset) => ({
+    const items = mock.assets.slice(0, CRYPTO_HEATMAP_SIZE).map((asset) => ({
       symbol: asset.symbol,
       name: asset.name,
       price: asset.price,
@@ -114,7 +137,9 @@ async function fetchCryptoRows(): Promise<{ items: HeatmapAsset[]; source: "live
       sector: "Crypto",
       marketCap: asset.marketCap,
     }))
-    return { items, source: "mock" }
+    return { items: sortByMarketCap(items), source: "mock" }
+  } catch {
+    return { items: sortByMarketCap(mockAssetsToRows("crypto")), source: "mock" }
   }
 }
 
@@ -157,7 +182,7 @@ export async function serveHeatmapMarket(market: MarketType) {
         const data = await fetchHeatmapMarket(market)
         return { data, source: data.source === "live" ? ("live" as const) : ("mock" as const) }
       },
-      { ttlMs: CACHE_TTL_MS },
+      { ttlMs: HEATMAP_CACHE_TTL_MS },
     )
 
     const payload = cached?.data ?? (await fetchHeatmapMarket(market))

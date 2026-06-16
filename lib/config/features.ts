@@ -4,6 +4,8 @@ export const features = {
   heatmapDetailModal: true,
   watchlist: true,
   liveClientFetch: true,
+  /** Twelve Data WebSocket → SSE relay for live quote ticks. */
+  realtimeStream: true,
   /** FX strength section — live via Twelve Data pairs with mock fallback. */
   currencyStrength: true,
   /** Dynamic /markets/[symbol] pages — off until symbol detail flow is stable. */

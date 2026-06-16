@@ -3,11 +3,9 @@ import {
   resolveHeatmapMarketParam,
 } from "@/lib/market/heatmap"
 import { toApiJson, toApiJsonFromMock } from "@/lib/api-response"
-import { CACHE_KEYS, cachedProvider } from "@/lib/providers/cache"
+import { CACHE_KEYS, CACHE_TTL, cachedProvider } from "@/lib/providers/cache"
 
 export const dynamic = "force-dynamic"
-
-const CACHE_TTL_MS = 60_000
 
 type RouteContext = {
   params: Promise<{ market: string }>
@@ -34,7 +32,7 @@ export async function GET(_request: Request, context: RouteContext) {
         const data = await fetchHeatmapMarket(market)
         return { data, source: data.source === "live" ? ("live" as const) : ("mock" as const) }
       },
-      { ttlMs: CACHE_TTL_MS },
+      { ttlMs: CACHE_TTL.heatmap },
     )
 
     const payload = cached?.data ?? (await fetchHeatmapMarket(market))

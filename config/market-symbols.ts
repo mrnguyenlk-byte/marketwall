@@ -6,6 +6,7 @@ export type MarketSymbolCategory =
   | "crypto"
   | "index"
   | "currency_index"
+  | "equity"
 
 export type MarketSymbolDef = {
   id: string
@@ -98,7 +99,7 @@ export const OVERVIEW_SYMBOLS: MarketSymbolDef[] = [
   },
 ]
 
-/** FX pairs used to derive cross-currency strength. */
+/** FX pairs used to derive cross-currency strength (28-pair model). */
 export const CURRENCY_STRENGTH_PAIRS = [
   "EUR/USD",
   "GBP/USD",
@@ -107,6 +108,27 @@ export const CURRENCY_STRENGTH_PAIRS = [
   "USD/JPY",
   "USD/CHF",
   "USD/CAD",
+  "EUR/GBP",
+  "EUR/JPY",
+  "EUR/AUD",
+  "EUR/NZD",
+  "EUR/CHF",
+  "EUR/CAD",
+  "GBP/JPY",
+  "GBP/AUD",
+  "GBP/NZD",
+  "GBP/CHF",
+  "GBP/CAD",
+  "AUD/JPY",
+  "AUD/NZD",
+  "AUD/CHF",
+  "AUD/CAD",
+  "NZD/JPY",
+  "NZD/CHF",
+  "NZD/CAD",
+  "CHF/JPY",
+  "CAD/JPY",
+  "CAD/CHF",
 ] as const
 
 export type CurrencyStrengthPair = (typeof CURRENCY_STRENGTH_PAIRS)[number]

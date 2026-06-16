@@ -10,7 +10,10 @@ import {
   currencyStrengthItems as currencyStrengthFallback,
   type CurrencyStrengthMockItem,
 } from "@/lib/currency-strength-mock"
-import { useCurrencyStrength } from "@/hooks/useCurrencyStrength"
+import {
+  useCurrencyStrength,
+  type CurrencyStrengthResponse,
+} from "@/hooks/useCurrencyStrength"
 import { LightweightChart, pointsFromValues } from "./lightweight-chart"
 import { SectionHeading } from "./shared"
 import { cn } from "@/lib/utils"
@@ -29,34 +32,60 @@ function rankKeyForPosition(rank: number, total: number): string {
   return "strength.weakest"
 }
 
-function mergeLiveStrengthItems(
-  fallback: CurrencyStrengthMockItem[],
-  live?: Array<{ currency: string; strength: number; change: number; label?: string }>,
+function assignRankKeys(items: CurrencyStrengthMockItem[]): CurrencyStrengthMockItem[] {
+  const sorted = [...items].sort((a, b) => b.strength - a.strength)
+  const rankByCode = new Map(sorted.map((entry, index) => [entry.code, index + 1]))
+  return items.map((item) => ({
+    ...item,
+    rankKey: rankKeyForPosition(rankByCode.get(item.code) ?? items.length, items.length),
+  }))
+}
+
+function liveItemsToMockItems(
+  live: Array<{ currency: string; strength: number; change: number; label?: string }>,
 ): CurrencyStrengthMockItem[] {
-  if (!features.liveClientFetch || !live?.length) {
-    clientDebug("CurrencyStrength", "using static fallback")
-    return fallback
+  const items = live.map((row) => ({
+    code: row.currency,
+    strength: row.strength,
+    rankKey: row.label ?? "strength.neutral",
+    series: buildStrengthSeries(row.strength, row.change),
+  }))
+  return assignRankKeys(items)
+}
+
+function resolveStrengthItems(
+  api: CurrencyStrengthResponse | undefined,
+  fallback: CurrencyStrengthMockItem[],
+): { items: CurrencyStrengthMockItem[]; unavailable: boolean } {
+  if (!features.liveClientFetch) {
+    clientDebug("CurrencyStrength", "live fetch disabled — static mock")
+    return { items: fallback, unavailable: false }
   }
 
-  const liveByCode = new Map(live.map((row) => [row.currency, row]))
-  const merged = fallback.map((item) => {
-    const row = liveByCode.get(item.code)
-    if (!row) return item
-    return {
-      ...item,
-      strength: row.strength,
-      rankKey: row.label ?? item.rankKey,
-      series: buildStrengthSeries(row.strength, row.change),
-    }
-  })
+  if (api?.unavailable) {
+    return { items: [], unavailable: true }
+  }
 
-  const sorted = [...merged].sort((a, b) => b.strength - a.strength)
-  const rankByCode = new Map(sorted.map((entry, index) => [entry.code, index + 1]))
+  if (api?.source === "live" && api.items?.length) {
+    clientDebug("CurrencyStrength", "using live API data")
+    return { items: liveItemsToMockItems(api.items), unavailable: false }
+  }
 
-  return merged.map((item) => ({
-    ...item,
-    rankKey: rankKeyForPosition(rankByCode.get(item.code) ?? merged.length, merged.length),
-  }))
+  if (!api) {
+    clientDebug("CurrencyStrength", "loading — no mock placeholder")
+    return { items: [], unavailable: false }
+  }
+
+  if (api.source === "mock" && api.items?.length) {
+    clientDebug("CurrencyStrength", "explicit mock fallback from API")
+    return { items: liveItemsToMockItems(api.items), unavailable: true }
+  }
+
+  if (api.fallback) {
+    return { items: [], unavailable: true }
+  }
+
+  return { items: [], unavailable: false }
 }
 
 const LINE_COLORS = [
@@ -68,7 +97,6 @@ const LINE_COLORS = [
   "#38bdf8",
   "#fb923c",
   "#4ade80",
-  "#f87171",
 ]
 
 function strengthBoxClass(rankKey: string, active: boolean) {
@@ -99,7 +127,7 @@ function StrengthChart({ visible, items }: StrengthChartProps) {
         .map(({ c, ci }) => ({
           data: pointsFromValues(c.series),
           color: LINE_COLORS[ci % LINE_COLORS.length],
-          lineWidth: c.code === "VND" ? 2.5 : 2,
+          lineWidth: 2,
         })),
     [visible, items],
   )
@@ -195,9 +223,9 @@ function StrengthLegend({ visible, onToggle, items }: LegendProps) {
 export function CurrencyStrength() {
   const { t } = useLang()
   const strengthApi = useCurrencyStrength()
-  const currencyStrength = useMemo(
-    () => mergeLiveStrengthItems(currencyStrengthFallback, strengthApi.data?.items),
-    [strengthApi.data?.items],
+  const { items: currencyStrength, unavailable: dataUnavailable } = useMemo(
+    () => resolveStrengthItems(strengthApi.data, currencyStrengthFallback),
+    [strengthApi.data],
   )
   const [visible, setVisible] = useState(
     () => new Set(currencyStrengthFallback.map((c) => c.code)),
@@ -215,56 +243,61 @@ export function CurrencyStrength() {
     })
   }
 
-  const dataUnavailable =
-    Boolean(strengthApi.error) ||
-    strengthApi.data?.unavailable === true
+  const showUnavailableMessage =
+    dataUnavailable || Boolean(strengthApi.error)
 
   return (
     <section aria-labelledby="currency-strength-title" className="h-[400px]">
       <SectionHeading title={t("sec.currencyStrength1D")} />
       <Card className="h-[calc(100%-1.75rem)] border-border bg-card py-0">
         <CardContent className="flex h-full flex-col px-3 py-3">
-          {dataUnavailable && (
-            <p className="mb-2 text-xs text-muted-foreground">{t("error.marketDataUnavailable")}</p>
+          {showUnavailableMessage && (
+            <p className="mb-2 text-xs text-muted-foreground">
+              {t("error.currencyStrengthUnavailable")}
+            </p>
           )}
-          <div className="mb-3 grid shrink-0 grid-cols-9 gap-2">
-            {currencyStrength.map((c) => {
-              const active = visible.has(c.code)
-              return (
-                <button
-                  key={c.code}
-                  type="button"
-                  onClick={() => toggle(c.code)}
-                  className={cn(
-                    "rounded-md border px-2 py-2 text-center transition-all hover:ring-1 hover:ring-primary/30",
-                    strengthBoxClass(c.rankKey, active),
-                  )}
-                  aria-pressed={active}
-                >
-                  <p className="text-[11px] font-bold">{c.code}</p>
-                  <p className="mt-0.5 font-mono text-[10px] font-semibold tabular-nums">
-                    {c.strength.toFixed(1)}
-                  </p>
-                  <p className="mt-0.5 text-[9px] font-medium leading-tight">
-                    {t(c.rankKey)}
-                  </p>
-                </button>
-              )
-            })}
-          </div>
-          <div className="flex min-h-0 flex-1 gap-2">
-            <div
-              className="flex min-h-[260px] min-w-0 flex-1 flex-col overflow-hidden rounded-md border border-border bg-chart-bg p-1.5"
-              role="img"
-              aria-label={t("sec.currencyStrength1D")}
-            >
-              <div className="min-h-0 flex-1">
-                <StrengthChart visible={visible} items={currencyStrength} />
+          {currencyStrength.length > 0 && (
+            <>
+              <div className="mb-3 grid shrink-0 grid-cols-8 gap-2">
+                {currencyStrength.map((c) => {
+                  const active = visible.has(c.code)
+                  return (
+                    <button
+                      key={c.code}
+                      type="button"
+                      onClick={() => toggle(c.code)}
+                      className={cn(
+                        "rounded-md border px-2 py-2 text-center transition-all hover:ring-1 hover:ring-primary/30",
+                        strengthBoxClass(c.rankKey, active),
+                      )}
+                      aria-pressed={active}
+                    >
+                      <p className="text-[11px] font-bold">{c.code}</p>
+                      <p className="mt-0.5 font-mono text-[10px] font-semibold tabular-nums">
+                        {c.strength.toFixed(1)}
+                      </p>
+                      <p className="mt-0.5 text-[9px] font-medium leading-tight">
+                        {t(c.rankKey)}
+                      </p>
+                    </button>
+                  )
+                })}
               </div>
-              <TimeAxis />
-            </div>
-            <StrengthLegend visible={visible} onToggle={toggle} items={currencyStrength} />
-          </div>
+              <div className="flex min-h-0 flex-1 gap-2">
+                <div
+                  className="flex min-h-[260px] min-w-0 flex-1 flex-col overflow-hidden rounded-md border border-border bg-chart-bg p-1.5"
+                  role="img"
+                  aria-label={t("sec.currencyStrength1D")}
+                >
+                  <div className="min-h-0 flex-1">
+                    <StrengthChart visible={visible} items={currencyStrength} />
+                  </div>
+                  <TimeAxis />
+                </div>
+                <StrengthLegend visible={visible} onToggle={toggle} items={currencyStrength} />
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
     </section>

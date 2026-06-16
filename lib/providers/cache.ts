@@ -12,6 +12,14 @@ const store = new Map<string, CacheEntry<unknown>>()
 
 export const DEFAULT_CACHE_TTL_MS = 60_000
 
+/** Sprint 5 server-side TTLs (reduce Twelve Data overuse). */
+export const CACHE_TTL = {
+  forex: 30_000,
+  crypto: 45_000,
+  heatmap: 180_000,
+  overview: 30_000,
+} as const
+
 export const CACHE_KEYS = {
   crypto: "provider:crypto:markets",
   currency: "provider:currency:strength",

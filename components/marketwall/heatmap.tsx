@@ -8,9 +8,11 @@ import { MarketHeatmap } from "@/components/heatmap/MarketHeatmap"
 import { clientDebug, features } from "@/lib/config/features"
 import { useHeatmapDetail } from "@/lib/heatmap-detail-context"
 import { useLang } from "@/lib/i18n"
-import { getMockHeatmapAssets } from "@/lib/mockHeatmapData"
+import { heatmapRowsToMarketAssets } from "@/lib/market/heatmap-assets"
+import { mergeHeatmapPriceWithRealtime } from "@/lib/realtime/merge-quotes"
+import { useRealtime } from "@/lib/realtime/realtime-context"
 import { useSymbolDetail } from "@/lib/symbol-detail-context"
-import { useMarketsLoading, useVietnamMarkets } from "@/lib/swr/use-market-apis"
+import { useHeatmapMarket, useMarketsLoading, useVietnamMarkets } from "@/lib/swr/use-market-apis"
 import type { HeatmapMarket, HeatmapTile, VnExchangeId } from "@/lib/market-types"
 import type { MarketType } from "@/types/market"
 import { SectionHeading, heatStyle } from "./shared"
@@ -135,13 +137,32 @@ function filterVnExchanges(market: HeatmapMarket): HeatmapMarket {
 function HeatmapDetailSection() {
   const { t, lang } = useLang()
   const { openAsset } = useHeatmapDetail()
+  const { quoteBySymbol } = useRealtime()
   const [activeMarket, setActiveMarket] = useState<MarketType>("vn")
   const [timeframe, setTimeframe] = useState<(typeof timeframes)[number]>("1D")
 
-  const assets = useMemo(
-    () => getMockHeatmapAssets(activeMarket),
-    [activeMarket],
-  )
+  const vnHeatmap = useHeatmapMarket("vn")
+  const usHeatmap = useHeatmapMarket("us")
+  const cryptoHeatmap = useHeatmapMarket("crypto")
+
+  const activeApi =
+    activeMarket === "vn" ? vnHeatmap : activeMarket === "us" ? usHeatmap : cryptoHeatmap
+
+  const loading = features.liveClientFetch && activeApi.isLoading && !activeApi.data
+
+  const assets = useMemo(() => {
+    const rows = activeApi.data?.items ?? []
+    if (!rows.length) return []
+
+    const base = heatmapRowsToMarketAssets(rows, activeMarket)
+    if (activeMarket === "vn") return base
+
+    clientDebug(
+      "HeatmapDetailSection",
+      activeApi.data?.source === "live" ? "live REST heatmap" : "fallback heatmap",
+    )
+    return mergeHeatmapPriceWithRealtime(base, quoteBySymbol)
+  }, [activeApi.data, activeMarket, quoteBySymbol])
 
   const activeTab = DETAIL_MARKET_TABS.find((tab) => tab.id === activeMarket) ?? DETAIL_MARKET_TABS[0]
 
@@ -220,12 +241,18 @@ function HeatmapDetailSection() {
         </div>
 
         <div className="h-[520px] bg-chart-bg p-px">
-          <MarketHeatmap
-            assets={assets}
-            locale={lang}
-            marketType={activeMarket}
-            onTileClick={(asset) => openAsset(asset.symbol)}
-          />
+          {loading ? (
+            <HeatmapGridSkeleton />
+          ) : assets.length > 0 ? (
+            <MarketHeatmap
+              assets={assets}
+              locale={lang}
+              marketType={activeMarket}
+              onTileClick={(asset) => openAsset(asset)}
+            />
+          ) : (
+            <HeatmapGridSkeleton />
+          )}
         </div>
 
         <div className="flex items-center justify-between gap-3 border-t border-border bg-card/60 px-3 py-2 text-[10px] text-muted-foreground">

@@ -33,4 +33,5 @@ export {
   buildStrengthSeries,
   calculateCurrencyStrength,
   calculateReferenceStrength,
+  isStrengthSnapshotAvailable,
 } from "./calculate-strength"

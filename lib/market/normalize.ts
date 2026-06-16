@@ -94,6 +94,17 @@ export function pairDef(pair: string): MarketSymbolDef {
   }
 }
 
+export function stockDef(ticker: string): MarketSymbolDef {
+  const apiSymbol = ticker.trim()
+  return {
+    id: apiSymbol.toLowerCase().replace(/[./]/g, ""),
+    apiSymbol,
+    displaySymbol: apiSymbol.replace("/", ""),
+    name: apiSymbol.replace("/", ""),
+    category: "equity",
+  }
+}
+
 export function defsFromSymbols(
   symbols: string[],
   registry: MarketSymbolDef[],

@@ -1,20 +1,8 @@
-import { fetchLiveCurrencyStrength } from "@/lib/market/currency-strength"
+import { fetchLiveCurrencyStrength, fetchMockCurrencyStrength } from "@/lib/market/currency-strength"
 import { toApiJson, toApiJsonFromMock } from "@/lib/api-response"
-import { CACHE_KEYS, cachedProvider } from "@/lib/providers/cache"
-import { getMockStrengths } from "@/lib/providers/currency-provider"
+import { CACHE_KEYS, CACHE_TTL, cachedProvider } from "@/lib/providers/cache"
 
 export const dynamic = "force-dynamic"
-
-const CACHE_TTL_MS = 60_000
-
-function mockRows() {
-  return getMockStrengths().map((c) => ({
-    currency: c.code,
-    strength: c.strength,
-    change: c.changePercent,
-    label: c.rankKey,
-  }))
-}
 
 export async function GET() {
   try {
@@ -24,10 +12,10 @@ export async function GET() {
         const result = await fetchLiveCurrencyStrength()
         return {
           data: result,
-          source: result.source === "live" ? ("live" as const) : ("mock" as const),
+          source: result.source,
         }
       },
-      { ttlMs: CACHE_TTL_MS },
+      { ttlMs: CACHE_TTL.forex },
     )
 
     const result = cached?.data ?? (await fetchLiveCurrencyStrength())
@@ -40,11 +28,12 @@ export async function GET() {
       }),
     )
   } catch {
+    const fallback = fetchMockCurrencyStrength()
     return Response.json(
       toApiJsonFromMock({
-        source: "mock",
-        items: mockRows(),
-        unavailable: true,
+        source: fallback.source,
+        items: fallback.items,
+        unavailable: fallback.unavailable,
       }),
     )
   }

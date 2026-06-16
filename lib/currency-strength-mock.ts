@@ -1,4 +1,4 @@
-import { strengthSeries } from "@/lib/market-utils"
+import { buildStrengthSeries } from "@/lib/currency-strength/calculate-strength"
 
 /** Client-safe currency strength mock (no provider/cache imports). */
 
@@ -16,17 +16,23 @@ export type CurrencyStrengthChartMeta = {
 
 export const currencyStrengthChartMeta: CurrencyStrengthChartMeta = {
   timezone: "UTC",
-  timeLabels: ["00:00", "04:00", "08:00", "12:00", "16:00", "20:00", "24:00"],
+  timeLabels: ["Open", "Close"],
 }
 
-export const currencyStrengthItems: CurrencyStrengthMockItem[] = [
-  { code: "USD", strength: 54.2, rankKey: "strength.strongest", series: strengthSeries(1) },
-  { code: "VND", strength: 51.8, rankKey: "strength.veryStrong", series: strengthSeries(2) },
-  { code: "EUR", strength: 48.6, rankKey: "strength.strong", series: strengthSeries(3) },
-  { code: "JPY", strength: 46.2, rankKey: "strength.strong", series: strengthSeries(4) },
-  { code: "GBP", strength: 44.1, rankKey: "strength.neutral", series: strengthSeries(5) },
-  { code: "AUD", strength: 41.4, rankKey: "strength.weak", series: strengthSeries(6) },
-  { code: "CHF", strength: 43.2, rankKey: "strength.neutral", series: strengthSeries(7) },
-  { code: "CAD", strength: 39.8, rankKey: "strength.weak", series: strengthSeries(8) },
-  { code: "NZD", strength: 36.2, rankKey: "strength.weakest", series: strengthSeries(9) },
+const MOCK_STRENGTHS: Omit<CurrencyStrengthMockItem, "series">[] = [
+  { code: "USD", strength: 52.4, rankKey: "strength.strongest" },
+  { code: "EUR", strength: 51.1, rankKey: "strength.veryStrong" },
+  { code: "GBP", strength: 50.8, rankKey: "strength.strong" },
+  { code: "JPY", strength: 49.6, rankKey: "strength.neutral" },
+  { code: "AUD", strength: 48.9, rankKey: "strength.neutral" },
+  { code: "CHF", strength: 49.2, rankKey: "strength.neutral" },
+  { code: "CAD", strength: 48.5, rankKey: "strength.weak" },
+  { code: "NZD", strength: 47.8, rankKey: "strength.weakest" },
 ]
+
+export const currencyStrengthItems: CurrencyStrengthMockItem[] = MOCK_STRENGTHS.map(
+  (item) => ({
+    ...item,
+    series: buildStrengthSeries(item.strength),
+  }),
+)

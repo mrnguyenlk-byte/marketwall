@@ -2,7 +2,7 @@ import "server-only"
 
 import { type Bi, type Trend, toTrend, spark } from "@/lib/market-utils"
 import type { HeatmapTile } from "@/lib/providers/heatmap-provider"
-import { CACHE_KEYS } from "@/lib/providers/cache"
+import { CACHE_KEYS, CACHE_TTL } from "@/lib/providers/cache"
 import { safeFetchJson } from "@/lib/providers/fetch-utils"
 import { withFallback, type ProviderResult } from "@/lib/providers/fallback"
 import { heatmapMarketToMarketHeatmap } from "@/lib/providers/mappers"
@@ -233,7 +233,7 @@ export async function getData(): Promise<CryptoData> {
   const resolved = await withFallback(
     fetchCoinGeckoMarkets,
     () => MOCK_ASSETS,
-    { provider: "coingecko", cacheKey: CACHE_KEYS.crypto },
+    { provider: "coingecko", cacheKey: CACHE_KEYS.crypto, cacheTtlMs: CACHE_TTL.crypto },
   )
 
   const source = resolved.source === "mock" ? "mock" : "live"

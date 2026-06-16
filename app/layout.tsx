@@ -9,6 +9,7 @@ import { Geist, Geist_Mono } from "next/font/google"
 import { LanguageProvider } from "@/lib/i18n"
 import { HeatmapDetailProvider } from "@/lib/heatmap-detail-context"
 import { SymbolDetailProvider } from "@/lib/symbol-detail-context"
+import { RealtimeProvider } from "@/lib/realtime/realtime-context"
 import { features } from "@/lib/config/features"
 
 import { ThemeProvider } from "@/lib/theme"
@@ -100,14 +101,16 @@ export default function RootLayout({
         <ThemeProvider>
           <AuthSessionProvider>
             <LanguageProvider>
-              <SymbolDetailProvider>
-                <HeatmapDetailProvider>
-                  {children}
-                  {features.symbolModal && <SymbolDetailModal />}
-                  {features.heatmapDetailModal && <StockDetailModal />}
-                  <ContactFab />
-                </HeatmapDetailProvider>
-              </SymbolDetailProvider>
+              <RealtimeProvider>
+                <SymbolDetailProvider>
+                  <HeatmapDetailProvider>
+                    {children}
+                    {features.symbolModal && <SymbolDetailModal />}
+                    {features.heatmapDetailModal && <StockDetailModal />}
+                    <ContactFab />
+                  </HeatmapDetailProvider>
+                </SymbolDetailProvider>
+              </RealtimeProvider>
             </LanguageProvider>
           </AuthSessionProvider>
         </ThemeProvider>

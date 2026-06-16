@@ -2,7 +2,6 @@ import "server-only"
 
 import { CURRENCY_STRENGTH_PAIRS } from "@/config/market-symbols"
 import { buildCurrencyStrengthSnapshot } from "@/lib/currency-strength"
-import { REFERENCE_PAIR_QUOTES } from "@/lib/currency-strength/types"
 import { getMockStrengths } from "@/lib/providers/currency-provider"
 import { getForexPairsForCurrencyStrength } from "@/lib/twelvedata/client"
 import type { CurrencyStrengthQuote } from "@/types/market"
@@ -46,34 +45,34 @@ export async function fetchLiveCurrencyStrength(): Promise<{
   try {
     const livePairs = await getForexPairsForCurrencyStrength()
 
-    if (livePairs.length < 4) {
-      return { items: mockStrengthRows(), source: "mock", unavailable: livePairs.length === 0 }
-    }
-
-    const referenceInputs = CURRENCY_STRENGTH_PAIRS.map((pair) => {
-      const symbol = pair.replace("/", "")
-      const live = livePairs.find((p) => p.symbol === symbol)
-      if (live) {
-        return {
-          symbol,
-          price: live.price,
-          changePercent: live.changePercent,
-          updatedAt: live.updatedAt,
-        }
-      }
-
-      const ref = REFERENCE_PAIR_QUOTES[symbol as keyof typeof REFERENCE_PAIR_QUOTES]
-      return ref
-        ? { symbol, price: ref.price, changePercent: ref.changePercent }
-        : null
-    }).filter((p): p is NonNullable<typeof p> => p != null)
+    const referenceInputs = livePairs.map((pair) => ({
+      symbol: pair.symbol,
+      price: pair.price,
+      changePercent: pair.changePercent,
+      updatedAt: pair.updatedAt,
+    }))
 
     const snapshot = buildCurrencyStrengthSnapshot(referenceInputs)
+
+    if (!snapshot.available) {
+      return { items: [], source: "live", unavailable: true }
+    }
+
     const rows = toStrengthRows(snapshot.currencies)
-    return rows.length
+    return rows.length === LIVE_CURRENCIES.size
       ? { items: rows, source: "live", unavailable: false }
-      : { items: mockStrengthRows(), source: "mock", unavailable: false }
+      : { items: [], source: "live", unavailable: true }
   } catch {
-    return { items: mockStrengthRows(), source: "mock", unavailable: true }
+    return { items: [], source: "mock", unavailable: true }
   }
+}
+
+/** Explicit mock snapshot for API error fallback (marked unavailable). */
+export function fetchMockCurrencyStrength(): {
+  items: CurrencyStrengthQuote[]
+  source: "mock"
+  unavailable: boolean
+} {
+  const rows = mockStrengthRows()
+  return { items: rows, source: "mock", unavailable: true }
 }

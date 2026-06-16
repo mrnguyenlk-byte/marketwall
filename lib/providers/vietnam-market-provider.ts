@@ -12,7 +12,7 @@ import {
   normalizedStocksToHeatmapBuckets,
   normalizedToProviderIndices,
 } from "@/lib/adapters/vietnam"
-import { CACHE_KEYS } from "@/lib/providers/cache"
+import { CACHE_KEYS, CACHE_TTL } from "@/lib/providers/cache"
 import { withFallback } from "@/lib/providers/fallback"
 import type {
   HeatmapExchange,
@@ -287,7 +287,11 @@ export async function getData(): Promise<VietnamMarketData> {
   const resolved = await withFallback(
     fetchLiveVietnamMarketData,
     getMockData,
-    { provider: "vietnam-markets", cacheKey: CACHE_KEYS.vietnamMarkets },
+    {
+      provider: "vietnam-markets",
+      cacheKey: CACHE_KEYS.vietnamMarkets,
+      cacheTtlMs: CACHE_TTL.heatmap,
+    },
   )
 
   return resolved.data

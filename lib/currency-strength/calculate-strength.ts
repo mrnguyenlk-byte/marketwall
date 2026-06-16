@@ -7,6 +7,8 @@ import {
 } from "./normalize-pairs"
 import {
   CURRENCY_NAMES,
+  MIN_PAIRS_PER_CURRENCY,
+  MIN_STRENGTH_PAIRS,
   SUPPORTED_CURRENCIES,
   type CurrencyCode,
   type CurrencyStrengthScore,
@@ -17,8 +19,9 @@ import {
 } from "./types"
 
 const STRENGTH_BASE = 50
-const STRENGTH_SCALE = 4
-const SERIES_POINTS = 48
+/** Scales zero-mean daily % contributions into a ~45–55 band for typical FX moves. */
+const STRENGTH_SCALE = 12
+const SNAPSHOT_POINTS = 2
 
 type Accumulator = {
   deltaSum: number
@@ -57,35 +60,17 @@ function averageDelta(acc: Accumulator): number {
   return Number((acc.deltaSum / acc.pairCount).toFixed(4))
 }
 
-function rawStrength(changePercent: number): number {
-  return Number((STRENGTH_BASE + changePercent * STRENGTH_SCALE).toFixed(2))
-}
-
 function clampStrength(value: number): number {
   return Math.min(100, Math.max(0, value))
 }
 
 /**
- * Build a synthetic intraday series ending at the current strength value.
- * Used until a live time-series feed is available.
+ * Stable 1D snapshot series — flat line at current strength (no synthetic intraday waves).
  */
-export function buildStrengthSeries(
-  strength: number,
-  changePercent: number,
-  points = SERIES_POINTS,
-): number[] {
-  const out: number[] = []
-  const step = changePercent / Math.max(points - 1, 1)
-
-  for (let i = 0; i < points; i++) {
-    const reverseIndex = points - 1 - i
-    const drift = step * reverseIndex
-    const wobble = Math.sin((strength + i) * 0.31) * 0.35
-    out.push(Number(clampStrength(strength - drift + wobble).toFixed(2)))
-  }
-
-  out[out.length - 1] = strength
-  return out
+export function buildStrengthSeries(strength: number, _changePercent?: number): number[] {
+  return Array.from({ length: SNAPSHOT_POINTS }, () =>
+    Number(strength.toFixed(2)),
+  )
 }
 
 const RANK_KEYS_BY_POSITION: Record<number, string> = {
@@ -121,15 +106,37 @@ function assignRanks(scores: CurrencyStrengthScore[]): CurrencyStrengthScore[] {
   })
 }
 
-export function calculateCurrencyStrength(
+/** Whether enough pair coverage exists for a trustworthy 8-currency snapshot. */
+export function isStrengthSnapshotAvailable(
   pairs: FxPairQuote[],
-): CurrencyStrengthScore[] {
+  acc: Record<CurrencyCode, Accumulator>,
+): boolean {
+  if (pairs.length < MIN_STRENGTH_PAIRS) return false
+  return SUPPORTED_CURRENCIES.every((code) => acc[code].pairCount >= MIN_PAIRS_PER_CURRENCY)
+}
+
+export function calculateCurrencyStrength(pairs: FxPairQuote[]): CurrencyStrengthScore[] {
   const acc = accumulateFromPairs(pairs)
+
+  const activeCodes = SUPPORTED_CURRENCIES.filter((code) => acc[code].pairCount > 0)
+  const avgDeltas = activeCodes.map((code) => ({
+    code,
+    avg: averageDelta(acc[code]),
+  }))
+
+  const mean =
+    avgDeltas.length > 0
+      ? avgDeltas.reduce((sum, row) => sum + row.avg, 0) / avgDeltas.length
+      : 0
 
   const preliminary = SUPPORTED_CURRENCIES.map((code) => {
     const bucket = acc[code]
-    const changePercent = averageDelta(bucket)
-    const strength = clampStrength(rawStrength(changePercent))
+    const changePercent = bucket.pairCount > 0 ? averageDelta(bucket) : 0
+    const normalizedContribution =
+      bucket.pairCount > 0 ? (changePercent - mean) * STRENGTH_SCALE : 0
+    const strength = clampStrength(
+      Number((STRENGTH_BASE + normalizedContribution).toFixed(2)),
+    )
 
     return {
       code,
@@ -152,21 +159,25 @@ export function buildCurrencyStrengthSnapshot(
   inputs: RawFxPairQuote[],
 ): CurrencyStrengthSnapshot {
   const pairs = normalizePairQuotes(inputs)
+  const acc = accumulateFromPairs(pairs)
   const currencies = calculateCurrencyStrength(pairs)
 
   return {
     currencies,
     pairsUsed: pairs.map((p) => p.symbol),
     calculatedAt: new Date().toISOString(),
+    available: isStrengthSnapshotAvailable(pairs, acc),
   }
 }
 
-/** Convenience entry using bundled reference pair quotes. */
+/** Convenience entry using bundled reference pair quotes (explicit mock). */
 export function calculateReferenceStrength(): CurrencyStrengthSnapshot {
   const pairs = referencePairQuotes()
+  const acc = accumulateFromPairs(pairs)
   return {
     currencies: calculateCurrencyStrength(pairs),
     pairsUsed: pairs.map((p) => p.symbol),
     calculatedAt: new Date().toISOString(),
+    available: isStrengthSnapshotAvailable(pairs, acc),
   }
 }

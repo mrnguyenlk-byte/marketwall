@@ -10,12 +10,11 @@ import {
 } from "react"
 
 import { features } from "@/lib/config/features"
-import { findMockAsset } from "@/lib/mockHeatmapData"
 import type { MarketAsset } from "@/types/market"
 
 type HeatmapDetailContextValue = {
   asset: MarketAsset | null
-  openAsset: (symbol: string) => void
+  openAsset: (asset: MarketAsset) => void
   closeAsset: () => void
 }
 
@@ -28,18 +27,13 @@ const NOOP_CONTEXT: HeatmapDetailContextValue = {
 const HeatmapDetailContext = createContext<HeatmapDetailContextValue | null>(null)
 
 function HeatmapDetailProviderEnabled({ children }: { children: ReactNode }) {
-  const [symbol, setSymbol] = useState<string | null>(null)
+  const [asset, setAsset] = useState<MarketAsset | null>(null)
 
-  const asset = useMemo(
-    () => (symbol ? findMockAsset(symbol) : null),
-    [symbol],
-  )
-
-  const openAsset = useCallback((nextSymbol: string) => {
-    if (findMockAsset(nextSymbol)) setSymbol(nextSymbol)
+  const openAsset = useCallback((next: MarketAsset) => {
+    setAsset(next)
   }, [])
 
-  const closeAsset = useCallback(() => setSymbol(null), [])
+  const closeAsset = useCallback(() => setAsset(null), [])
 
   const value = useMemo(
     () => ({ asset, openAsset, closeAsset }),

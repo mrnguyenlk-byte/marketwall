@@ -317,6 +317,10 @@ const dict: Dict = {
     vi: "Thông tin thị trường tạm thời chưa khả dụng.",
     en: "Market data temporarily unavailable.",
   },
+  "error.currencyStrengthUnavailable": {
+    vi: "Sức mạnh tiền tệ tạm thời chưa khả dụng.",
+    en: "Currency strength temporarily unavailable.",
+  },
   "misc.today": { vi: "Hôm nay", en: "Today" },
   "misc.indices": { vi: "Chỉ số", en: "Indices" },
   "misc.commodities": { vi: "Hàng hóa", en: "Commodities" },

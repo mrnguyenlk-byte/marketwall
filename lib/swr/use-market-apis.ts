@@ -43,8 +43,26 @@ export type MarketQuotesResponse = QuotesResponse
 
 export type CurrencyStrengthResponse = CurrencyStrengthApiResponse
 
+export type HeatmapApiResponse = {
+  source?: "live" | "mock"
+  items?: import("@/types/market").HeatmapAsset[]
+  fallback?: boolean
+  unavailable?: boolean
+  updatedAt?: string
+}
+
 function useLiveSwr<T>(key: string | null) {
   return useSWR<T>(features.liveClientFetch ? key : null, jsonFetcher<T>, swrOptions)
+}
+
+export function useHeatmapMarket(market: import("@/types/market").MarketType) {
+  const key =
+    market === "vn"
+      ? SWR_KEYS.heatmapVietnam
+      : market === "us"
+        ? SWR_KEYS.heatmapUs
+        : SWR_KEYS.heatmapCrypto
+  return useLiveSwr<HeatmapApiResponse>(key)
 }
 
 export function useVietnamMarkets() {

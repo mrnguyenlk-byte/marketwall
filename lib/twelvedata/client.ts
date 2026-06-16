@@ -12,6 +12,7 @@ import {
   normalizeQuoteRow,
   normalizeTimeSeries,
   pairDef,
+  stockDef,
 } from "@/lib/market/normalize"
 import type { MarketQuote } from "@/types/market"
 
@@ -163,10 +164,11 @@ export async function getQuotes(symbols: string[]): Promise<MarketQuote[]> {
   try {
     if (symbols.length === 0) return []
     const defs = defsFromSymbols(symbols, OVERVIEW_SYMBOLS)
-    const extraPairs = symbols.filter(
-      (s) => !defs.some((d) => d.apiSymbol === s) && s.includes("/"),
+    const unknown = symbols.filter((s) => !defs.some((d) => d.apiSymbol === s))
+    const extraDefs = unknown.map((symbol) =>
+      symbol.includes("/") ? pairDef(symbol) : stockDef(symbol),
     )
-    const allDefs = [...defs, ...extraPairs.map((pair) => pairDef(pair))]
+    const allDefs = [...defs, ...extraDefs]
     if (allDefs.length === 0) return []
 
     const joined = allDefs.map((d) => d.apiSymbol).join(",")
@@ -230,4 +232,19 @@ export async function getMarketDetail(symbol: string): Promise<MarketDetailPaylo
 /** Overview bundle: all configured dashboard symbols. */
 export async function getOverviewQuotes(): Promise<MarketQuote[]> {
   return getQuotes(OVERVIEW_SYMBOLS.map((s) => s.apiSymbol))
+}
+
+const STOCK_QUOTE_BATCH_SIZE = 50
+
+/** Batch equity quotes (e.g. US heatmap universe). */
+export async function getStockQuotes(symbols: string[]): Promise<MarketQuote[]> {
+  if (symbols.length === 0) return []
+
+  const quotes: MarketQuote[] = []
+  for (let i = 0; i < symbols.length; i += STOCK_QUOTE_BATCH_SIZE) {
+    const chunk = symbols.slice(i, i + STOCK_QUOTE_BATCH_SIZE)
+    const batch = await getQuotes(chunk)
+    quotes.push(...batch)
+  }
+  return quotes
 }
