@@ -28,8 +28,9 @@ import {
   type VietnamMarketAnalytics,
 } from "@/lib/vietnam/market-analytics"
 import { loadProprietaryAnalyticsFromDb } from "@/lib/proprietary/analytics-from-db"
-import { buildDashboardFromHeatmapStocks } from "@/lib/vietnam/vn-dashboard-from-vps"
-import { VPS_VOLUME_UNIT, vpsTradingValue } from "@/lib/vietnam/volume-units"
+import { buildDashboardFromHeatmapStocks, VN_LEADERBOARD_LIMIT } from "@/lib/vietnam/vn-dashboard-from-vps"
+import { enrichVnForeignFlow, enrichVnQuoteVolume } from "@/lib/vietnam/vn-quote-fields"
+import { VPS_VOLUME_UNIT, VPS_SHARES_PER_LOT, vpsTradingValue } from "@/lib/vietnam/volume-units"
 import type {
   HeatmapExchange,
   HeatmapMarket,
@@ -309,36 +310,69 @@ function buildHeatmapMarket(stocks: VietnamMarketData["heatmapStocks"]): Heatmap
 
 function buildMockDashboard(): VietnamMarketDashboard {
   const all = [...HOSE_SEEDS, ...HNX_SEEDS, ...UPCOM_SEEDS]
-  const byVolume = [...all].sort((a, b) => b.volume - a.volume).slice(0, 10)
-  const byValue = [...all]
-    .sort((a, b) => vpsTradingValue(b.price, b.volume) - vpsTradingValue(a.price, a.volume))
-    .slice(0, 10)
 
-  const toRow = (seed: StockSeed, rank: number, metric: "volume" | "value"): VietnamDashboardRow => ({
-    rank,
-    symbol: seed.symbol,
-    exchange: seed.symbol.length <= 3 ? "HOSE" : undefined,
-    price: seed.price,
-    change: pctChange(seed.price, seed.changePercent),
-    changePercent: seed.changePercent,
-    volume: seed.volume,
-    value: stockValue(seed.price, seed.volume),
-    foreignBuy: metric === "volume" ? Math.round(seed.volume * 0.12) : undefined,
-    foreignSell: metric === "value" ? Math.round(seed.volume * 0.08) : undefined,
+  const toRow = (seed: StockSeed, rank: number): VietnamDashboardRow => {
+    const vol = enrichVnQuoteVolume(seed.price, seed.volume)
+    const foreign = enrichVnForeignFlow(
+      seed.price,
+      Math.round(seed.volume * 0.12 * VPS_SHARES_PER_LOT),
+      Math.round(seed.volume * 0.08 * VPS_SHARES_PER_LOT),
+    )
+    return {
+      rank,
+      symbol: seed.symbol,
+      exchange: seed.symbol.length <= 3 ? "HOSE" : undefined,
+      price: seed.price,
+      change: pctChange(seed.price, seed.changePercent),
+      changePercent: seed.changePercent,
+      volume: vol.volumeShares,
+      volumeLot: vol.volumeLot,
+      volumeShares: vol.volumeShares,
+      volumeUnit: vol.volumeUnit,
+      value: vol.tradingValue,
+      foreignBuy: foreign.foreignBuy,
+      foreignSell: foreign.foreignSell,
+    }
+  }
+
+  const byVolume = [...all]
+    .sort((a, b) => enrichVnQuoteVolume(b.price, b.volume).volumeShares - enrichVnQuoteVolume(a.price, a.volume).volumeShares)
+    .slice(0, VN_LEADERBOARD_LIMIT)
+  const byValue = [...all]
+    .sort(
+      (a, b) =>
+        enrichVnQuoteVolume(b.price, b.volume).tradingValue -
+        enrichVnQuoteVolume(a.price, a.volume).tradingValue,
+    )
+    .slice(0, VN_LEADERBOARD_LIMIT)
+
+  const withForeign = all.map((seed) => {
+    const foreign = enrichVnForeignFlow(
+      seed.price,
+      Math.round(seed.volume * 0.12 * 10),
+      Math.round(seed.volume * 0.08 * 10),
+    )
+    return { seed, foreign }
   })
+
+  const topForeignBuy = [...withForeign]
+    .filter((r) => r.foreign.foreignBuy > 0)
+    .sort((a, b) => b.foreign.foreignBuy - a.foreign.foreignBuy)
+    .slice(0, VN_LEADERBOARD_LIMIT)
+    .map((r, i) => toRow(r.seed, i + 1))
+
+  const topForeignSell = [...withForeign]
+    .filter((r) => r.foreign.foreignSell > 0)
+    .sort((a, b) => b.foreign.foreignSell - a.foreign.foreignSell)
+    .slice(0, VN_LEADERBOARD_LIMIT)
+    .map((r, i) => toRow(r.seed, i + 1))
 
   return {
     source: "mock",
-    topVolume: byVolume.map((s, i) => toRow(s, i + 1, "volume")),
-    topValue: byValue.map((s, i) => toRow(s, i + 1, "value")),
-    topForeignBuy: byVolume.slice(0, 10).map((s, i) => ({
-      ...toRow(s, i + 1, "volume"),
-      foreignBuy: Math.round(s.volume * 0.15),
-    })),
-    topForeignSell: byValue.slice(0, 10).map((s, i) => ({
-      ...toRow(s, i + 1, "value"),
-      foreignSell: Math.round(s.volume * 0.1),
-    })),
+    topVolume: byVolume.map((s, i) => toRow(s, i + 1)),
+    topValue: byValue.map((s, i) => toRow(s, i + 1)),
+    topForeignBuy,
+    topForeignSell,
     updatedAt: MOCK_UPDATED_AT,
   }
 }
@@ -464,7 +498,11 @@ async function fetchLiveVietnamMarketData(): Promise<VietnamMarketData | null> {
   const proprietary = await loadProprietaryAnalyticsFromDb()
 
   const vpsDashboard = hasLiveStocks
-    ? buildDashboardFromHeatmapStocks(heatmapStocks, data.fetchedAt ?? new Date().toISOString())
+    ? buildDashboardFromHeatmapStocks(
+        heatmapStocks,
+        data.fetchedAt ?? new Date().toISOString(),
+        liveSymbols,
+      )
     : null
 
   let dashboard = mock.dashboard

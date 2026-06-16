@@ -1,4 +1,9 @@
 import type { Bi } from "@/lib/market-utils"
+import {
+  HOSE_EXTENSION_SEEDS,
+  HNX_EXTENSION_SEEDS,
+  UPCOM_EXTENSION_SEEDS,
+} from "@/lib/vietnam/vietnam-seed-extensions"
 
 export type VietnamHeatmapStockSeed = {
   symbol: string
@@ -98,6 +103,16 @@ export const HOSE_SEEDS: VietnamHeatmapStockSeed[] = [
   { symbol: "YEG", name: { vi: "Yeah1", en: "Yeah1" }, sector: "Technology", marketCap: 4000, price: 8.2, changePercent: 0.32, volume: 5200000 },
   { symbol: "VCG", name: { vi: "Vinaconex", en: "Vinaconex" }, sector: "Industrial", marketCap: 3800, price: 14.8, changePercent: -0.08, volume: 3600000 },
   { symbol: "HAG", name: { vi: "Hoang Anh Gia Lai", en: "Hoang Anh Gia Lai" }, sector: "Agriculture", marketCap: 3600, price: 3.2, changePercent: 0.24, volume: 15000000 },
+  { symbol: "TVN", name: { vi: "Thép Thái Nguyên", en: "Thai Nguyen Steel" }, sector: "Steel", marketCap: 3400, price: 11.8, changePercent: 0.86, volume: 5200000 },
+  { symbol: "TLH", name: { vi: "Thép Tiền Lên", en: "Tien Len Steel" }, sector: "Steel", marketCap: 3200, price: 8.4, changePercent: 0.62, volume: 6800000 },
+  { symbol: "BSR", name: { vi: "Bình Sơn Refining", en: "Binh Son Refining" }, sector: "Oil & Gas", marketCap: 3000, price: 18.6, changePercent: 0.44, volume: 4100000 },
+  { symbol: "FTS", name: { vi: "FPT Securities", en: "FPT Securities" }, sector: "Securities", marketCap: 2800, price: 32.4, changePercent: 0.58, volume: 2400000 },
+  { symbol: "BAB", name: { vi: "Bac A Bank", en: "Bac A Bank" }, sector: "Banking", marketCap: 2600, price: 12.2, changePercent: 0.36, volume: 3900000 },
+  { symbol: "AGR", name: { vi: "Agribank Securities", en: "Agribank Securities" }, sector: "Securities", marketCap: 2400, price: 16.8, changePercent: 0.28, volume: 3100000 },
+  { symbol: "VFS", name: { vi: "VFS", en: "VFS Securities" }, sector: "Securities", marketCap: 2200, price: 22.6, changePercent: 0.42, volume: 1800000 },
+  { symbol: "GEG", name: { vi: "Gia Lai Electricity", en: "Gia Lai Electricity" }, sector: "Oil & Gas", marketCap: 2000, price: 14.4, changePercent: -0.18, volume: 2900000 },
+  { symbol: "AAA", name: { vi: "An Phat Bioplastics", en: "An Phat Bioplastics" }, sector: "Industrial", marketCap: 1800, price: 6.2, changePercent: 0.22, volume: 7200000 },
+  ...HOSE_EXTENSION_SEEDS,
 ]
 
 export const HNX_SEEDS: VietnamHeatmapStockSeed[] = [
@@ -131,6 +146,7 @@ export const HNX_SEEDS: VietnamHeatmapStockSeed[] = [
   { symbol: "EID", name: { vi: "Hải Dương", en: "Hai Duong" }, sector: "Construction", marketCap: 6400, price: 11.6, changePercent: -0.36, volume: 2800000 },
   { symbol: "VTX", name: { vi: "VTX", en: "VTX" }, sector: "Technology", marketCap: 6000, price: 7.4, changePercent: 0.28, volume: 5200000 },
   { symbol: "PVB", name: { vi: "PV Oil", en: "PV Oil" }, sector: "Energy", marketCap: 5600, price: 28.2, changePercent: -0.14, volume: 980000 },
+  ...HNX_EXTENSION_SEEDS,
 ]
 
 export const UPCOM_SEEDS: VietnamHeatmapStockSeed[] = [
@@ -164,4 +180,5 @@ export const UPCOM_SEEDS: VietnamHeatmapStockSeed[] = [
   { symbol: "DRL", name: { vi: "DRL", en: "DRL" }, sector: "Energy", marketCap: 2800, price: 6.4, changePercent: 0.34, volume: 4500000 },
   { symbol: "HPW", name: { vi: "HPW", en: "HPW" }, sector: "Utilities", marketCap: 2600, price: 3.8, changePercent: -0.42, volume: 8200000 },
   { symbol: "LSS", name: { vi: "LSS", en: "LSS" }, sector: "Agriculture", marketCap: 2400, price: 5.2, changePercent: 0.18, volume: 6100000 },
+  ...UPCOM_EXTENSION_SEEDS,
 ]

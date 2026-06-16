@@ -130,10 +130,10 @@ export const US_HEATMAP_SEEDS: HeatmapStockSeed[] = US_TICKER_DEFS.slice(0, 100)
   }),
 )
 
-/** Display limits (Sprint 23 usability). */
-export const VN_HEATMAP_LIMIT = 80
+/** Display limits (Sprint 29 heatmap refinement). */
+export const VN_HEATMAP_LIMIT = 200
 export const US_HEATMAP_LIMIT = 40
-export const CRYPTO_HEATMAP_LIMIT = 30
+export const CRYPTO_HEATMAP_LIMIT = 50
 
 /** API fetch universe — US seeds stay broad; top N chosen by dollar volume at serve time. */
 export const US_HEATMAP_SIZE = US_HEATMAP_LIMIT

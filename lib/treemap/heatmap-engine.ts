@@ -32,6 +32,50 @@ export type HeatmapTreemapLayout = {
 
 const MIN_TILE_VALUE = 0.0001
 
+/** Max share of unit-square area any single leaf may occupy after squarify. */
+export const MAX_LEAF_AREA_FRACTION = 0.2
+
+function applySqrtSizing(value: number): number {
+  return Math.sqrt(Math.max(value, 0))
+}
+
+/** sqrt(metric) with per-leaf weight cap so max/total ≤ MAX_LEAF_AREA_FRACTION. */
+export function capLeafWeights<T>(
+  items: Array<{ data: T; value: number }>,
+): Array<{ data: T; value: number }> {
+  const sized = items.map((item) => ({
+    ...item,
+    value: Math.max(applySqrtSizing(item.value), MIN_TILE_VALUE),
+  }))
+  const total = sized.reduce((sum, item) => sum + item.value, 0)
+  if (total <= 0) return sized
+  const cap = total * MAX_LEAF_AREA_FRACTION
+  return sized.map((item) => ({
+    ...item,
+    value: Math.max(Math.min(item.value, cap), MIN_TILE_VALUE),
+  }))
+}
+
+function layoutItemsFromAssets(
+  assets: MarketAsset[],
+  marketType: MarketType,
+  sizing:
+    | VnHeatmapSizingMode
+    | UsHeatmapSizingMode
+    | CryptoHeatmapSizingMode,
+): Array<{ data: MarketAsset; value: number }> {
+  return capLeafWeights(
+    assets.map((asset) => ({
+      data: asset,
+      value: assetSizeMetric(asset, marketType, sizing),
+    })),
+  )
+}
+
+function groupWeight(items: Array<{ value: number }>): number {
+  return Math.max(items.reduce((sum, item) => sum + item.value, 0), MIN_TILE_VALUE)
+}
+
 export function vnTradingValueMetric(asset: MarketAsset): number {
   if (asset.tradingValue != null && asset.tradingValue > 0) return asset.tradingValue
   const shares = asset.volumeShares ?? vpsLotToShares(asset.volume)
@@ -102,10 +146,7 @@ export function buildHeatmapTreemapLayout(
     | CryptoHeatmapSizingMode,
 ): HeatmapTreemapLayout {
   const rect: TreemapRect = { x: 0, y: 0, w: 1, h: 1 }
-  const items = assets.map((asset) => ({
-    data: asset,
-    value: Math.max(assetSizeMetric(asset, marketType, sizing), MIN_TILE_VALUE),
-  }))
+  const items = layoutItemsFromAssets(assets, marketType, sizing)
 
   if (grouping === "marketCap" || !assets.length) {
     const leaves = leafNodes(items, rect)
@@ -136,18 +177,12 @@ export function buildHeatmapTreemapLayout(
   }
 
   const groups = [...buckets.entries()].map(([id, list]) => {
-    const weight = list.reduce(
-      (sum, asset) => sum + assetSizeMetric(asset, marketType, sizing),
-      0,
-    )
+    const items = layoutItemsFromAssets(list, marketType, sizing)
     return {
       id,
       ...groupLabel(id, marketType),
-      items: list.map((asset) => ({
-        data: asset,
-        value: Math.max(assetSizeMetric(asset, marketType, sizing), MIN_TILE_VALUE),
-      })),
-      value: Math.max(weight, MIN_TILE_VALUE),
+      items,
+      value: groupWeight(items),
     }
   })
 
@@ -197,18 +232,12 @@ function buildSectorIndustryLayout(
     }
 
     const industryNodes = [...industries.entries()].map(([industryId, stocks]) => {
-      const weight = stocks.reduce(
-        (sum, a) => sum + assetSizeMetric(a, marketType, sizing),
-        0,
-      )
+      const items = layoutItemsFromAssets(stocks, marketType, sizing)
       return {
         id: `${sectorId}::${industryId}`,
         label: industryId,
-        value: Math.max(weight, MIN_TILE_VALUE),
-        items: stocks.map((asset) => ({
-          data: asset,
-          value: Math.max(assetSizeMetric(asset, marketType, sizing), MIN_TILE_VALUE),
-        })),
+        value: groupWeight(items),
+        items,
       }
     })
 
@@ -236,7 +265,7 @@ function buildSectorIndustryLayout(
 
   for (const sectorNode of topPacked) {
     const sector = sectorNode.data
-    const headerH = Math.min(sectorNode.rect.h * 0.05, 0.02)
+    const headerH = Math.min(sectorNode.rect.h * 0.06, 0.028)
     const inner: TreemapRect = {
       x: sectorNode.rect.x,
       y: sectorNode.rect.y + headerH,

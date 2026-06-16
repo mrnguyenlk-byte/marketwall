@@ -24,6 +24,16 @@ export function maxTopNetMagnitude(rows: VietnamProprietaryNetRow[]): number {
   return Math.max(...rows.map((r) => Math.abs(valueToBillionVnd(r.netValue))), 0.01)
 }
 
+export function maxTopBuyMagnitude(rows: VietnamProprietaryNetRow[]): number {
+  if (!rows.length) return 1
+  return Math.max(...rows.map((r) => valueToBillionVnd(r.buyValue)), 0.01)
+}
+
+export function maxTopSellMagnitude(rows: VietnamProprietaryNetRow[]): number {
+  if (!rows.length) return 1
+  return Math.max(...rows.map((r) => valueToBillionVnd(r.sellValue)), 0.01)
+}
+
 export function formatHistoryLabel(date: string): string {
   const parts = date.split(/[-/]/)
   if (parts.length >= 3) {

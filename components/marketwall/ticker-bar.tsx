@@ -28,15 +28,18 @@ function TickerItem({
   item,
   onSelect,
   interactive,
+  compact,
 }: {
   item: TickerBarItem
   onSelect: (symbol: string) => void
   interactive: boolean
+  compact?: boolean
 }) {
   const up = item.trend === "up"
   const absChange = (item.price * item.changePercent) / 100
   const className = cn(
-    "flex items-center gap-2 whitespace-nowrap px-4 py-2",
+    "flex items-center gap-1.5 whitespace-nowrap",
+    compact ? "px-2.5 py-0.5" : "px-4 py-2",
     interactive && "transition-colors hover:bg-secondary/40",
   )
   const content = (
@@ -52,7 +55,13 @@ function TickerItem({
         {item.changePercent >= 0 ? "+" : ""}
         {item.changePercent.toFixed(2)}%
       </span>
-      <Sparkline data={item.sparkline} positive={up} className="h-4 w-14" width={56} height={16} />
+      <Sparkline
+        data={item.sparkline}
+        positive={up}
+        className={compact ? "h-3 w-10" : "h-4 w-14"}
+        width={compact ? 40 : 56}
+        height={compact ? 12 : 16}
+      />
     </>
   )
 
@@ -67,7 +76,13 @@ function TickerItem({
   )
 }
 
-export function TickerBar({ items: fallbackItems }: { items: TickerBarItem[] }) {
+export function TickerBar({
+  items: fallbackItems,
+  compact = false,
+}: {
+  items: TickerBarItem[]
+  compact?: boolean
+}) {
   const { t } = useLang()
   const { openDetail } = useSymbolDetail()
 
@@ -100,7 +115,7 @@ export function TickerBar({ items: fallbackItems }: { items: TickerBarItem[] }) 
   }, [fallbackItems, vietnam.data, global.data, crypto.data, marketQuotes.data])
 
   if (loading) {
-    return <TickerBarSkeleton count={Math.min(fallbackItems.length, 10)} />
+    return <TickerBarSkeleton count={Math.min(fallbackItems.length, 10)} compact={compact} />
   }
 
   const dataUnavailable =
@@ -112,10 +127,20 @@ export function TickerBar({ items: fallbackItems }: { items: TickerBarItem[] }) 
   const symbolClickEnabled = features.symbolModal
 
   return (
-    <div className="flex w-full items-stretch border-b border-border bg-surface-elevated">
-      <div className="z-10 flex shrink-0 items-center gap-1.5 border-r border-border bg-surface-muted px-3">
-        <Radio className="size-3.5 text-gain" aria-hidden />
-        <span className="text-[11px] font-bold uppercase tracking-wide text-gain">{t("misc.live")}</span>
+    <div
+      className={cn(
+        "flex w-full items-stretch border-t border-border bg-surface-elevated",
+        compact && "max-h-7",
+      )}
+    >
+      <div
+        className={cn(
+          "z-10 flex shrink-0 items-center gap-1 border-r border-border bg-surface-muted",
+          compact ? "px-2 py-0" : "px-3",
+        )}
+      >
+        <Radio className="size-3 text-gain" aria-hidden />
+        <span className="text-[10px] font-bold uppercase tracking-wide text-gain">{t("misc.live")}</span>
       </div>
       <div className="relative flex flex-1 overflow-hidden">
         {dataUnavailable && (
@@ -133,6 +158,7 @@ export function TickerBar({ items: fallbackItems }: { items: TickerBarItem[] }) 
                 item={item}
                 onSelect={openDetail}
                 interactive={symbolClickEnabled}
+                compact={compact}
               />
             )
           })}
@@ -145,6 +171,7 @@ export function TickerBar({ items: fallbackItems }: { items: TickerBarItem[] }) 
                 item={item}
                 onSelect={openDetail}
                 interactive={symbolClickEnabled}
+                compact={compact}
               />
             )
           })}

@@ -19,7 +19,7 @@ const HEATMAP_CACHE_TTL_MS = CACHE_TTL.heatmap
 const US_LIVE_MIN_PRICES = 5
 const US_HEATMAP_MIN_ITEMS = US_HEATMAP_SIZE
 const VN_HEATMAP_SIZE = VN_HEATMAP_LIMIT
-const VN_HEATMAP_MIN_ITEMS = Math.min(60, VN_HEATMAP_LIMIT)
+const VN_HEATMAP_MIN_ITEMS = Math.min(100, VN_HEATMAP_LIMIT)
 
 type HeatmapRowResult = {
   items: HeatmapAsset[]

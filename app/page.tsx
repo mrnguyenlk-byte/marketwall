@@ -8,7 +8,6 @@ import { fearGreedData } from "@/lib/fear-greed"
 import type { HeatmapMarket } from "@/lib/providers/heatmap-provider"
 import { homeMetadata } from "@/lib/seo"
 import { Header } from "@/components/marketwall/header"
-import { TickerBar } from "@/components/marketwall/ticker-bar"
 import { Sidebar } from "@/components/marketwall/sidebar"
 import { FearGreed } from "@/components/marketwall/fear-greed"
 import { HeatmapSection } from "@/components/marketwall/heatmap"
@@ -51,21 +50,18 @@ export default async function Page() {
 
   return (
     <div className="min-h-screen w-full bg-background">
-      <Header />
-      <SectionErrorBoundary name="ticker">
-        <TickerBar items={dashboard.dashboardTickerBarItems} />
-      </SectionErrorBoundary>
+      <Header tickerItems={dashboard.dashboardTickerBarItems} />
 
-      <main className="w-full overflow-x-hidden px-3 py-3 lg:px-4">
-        <div className="grid grid-cols-1 items-start gap-3 lg:grid-cols-[minmax(240px,260px)_minmax(0,1fr)] xl:grid-cols-[minmax(240px,260px)_minmax(0,1fr)_minmax(280px,300px)] xl:gap-4">
+      <main className="w-full overflow-x-hidden px-3 pt-1.5 pb-3 lg:px-4">
+        <div className="grid grid-cols-1 items-start gap-3 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-3 min-[1440px]:grid-cols-[220px_minmax(0,1fr)_220px]">
           <aside
             aria-label="Market sidebar"
-            className="order-1 min-w-0 w-full lg:col-start-1 lg:row-start-1 lg:sticky lg:top-[104px] lg:self-start xl:col-start-1"
+            className="order-1 min-w-0 w-full lg:col-start-1 lg:row-start-1 lg:sticky lg:top-[98px] lg:self-start min-[1440px]:col-start-1"
           >
             <Sidebar overviewByCategory={dashboard.overviewByCategory} />
           </aside>
 
-          <section className="order-2 min-w-0 space-y-3 lg:col-start-2 lg:row-start-1 xl:col-start-2">
+          <section className="order-2 min-w-0 space-y-3 lg:col-start-2 lg:row-start-1 min-[1440px]:col-start-2">
             <SectionErrorBoundary name="heatmap">
               <HeatmapSection markets={dashboard.heatmapMarkets} />
             </SectionErrorBoundary>
@@ -88,7 +84,7 @@ export default async function Page() {
 
           <aside
             aria-label="Trader sidebar"
-            className="order-3 flex min-w-0 w-full flex-col gap-3 lg:col-start-2 lg:row-start-2 xl:col-start-3 xl:row-start-1 xl:sticky xl:top-[104px] xl:self-start"
+            className="order-3 flex min-w-0 w-full flex-col gap-3 lg:col-start-2 lg:row-start-2 min-[1440px]:col-start-3 min-[1440px]:row-start-1 min-[1440px]:sticky min-[1440px]:top-[98px] min-[1440px]:self-start"
           >
             <SectionErrorBoundary name="fear-greed">
               <FearGreed items={dashboard.fearGreedItems} variant="sidebar" />

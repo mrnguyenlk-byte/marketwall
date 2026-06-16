@@ -159,7 +159,7 @@ export function FinvizTreemap({
                     className="pointer-events-none absolute box-border overflow-hidden border border-black/30"
                     style={rectStyle(group.rect)}
                   >
-                    <div className="truncate bg-black/35 px-1 py-px text-[9px] font-semibold uppercase tracking-wide text-white/90 sm:text-[10px]">
+                    <div className="flex min-h-[14px] items-center truncate bg-black/65 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-[inset_0_-1px_0_rgba(255,255,255,0.12)] sm:text-[11px] min-[1440px]:text-xs">
                       {group.labelKey && groupLabel
                         ? groupLabel(group.labelKey)
                         : group.label}

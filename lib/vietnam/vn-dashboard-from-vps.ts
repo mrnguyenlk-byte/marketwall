@@ -3,7 +3,9 @@ import type { VietnamDashboardRow } from "@/lib/providers/vietnam-market-provide
 import type { VietnamMarketData } from "@/lib/providers/vietnam-market-provider"
 import { enrichVnForeignFlow, enrichVnQuoteVolume } from "@/lib/vietnam/vn-quote-fields"
 
-const LEADERBOARD_LIMIT = 10
+const LEADERBOARD_LIMIT = 18
+
+export const VN_LEADERBOARD_LIMIT = LEADERBOARD_LIMIT
 
 function flattenLiveStocks(stocks: VietnamMarketData["heatmapStocks"]): VietnamHeatmapStock[] {
   return [...stocks.hose, ...stocks.hnx, ...stocks.upcom].filter((s) => s.price > 0)
@@ -11,6 +13,11 @@ function flattenLiveStocks(stocks: VietnamMarketData["heatmapStocks"]): VietnamH
 
 function stockToDashboardRow(stock: VietnamHeatmapStock, rank: number): VietnamDashboardRow {
   const vol = enrichVnQuoteVolume(stock.price, stock.volume)
+  const foreign =
+    stock.foreignBuy != null || stock.foreignSell != null
+      ? enrichVnForeignFlow(stock.price, stock.foreignBuy ?? 0, stock.foreignSell ?? 0)
+      : null
+
   return {
     rank,
     symbol: stock.symbol,
@@ -18,10 +25,13 @@ function stockToDashboardRow(stock: VietnamHeatmapStock, rank: number): VietnamD
     price: stock.price,
     change: stock.change,
     changePercent: stock.changePercent,
-    volume: vol.volumeLot,
+    volume: vol.volumeShares,
+    volumeLot: vol.volumeLot,
+    volumeShares: vol.volumeShares,
+    volumeUnit: vol.volumeUnit,
     value: stock.value > 0 ? stock.value : vol.tradingValue,
-    foreignBuy: stock.foreignBuy,
-    foreignSell: stock.foreignSell,
+    foreignBuy: foreign?.foreignBuy ?? stock.foreignBuy,
+    foreignSell: foreign?.foreignSell ?? stock.foreignSell,
   }
 }
 
@@ -29,11 +39,18 @@ function stockToDashboardRow(stock: VietnamHeatmapStock, rank: number): VietnamD
 export function buildDashboardFromHeatmapStocks(
   stocks: VietnamMarketData["heatmapStocks"],
   updatedAt: string,
+  liveSymbols?: Set<string>,
 ): VietnamMarketData["dashboard"] {
-  const all = flattenLiveStocks(stocks)
+  const all = flattenLiveStocks(stocks).filter(
+    (s) => !liveSymbols || liveSymbols.has(s.symbol.toUpperCase()),
+  )
 
   const topVolume = [...all]
-    .sort((a, b) => b.volume - a.volume)
+    .sort((a, b) => {
+      const av = enrichVnQuoteVolume(a.price, a.volume).volumeShares
+      const bv = enrichVnQuoteVolume(b.price, b.volume).volumeShares
+      return bv - av
+    })
     .slice(0, LEADERBOARD_LIMIT)
     .map((s, i) => stockToDashboardRow(s, i + 1))
 

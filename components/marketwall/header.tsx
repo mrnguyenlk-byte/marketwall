@@ -7,7 +7,9 @@ import { BrandLogo } from "./brand-logo"
 import { LanguageSwitcher } from "./language-switcher"
 import { ThemeToggle } from "./theme-toggle"
 import { AuthButtons } from "./auth-buttons"
+import { TickerBar } from "./ticker-bar"
 import { useLang } from "@/lib/i18n"
+import type { TickerBarItem } from "@/lib/market-types"
 import { cn } from "@/lib/utils"
 
 const NAV_ITEMS: { key: string; href: string; match?: string }[] = [
@@ -16,37 +18,42 @@ const NAV_ITEMS: { key: string; href: string; match?: string }[] = [
   { key: "nav.contact", href: "/contact", match: "/contact" },
 ]
 
-export function Header() {
+type HeaderProps = {
+  tickerItems?: TickerBarItem[]
+}
+
+export function Header({ tickerItems }: HeaderProps) {
   const { t } = useLang()
   const pathname = usePathname()
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur">
-      <div className="grid h-20 w-full grid-cols-[1fr_auto_1fr] items-center gap-4 px-8 lg:px-12">
-        <div className="flex items-center pl-5">
-          <BrandLogo height={76} priority />
-        </div>
+      {/* Row 1 — logo left, utilities + search right */}
+      <div className="flex h-11 w-full items-center justify-between gap-3 px-3 sm:px-4 lg:px-6">
+        <BrandLogo height={36} priority className="shrink-0" />
 
-        <div className="relative hidden w-full min-w-[300px] max-w-2xl md:block">
-          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder={t("action.searchFull")}
-            aria-label={t("action.searchFull")}
-            className="h-9 w-full rounded-lg border-border bg-surface-muted pl-9 text-sm"
-          />
-        </div>
-
-        <div className="flex items-center justify-end gap-2 pr-3">
-          <LanguageSwitcher />
-          <ThemeToggle />
-          <AuthButtons />
+        <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-1.5 sm:flex-nowrap sm:gap-2">
+          <div className="relative order-2 w-full min-w-0 sm:order-1 sm:w-44 md:w-52 lg:w-60">
+            <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder={t("action.searchFull")}
+              aria-label={t("action.searchFull")}
+              className="h-8 w-full rounded-md border-border bg-surface-muted pl-8 text-xs"
+            />
+          </div>
+          <div className="order-1 flex shrink-0 items-center gap-0.5 sm:order-2 sm:gap-1">
+            <LanguageSwitcher />
+            <ThemeToggle />
+            <AuthButtons />
+          </div>
         </div>
       </div>
 
+      {/* Row 2 — compact navigation */}
       <nav
         aria-label="Main navigation"
-        className="flex h-10 items-center justify-center gap-0.5 border-t border-border/80 px-8 lg:px-12"
+        className="flex h-[26px] items-center justify-center gap-0 border-t border-border/80 px-3 sm:px-4 lg:px-6"
       >
         {NAV_ITEMS.map((item) => {
           const active = item.match
@@ -57,19 +64,22 @@ export function Header() {
               key={item.key}
               href={item.href}
               className={cn(
-                "relative px-4 py-2 text-sm font-medium transition-colors",
+                "relative px-3 text-xs font-medium leading-none transition-colors",
                 active ? "text-primary" : "text-muted-foreground hover:text-foreground",
               )}
               aria-current={active ? "page" : undefined}
             >
               {t(item.key)}
               {active && (
-                <span className="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-primary" />
+                <span className="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-primary" />
               )}
             </a>
           )
         })}
       </nav>
+
+      {/* Row 3 — live ticker (dashboard only) */}
+      {tickerItems ? <TickerBar items={tickerItems} compact /> : null}
     </header>
   )
 }

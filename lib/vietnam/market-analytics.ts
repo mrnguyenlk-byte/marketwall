@@ -69,6 +69,10 @@ export type VietnamMarketAnalytics = {
     history: VietnamProprietaryHistoryPoint[]
     topNetBuy: VietnamProprietaryNetRow[]
     topNetSell: VietnamProprietaryNetRow[]
+    /** Top symbols by proprietary buy value (latest session). */
+    topBuy: VietnamProprietaryNetRow[]
+    /** Top symbols by proprietary sell value (latest session). */
+    topSell: VietnamProprietaryNetRow[]
   }
   liquidity: {
     available: boolean
@@ -318,6 +322,8 @@ export function emptyProprietaryAnalytics(): VietnamMarketAnalytics["proprietary
     history: [],
     topNetBuy: [],
     topNetSell: [],
+    topBuy: [],
+    topSell: [],
   }
 }
 

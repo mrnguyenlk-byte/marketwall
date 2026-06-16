@@ -1,6 +1,7 @@
 import "server-only"
 
 import { fetchWithTimeout } from "@/lib/providers/fetch-utils"
+import { VN_LEADERBOARD_LIMIT } from "@/lib/vietnam/vn-dashboard-from-vps"
 
 /** KB Securities IIS — vnstock 4.x default source (free, no API key). */
 export const KBS_BASE = "https://kbbuddywts.kbsec.com.vn/iis-server/investment"
@@ -13,7 +14,11 @@ export type KbsLeaderboardRow = {
   price?: number
   change?: number
   changePercent?: number
+  /** Display metric — VPS path uses shares for volume leaderboards. */
   volume?: number
+  volumeLot?: number
+  volumeShares?: number
+  volumeUnit?: "lot10"
   value?: number
   foreignBuy?: number
   foreignSell?: number
@@ -28,7 +33,7 @@ export type KbsMarketDashboard = {
   fetchedAt: string
 }
 
-const LEADERBOARD_LIMIT = 10
+const LEADERBOARD_LIMIT = VN_LEADERBOARD_LIMIT
 
 export function kbsHeaders(): HeadersInit {
   return {

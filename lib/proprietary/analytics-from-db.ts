@@ -64,6 +64,30 @@ export async function loadProprietaryAnalyticsFromDb(): Promise<
       }
     })
 
+    const topBuy = [...latestRows]
+      .filter((r) => r.buyValue > 0)
+      .sort((a, b) => b.buyValue - a.buyValue)
+      .slice(0, 10)
+      .map((r) => ({
+        symbol: r.symbol,
+        sector: sectorForSymbol(r.symbol),
+        buyValue: r.buyValue,
+        sellValue: r.sellValue,
+        netValue: r.netValue,
+      }))
+
+    const topSell = [...latestRows]
+      .filter((r) => r.sellValue > 0)
+      .sort((a, b) => b.sellValue - a.sellValue)
+      .slice(0, 10)
+      .map((r) => ({
+        symbol: r.symbol,
+        sector: sectorForSymbol(r.symbol),
+        buyValue: r.buyValue,
+        sellValue: r.sellValue,
+        netValue: r.netValue,
+      }))
+
     const topNetBuy = [...latestRows]
       .filter((r) => r.netValue > 0)
       .sort((a, b) => b.netValue - a.netValue)
@@ -97,6 +121,8 @@ export async function loadProprietaryAnalyticsFromDb(): Promise<
       history,
       topNetBuy,
       topNetSell,
+      topBuy,
+      topSell,
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : "proprietary db read failed"

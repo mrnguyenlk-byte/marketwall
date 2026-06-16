@@ -4,13 +4,18 @@ function Bone({ className }: { className?: string }) {
   return <div className={cn("animate-pulse rounded bg-muted/80", className)} />
 }
 
-export function TickerBarSkeleton({ count = 8 }: { count?: number }) {
+export function TickerBarSkeleton({ count = 8, compact = false }: { count?: number; compact?: boolean }) {
   return (
-    <div className="flex w-full items-stretch border-b border-border bg-surface-elevated">
-      <div className="z-10 flex shrink-0 items-center border-r border-border bg-surface-muted px-3">
-        <Bone className="h-3 w-10" />
+    <div
+      className={cn(
+        "flex w-full items-stretch border-t border-border bg-surface-elevated",
+        compact && "max-h-7",
+      )}
+    >
+      <div className="z-10 flex shrink-0 items-center border-r border-border bg-surface-muted px-2">
+        <Bone className="h-2.5 w-8" />
       </div>
-      <div className="flex flex-1 items-center gap-4 overflow-hidden px-4 py-2">
+      <div className={cn("flex flex-1 items-center gap-3 overflow-hidden px-3", compact ? "py-0.5" : "py-2")}>
         {Array.from({ length: count }).map((_, i) => (
           <div key={i} className="flex shrink-0 items-center gap-2">
             <Bone className="size-5 rounded-full" />
