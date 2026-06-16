@@ -39,9 +39,11 @@ function mockStrengthRows(): CurrencyStrengthQuote[] {
   }
 }
 
+export type CurrencyStrengthDataSource = "yahoo" | "yahoo+ecb" | "mock"
+
 export type CurrencyStrengthFetchResult = {
   items: CurrencyStrengthQuote[]
-  source: "live" | "mock"
+  source: CurrencyStrengthDataSource
   unavailable: boolean
   pairCount: number
   coverage: StrengthCoverage
@@ -50,7 +52,7 @@ export type CurrencyStrengthFetchResult = {
 /** Fetch live FX pairs and calculate currency strength scores. */
 export async function fetchLiveCurrencyStrength(): Promise<CurrencyStrengthFetchResult> {
   try {
-    const livePairs = await getForexPairsForCurrencyStrength()
+    const { pairs: livePairs, source: fxSource } = await getForexPairsForCurrencyStrength()
 
     const referenceInputs = livePairs.map((pair) => ({
       symbol: pair.symbol,
@@ -74,7 +76,7 @@ export async function fetchLiveCurrencyStrength(): Promise<CurrencyStrengthFetch
       )
     }
 
-    return { items: rows, source: "live", unavailable, pairCount, coverage }
+    return { items: rows, source: fxSource, unavailable, pairCount, coverage }
   } catch {
     return {
       items: [],

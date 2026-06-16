@@ -3,16 +3,20 @@ import "server-only"
 type SourceLike = { source?: string }
 
 /** Wrap provider payloads for API routes — never throws. */
-export function toApiJson<T extends SourceLike>(payload: T): T & {
+export function toApiJson<T extends SourceLike & { updatedAt?: string; nextUpdateAt?: string }>(
+  payload: T,
+): T & {
   fallback: boolean
   updatedAt: string
+  nextUpdateAt?: string
 } {
   const source = payload.source ?? "mock"
   return {
     ...payload,
     source,
-    fallback: source !== "live",
-    updatedAt: new Date().toISOString(),
+    fallback: source === "mock",
+    updatedAt: payload.updatedAt ?? new Date().toISOString(),
+    nextUpdateAt: payload.nextUpdateAt,
   }
 }
 

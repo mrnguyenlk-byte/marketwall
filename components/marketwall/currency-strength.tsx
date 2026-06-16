@@ -102,6 +102,30 @@ function strengthBoxClass(rankKey: string, active: boolean) {
   return cn(base, !active && "opacity-40 saturate-50")
 }
 
+function formatStrengthTimestamp(iso: string | undefined, locale: string): string | null {
+  if (!iso) return null
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return null
+  return date.toLocaleString(locale, {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  })
+}
+
+function strengthMetaLabel(
+  t: (key: string) => string,
+  lang: "vi" | "en",
+  updatedAt?: string,
+): string {
+  const locale = lang === "vi" ? "vi-VN" : "en-US"
+  const time = formatStrengthTimestamp(updatedAt, locale)
+  const cadence = t("strength.updatesEvery5Min")
+  if (!time) return cadence
+  return `${t("strength.lastUpdated").replace("{time}", time)} · ${cadence}`
+}
+
 function strengthBarColor(rankKey: string): string {
   if (rankKey === "strength.strongest" || rankKey === "strength.veryStrong") {
     return "bg-gain"
@@ -169,7 +193,7 @@ function StrengthBars({ visible, items }: StrengthBarsProps) {
 }
 
 export function CurrencyStrength() {
-  const { t } = useLang()
+  const { t, lang } = useLang()
   const strengthApi = useCurrencyStrength()
   const {
     items: currencyStrength,
@@ -207,6 +231,8 @@ export function CurrencyStrength() {
       : coverage === "valid"
         ? "strength.coveragePartial"
         : null
+
+  const metaLabel = strengthMetaLabel(t, lang, strengthApi.data?.updatedAt)
 
   return (
     <section aria-labelledby="currency-strength-title" className="h-[400px]">
@@ -259,6 +285,9 @@ export function CurrencyStrength() {
               >
                 <StrengthBars visible={visible} items={currencyStrength} />
               </div>
+              <p className="mt-2 shrink-0 text-center text-[10px] text-muted-foreground">
+                {metaLabel}
+              </p>
             </>
           )}
         </CardContent>

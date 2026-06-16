@@ -31,14 +31,21 @@ function mergeFxQuotes(primary: FxPairQuote[], secondary: FxPairQuote[]): FxPair
  *
  * Twelve Data removed in Sprint 9 — free tier unusable at production scale.
  */
-export async function getForexPairsForCurrencyStrength(): Promise<FxPairQuote[]> {
+export type CurrencyStrengthFxSource = "yahoo" | "yahoo+ecb"
+
+export type ForexPairsForStrengthResult = {
+  pairs: FxPairQuote[]
+  source: CurrencyStrengthFxSource
+}
+
+export async function getForexPairsForCurrencyStrength(): Promise<ForexPairsForStrengthResult> {
   const [yahooPairs, ecbPairs] = await Promise.all([
     fetchYahooFxPairQuotes(PAIR_LIST),
     fetchEcbFxPairQuotes(PAIR_LIST),
   ])
 
   const pairs = mergeFxQuotes(yahooPairs, ecbPairs)
-  const source =
+  const source: CurrencyStrengthFxSource =
     ecbPairs.length > 0 && pairs.length > yahooPairs.length ? "yahoo+ecb" : "yahoo"
 
   logForexPairsProvider({
@@ -47,5 +54,5 @@ export async function getForexPairsForCurrencyStrength(): Promise<FxPairQuote[]>
     reason: pairs.length === 0 ? "yahoo_and_ecb_returned_zero_pairs" : source,
   })
 
-  return pairs
+  return { pairs, source }
 }

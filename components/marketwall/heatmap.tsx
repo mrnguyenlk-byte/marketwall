@@ -2,9 +2,12 @@
 
 import { useMemo, useState } from "react"
 import { ArrowUpRight } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { MarketHeatmap } from "@/components/heatmap/MarketHeatmap"
+import { MarketHeatmap, type HeatmapGroupingMode } from "@/components/heatmap/MarketHeatmap"
+import {
+  DEFAULT_VN_HEATMAP_SIZING,
+  type VnHeatmapSizingMode,
+} from "@/lib/vietnam/heatmap-sizing"
 import { clientDebug, features } from "@/lib/config/features"
 import { useHeatmapDetail } from "@/lib/heatmap-detail-context"
 import { useLang } from "@/lib/i18n"
@@ -140,6 +143,8 @@ function HeatmapDetailSection() {
   const { quoteBySymbol } = useRealtime()
   const [activeMarket, setActiveMarket] = useState<MarketType>("vn")
   const [timeframe, setTimeframe] = useState<(typeof timeframes)[number]>("1D")
+  const [groupingMode, setGroupingMode] = useState<HeatmapGroupingMode>("sector")
+  const [sizingMode, setSizingMode] = useState<VnHeatmapSizingMode>(DEFAULT_VN_HEATMAP_SIZING)
 
   const vnHeatmap = useHeatmapMarket("vn")
   const usHeatmap = useHeatmapMarket("us")
@@ -168,15 +173,7 @@ function HeatmapDetailSection() {
 
   return (
     <section aria-labelledby="heatmap-title" className="min-w-0">
-      <SectionHeading
-        id="heatmap-title"
-        title={t("sec.heatmaps")}
-        badge={
-          <Badge variant="secondary" className="gap-1 text-[10px]">
-            {t("label.weighted")}
-          </Badge>
-        }
-      />
+      <SectionHeading id="heatmap-title" title={t("sec.heatmaps")} />
 
       <div className="overflow-hidden rounded-lg border border-border bg-card/40 shadow-sm ring-1 ring-border/80">
         <div className="flex flex-col gap-2 border-b border-border bg-gradient-to-r from-card/90 to-card/60 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
@@ -185,7 +182,60 @@ function HeatmapDetailSection() {
             {t(activeTab.labelKey)}
           </div>
 
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
+            {activeMarket === "vn" && (
+              <>
+                <div className="flex items-center gap-0.5 rounded-md bg-secondary/60 p-0.5 ring-1 ring-border/50">
+                  <button
+                    type="button"
+                    onClick={() => setGroupingMode("sector")}
+                    className={cn(
+                      "rounded px-2.5 py-1 text-[11px] font-semibold transition-colors",
+                      groupingMode === "sector"
+                        ? "bg-card text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {t("heatmap.groupBySector")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setGroupingMode("marketCap")}
+                    className={cn(
+                      "rounded px-2.5 py-1 text-[11px] font-semibold transition-colors",
+                      groupingMode === "marketCap"
+                        ? "bg-card text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {t("heatmap.groupByMarketCap")}
+                  </button>
+                </div>
+                <div className="flex items-center gap-0.5 rounded-md bg-secondary/60 p-0.5 ring-1 ring-border/50">
+                  {(
+                    [
+                      ["tradingValue", "heatmap.sizeTradingValue"],
+                      ["volume", "heatmap.sizeVolume"],
+                      ["marketCap", "heatmap.sizeMarketCap"],
+                    ] as const
+                  ).map(([mode, labelKey]) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => setSizingMode(mode)}
+                      className={cn(
+                        "rounded px-2.5 py-1 text-[11px] font-semibold transition-colors",
+                        sizingMode === mode
+                          ? "bg-card text-foreground shadow-sm"
+                          : "text-muted-foreground hover:text-foreground",
+                      )}
+                    >
+                      {t(labelKey)}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
             <div className="flex items-center gap-0.5 rounded-md bg-secondary/60 p-0.5 ring-1 ring-border/50">
               {timeframes.map((tf) => (
                 <button
@@ -248,6 +298,9 @@ function HeatmapDetailSection() {
               assets={assets}
               locale={lang}
               marketType={activeMarket}
+              groupingMode={activeMarket === "vn" ? groupingMode : "marketCap"}
+              sizingMode={activeMarket === "vn" ? sizingMode : undefined}
+              groupLabel={(key) => t(key)}
               onTileClick={(asset) => openAsset(asset)}
             />
           ) : (
@@ -318,15 +371,7 @@ function LegacyHeatmapSection({ markets }: { markets: HeatmapMarket[] }) {
 
   return (
     <section aria-labelledby="heatmap-title" className="min-w-0">
-      <SectionHeading
-        id="heatmap-title"
-        title={t("sec.vnHeatmap")}
-        badge={
-          <Badge variant="secondary" className="gap-1 text-[10px]">
-            {t("label.weighted")}
-          </Badge>
-        }
-      />
+      <SectionHeading id="heatmap-title" title={t("sec.vnHeatmap")} />
 
       <div className="overflow-hidden rounded-lg border border-border bg-card/40 shadow-sm ring-1 ring-border/80">
         <div className="flex flex-col gap-2 border-b border-border bg-gradient-to-r from-card/90 to-card/60 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">

@@ -60,7 +60,7 @@ async function seedRelayFromRest(channels: RealtimeChannel[]): Promise<void> {
 
   if (channels.includes("currency-strength")) {
     try {
-      const pairs = await getForexPairsForCurrencyStrength()
+      const { pairs } = await getForexPairsForCurrencyStrength()
       relay.seedPairQuotes(pairs)
     } catch {
       /* REST fallback only */

@@ -6,11 +6,12 @@ import { useLang } from "@/lib/i18n"
 import type { VietnamDashboardRow } from "@/lib/providers/vietnam-market-provider"
 
 import { ChangePill, fmt, SectionHeading, signClass } from "./shared"
+import { ForeignFlowChart } from "./foreign-flow-chart"
 
 type LeaderboardProps = {
   title: string
   rows: VietnamDashboardRow[]
-  metric: "volume" | "value" | "foreignBuy" | "foreignSell"
+  metric: "volume" | "value"
   loading?: boolean
 }
 
@@ -20,10 +21,6 @@ function formatMetric(row: VietnamDashboardRow, metric: LeaderboardProps["metric
       return fmt(row.volume ?? 0, { notation: "compact" })
     case "value":
       return fmt(row.value ?? 0, { notation: "compact" })
-    case "foreignBuy":
-      return fmt(row.foreignBuy ?? 0, { notation: "compact" })
-    case "foreignSell":
-      return fmt(row.foreignSell ?? 0, { notation: "compact" })
   }
 }
 
@@ -63,7 +60,7 @@ function LeaderboardCard({ title, rows, metric, loading }: LeaderboardProps) {
                       </div>
                     </td>
                     <td
-                      className={`px-3 py-2 text-right font-mono font-semibold tabular-nums ${metric === "foreignBuy" ? "text-gain" : metric === "foreignSell" ? "text-loss" : signClass(row.changePercent ?? 0)}`}
+                      className={`px-3 py-2 text-right font-mono font-semibold tabular-nums ${signClass(row.changePercent ?? 0)}`}
                     >
                       {formatMetric(row, metric)}
                     </td>
@@ -92,7 +89,7 @@ export function VietnamMarketDashboard() {
           {isLive ? t("vnDashboard.sourceKbs") : t("vnDashboard.sourceMock")}
         </span>
       </div>
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         <LeaderboardCard
           title={t("vnDashboard.topVolume")}
           rows={dashboard?.topVolume ?? []}
@@ -105,16 +102,9 @@ export function VietnamMarketDashboard() {
           metric="value"
           loading={isLoading}
         />
-        <LeaderboardCard
-          title={t("vnDashboard.topForeignBuy")}
-          rows={dashboard?.topForeignBuy ?? []}
-          metric="foreignBuy"
-          loading={isLoading}
-        />
-        <LeaderboardCard
-          title={t("vnDashboard.topForeignSell")}
-          rows={dashboard?.topForeignSell ?? []}
-          metric="foreignSell"
+        <ForeignFlowChart
+          buyRows={dashboard?.topForeignBuy ?? []}
+          sellRows={dashboard?.topForeignSell ?? []}
           loading={isLoading}
         />
       </div>

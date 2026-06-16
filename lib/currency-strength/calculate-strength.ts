@@ -21,8 +21,8 @@ import {
 } from "./types"
 
 const STRENGTH_BASE = 50
-/** Scales zero-mean daily % contributions into a ~45–55 band for typical FX moves. */
-const STRENGTH_SCALE = 12
+/** Z-score multiplier — typical readings stay in 40–60; extremes >70 or <30 are rare. */
+const Z_SCORE_SCALE = 10
 const SNAPSHOT_POINTS = 2
 
 type Accumulator = {
@@ -64,6 +64,13 @@ function averageDelta(acc: Accumulator): number {
 
 function clampStrength(value: number): number {
   return Math.min(100, Math.max(0, value))
+}
+
+function populationStdDev(values: number[], mean: number): number {
+  if (values.length === 0) return 0
+  const variance =
+    values.reduce((sum, value) => sum + (value - mean) ** 2, 0) / values.length
+  return Math.sqrt(variance)
 }
 
 /**
@@ -124,24 +131,29 @@ export function isStrengthSnapshotAvailable(pairs: FxPairQuote[]): boolean {
 export function calculateCurrencyStrength(pairs: FxPairQuote[]): CurrencyStrengthScore[] {
   const acc = accumulateFromPairs(pairs)
 
-  const activeCodes = SUPPORTED_CURRENCIES.filter((code) => acc[code].pairCount > 0)
-  const avgDeltas = activeCodes.map((code) => ({
+  const rawScores = SUPPORTED_CURRENCIES.map((code) => ({
     code,
-    avg: averageDelta(acc[code]),
+    rawScore: acc[code].pairCount > 0 ? averageDelta(acc[code]) : 0,
   }))
 
+  const activeRawScores = rawScores
+    .filter(({ code }) => acc[code].pairCount > 0)
+    .map(({ rawScore }) => rawScore)
+
   const mean =
-    avgDeltas.length > 0
-      ? avgDeltas.reduce((sum, row) => sum + row.avg, 0) / avgDeltas.length
+    activeRawScores.length > 0
+      ? activeRawScores.reduce((sum, value) => sum + value, 0) / activeRawScores.length
       : 0
+
+  const stdDev = populationStdDev(activeRawScores, mean)
 
   const preliminary = SUPPORTED_CURRENCIES.map((code) => {
     const bucket = acc[code]
     const changePercent = bucket.pairCount > 0 ? averageDelta(bucket) : 0
-    const normalizedContribution =
-      bucket.pairCount > 0 ? (changePercent - mean) * STRENGTH_SCALE : 0
+    const rawScore = bucket.pairCount > 0 ? changePercent : 0
+    const zScore = stdDev > 0 ? (rawScore - mean) / stdDev : 0
     const strength = clampStrength(
-      Number((STRENGTH_BASE + normalizedContribution).toFixed(2)),
+      Number((STRENGTH_BASE + zScore * Z_SCORE_SCALE).toFixed(2)),
     )
 
     return {

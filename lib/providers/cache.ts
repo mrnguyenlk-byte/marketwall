@@ -4,6 +4,7 @@ import type { DataSource } from "@/lib/providers/types"
 
 type CacheEntry<T> = {
   value: T
+  cachedAt: number
   expiresAt: number
   source: DataSource
 }
@@ -15,6 +16,8 @@ export const DEFAULT_CACHE_TTL_MS = 60_000
 /** Sprint 5 server-side TTLs (reduce Twelve Data overuse). */
 export const CACHE_TTL = {
   forex: 60_000,
+  /** Sprint 18 — currency strength stability window. */
+  currencyStrength: 300_000,
   crypto: 45_000,
   heatmap: 300_000,
   overview: 30_000,
@@ -54,11 +57,26 @@ export function setCached<T>(
   source: DataSource,
   ttlMs = DEFAULT_CACHE_TTL_MS,
 ): void {
+  const cachedAt = Date.now()
   store.set(key, {
     value,
-    expiresAt: Date.now() + ttlMs,
+    cachedAt,
+    expiresAt: cachedAt + ttlMs,
     source,
   })
+}
+
+/** Cache window metadata for API `updatedAt` / `nextUpdateAt` fields. */
+export function getCacheTiming(
+  key: string,
+): { cachedAt: number; expiresAt: number } | null {
+  const entry = store.get(key) as CacheEntry<unknown> | undefined
+  if (!entry) return null
+  if (Date.now() > entry.expiresAt) {
+    store.delete(key)
+    return null
+  }
+  return { cachedAt: entry.cachedAt, expiresAt: entry.expiresAt }
 }
 
 export function clearProviderCache(key?: string): void {

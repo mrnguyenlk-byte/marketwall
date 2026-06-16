@@ -8,22 +8,26 @@ import {
 } from "@/components/ui/tooltip"
 import { heatStyle, fmt } from "@/components/marketwall/shared"
 import { useLang } from "@/lib/i18n"
+import { tradingValue } from "@/lib/vietnam/heatmap-sizing"
 import type { MarketAsset } from "@/types/market"
 import { cn } from "@/lib/utils"
 
-export type TileSize = "large" | "medium" | "small"
+export type TileSize = "large" | "medium" | "small" | "tiny"
 
-const sizeClasses: Record<TileSize, { grid: string; symbol: string; change: string; price: string }> = {
+const sizeClasses: Record<
+  TileSize,
+  { grid: string; symbol: string; change: string; price: string }
+> = {
   large: {
     grid: "col-span-2 row-span-2",
-    symbol: "text-lg sm:text-xl lg:text-2xl",
-    change: "text-sm sm:text-base lg:text-lg",
+    symbol: "text-base sm:text-lg lg:text-xl",
+    change: "text-xs sm:text-sm lg:text-base",
     price: "text-[10px] sm:text-xs",
   },
   medium: {
     grid: "col-span-2 row-span-1",
-    symbol: "text-sm sm:text-base lg:text-lg",
-    change: "text-xs sm:text-sm",
+    symbol: "text-sm sm:text-base",
+    change: "text-[10px] sm:text-xs",
     price: "text-[10px] sm:text-xs",
   },
   small: {
@@ -32,47 +36,96 @@ const sizeClasses: Record<TileSize, { grid: string; symbol: string; change: stri
     change: "text-[10px] sm:text-xs",
     price: "text-[9px] sm:text-[10px]",
   },
+  tiny: {
+    grid: "col-span-1 row-span-1",
+    symbol: "text-[9px]",
+    change: "text-[9px]",
+    price: "text-[9px]",
+  },
 }
 
 type HeatmapTileProps = {
   asset: MarketAsset
   size: TileSize
+  detailedTooltip?: boolean
   onClick: (asset: MarketAsset) => void
 }
 
-export function HeatmapTile({ asset, size, onClick }: HeatmapTileProps) {
+function TileTooltipContent({
+  asset,
+  up,
+  detailed,
+}: {
+  asset: MarketAsset
+  up: boolean
+  detailed: boolean
+}) {
   const { lang, t } = useLang()
-  const up = asset.changePercent >= 0
-  const classes = sizeClasses[size]
-  const showPrice = size !== "small"
+  const tv = tradingValue(asset.price, asset.volume)
 
-  const tileButton = (
-    <button
-      type="button"
-      onClick={() => onClick(asset)}
-      style={heatStyle(asset.changePercent)}
-      className={cn(
-        "group/tile flex flex-col items-start justify-between rounded-none border border-black/20 p-1 text-left transition-[filter,transform] hover:z-10 hover:brightness-110 sm:p-1.5 lg:p-2",
-        classes.grid,
-      )}
-    >
-      <span
-        className={cn(
-          "truncate font-extrabold leading-none tracking-tight text-white drop-shadow-sm",
-          classes.symbol,
-        )}
-      >
-        {asset.symbol}
-      </span>
-      <span
-        className={cn(
-          "mt-auto font-mono font-bold tabular-nums text-white drop-shadow-sm",
-          classes.change,
-        )}
-      >
+  return (
+    <>
+      <p className="font-semibold">{asset.symbol}</p>
+      <p className="text-background/80">{asset.name[lang]}</p>
+      <p className="font-mono tabular-nums">
+        {fmt(asset.price)} {asset.currency}
+      </p>
+      <p className={cn("font-mono tabular-nums", up ? "text-emerald-300" : "text-red-300")}>
         {up ? "+" : ""}
         {asset.changePercent.toFixed(2)}%
-      </span>
+      </p>
+      {detailed ? (
+        <>
+          <p>
+            {t("heatmap.tradingValue")}: {fmt(tv, { notation: "compact" })}
+          </p>
+          <p>
+            {t("label.volume")}: {fmt(asset.volume, { notation: "compact" })}
+          </p>
+          <p>
+            {t("heatmap.marketCap")}: {fmt(asset.marketCap, { notation: "compact" })}
+          </p>
+        </>
+      ) : (
+        <p>
+          {t("label.volume")}: {fmt(asset.volume, { notation: "compact" })}
+        </p>
+      )}
+      <p>{asset.sector}</p>
+    </>
+  )
+}
+
+export function HeatmapTile({ asset, size, detailedTooltip = false, onClick }: HeatmapTileProps) {
+  const up = asset.changePercent >= 0
+  const classes = sizeClasses[size]
+  const showChange = size === "large" || size === "medium"
+  const showPrice = size === "large"
+  const showSymbol = size !== "tiny"
+
+  const tileBody = (
+    <>
+      {showSymbol && (
+        <span
+          className={cn(
+            "truncate font-extrabold leading-none tracking-tight text-white drop-shadow-sm",
+            classes.symbol,
+          )}
+        >
+          {asset.symbol}
+        </span>
+      )}
+      {showChange && (
+        <span
+          className={cn(
+            "mt-auto font-mono font-bold tabular-nums text-white drop-shadow-sm",
+            classes.change,
+          )}
+        >
+          {up ? "+" : ""}
+          {asset.changePercent.toFixed(2)}%
+        </span>
+      )}
       {showPrice && (
         <span
           className={cn(
@@ -83,27 +136,31 @@ export function HeatmapTile({ asset, size, onClick }: HeatmapTileProps) {
           {fmt(asset.price)}
         </span>
       )}
+    </>
+  )
+
+  const tileButton = (
+    <button
+      type="button"
+      onClick={() => onClick(asset)}
+      style={heatStyle(asset.changePercent)}
+      aria-label={`${asset.symbol} ${up ? "+" : ""}${asset.changePercent.toFixed(2)}%`}
+      className={cn(
+        "group/tile flex flex-col items-start justify-between rounded-none border border-black/20 text-left transition-[filter,transform] hover:z-10 hover:brightness-110",
+        size === "tiny" ? "min-h-[28px] p-0" : "p-1 sm:p-1.5 lg:p-2",
+        classes.grid,
+      )}
+    >
+      {tileBody}
     </button>
   )
 
   return (
-    <TooltipProvider delay={200}>
+    <TooltipProvider delay={150}>
       <Tooltip>
         <TooltipTrigger render={tileButton} />
         <TooltipContent side="top" className="max-w-[220px] flex-col items-start gap-0.5 p-2.5">
-          <p className="font-semibold">{asset.symbol}</p>
-          <p className="text-background/80">{asset.name[lang]}</p>
-          <p className="font-mono tabular-nums">
-            {fmt(asset.price)} {asset.currency}
-          </p>
-          <p className={cn("font-mono tabular-nums", up ? "text-emerald-300" : "text-red-300")}>
-            {up ? "+" : ""}
-            {asset.changePercent.toFixed(2)}%
-          </p>
-          <p>
-            {t("label.volume")}: {fmt(asset.volume, { notation: "compact" })}
-          </p>
-          <p>{asset.sector}</p>
+          <TileTooltipContent asset={asset} up={up} detailed={detailedTooltip} />
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>

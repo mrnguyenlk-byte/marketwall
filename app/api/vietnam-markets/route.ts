@@ -15,6 +15,7 @@ export async function GET() {
         dashboard: data.dashboard,
         heatmapProvider: data.heatmapProvider,
         enrichmentProvider: data.enrichmentProvider,
+        analytics: data.analytics,
       }),
     )
   } catch {
@@ -26,6 +27,7 @@ export async function GET() {
         heatmapMarket: mock.heatmapMarket,
         heatmapStocks: mock.heatmapStocks,
         dashboard: mock.dashboard,
+        analytics: mock.analytics,
       }),
     )
   }

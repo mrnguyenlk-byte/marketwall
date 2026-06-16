@@ -262,7 +262,7 @@ export async function getHeatmapData(): Promise<ProviderResult<MarketHeatmap>> {
   }
 }
 
-/** Derive crypto fear & greed placeholder (0–100) from BTC 24h change. */
+/** @deprecated Sprint 14 — use Alternative.me via `lib/fear-greed/crypto.ts`. */
 export function deriveCryptoFearGreed(assets: CryptoAsset[]): number {
   const btc = assets.find((a) => a.id === "bitcoin" || a.symbol === "BTC")
   const change = btc?.change24h ?? 0

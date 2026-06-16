@@ -124,7 +124,7 @@ async function fetchLiveCurrencyStrengthItems(): Promise<CurrencyStrength[] | nu
 
   try {
     const result = await fetchLiveCurrencyStrength()
-    if (result.source !== "live" || result.unavailable || !result.items.length) return null
+    if (result.source !== "mock" && !result.unavailable && result.items.length) return null
 
     const liveByCode = new Map(result.items.map((row) => [row.currency, row]))
     return MOCK_STRENGTHS.map((item) => {
@@ -151,7 +151,7 @@ export async function getDataAsync(): Promise<ProviderResult<CurrencyData>> {
   const resolved = await withFallback(
     fetchLiveCurrencyStrengthItems,
     getMockStrengths,
-    { provider: "currency-strength", cacheKey: CACHE_KEYS.currency, cacheTtlMs: 60_000 },
+    { provider: "currency-strength", cacheKey: CACHE_KEYS.currency, cacheTtlMs: 300_000 },
   )
 
   return {

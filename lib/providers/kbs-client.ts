@@ -160,6 +160,57 @@ export async function fetchKbsMarketDashboard(): Promise<KbsMarketDashboard | nu
   }
 }
 
+/** Full foreign-flow ranking rows from KBS (aggregated across HOSE/HNX/UPCOM). */
+export async function fetchKbsForeignTotalRows(): Promise<KbsRawRow[]> {
+  if (process.env.KBS_ADAPTER_ENABLED === "false") return []
+
+  try {
+    const json = await kbsGet("/rtranking/foreignTotal")
+    return Array.isArray(json) ? json : []
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "KBS foreignTotal fetch failed"
+    console.warn(`[provider:kbs] foreignTotal error=${message}`)
+    return []
+  }
+}
+
+export function parseKbsForeignTotalRow(row: KbsRawRow) {
+  const symbol = str(row.SB ?? row.sb)?.toUpperCase()
+  if (!symbol) return null
+  const price = num(row.CP ?? row.FMP) ?? 0
+  const foreignBuy = num(row.FB) ?? 0
+  const foreignSell = num(row.FS) ?? 0
+  if (foreignBuy === 0 && foreignSell === 0) return null
+  return { symbol, price, foreignBuy, foreignSell }
+}
+
+/** Last N daily index bars (close + volume) for session comparison. */
+export async function fetchKbsIndexDailyBars(
+  symbol: string,
+  days = 5,
+): Promise<Array<{ date: string; close: number; volume: number }>> {
+  const end = new Date()
+  const start = new Date(end)
+  start.setDate(start.getDate() - days)
+
+  const url = `${KBS_BASE}/index/${symbol}/data_day?sdate=${formatKbsDate(start)}&edate=${formatKbsDate(end)}`
+  const res = await fetchWithTimeout(url, { headers: kbsHeaders(), cache: "no-store" }, 15_000)
+  if (!res.ok) return []
+
+  const json = (await res.json()) as { data_day?: Array<Record<string, unknown>> }
+  const bars = json.data_day ?? []
+
+  return bars
+    .map((bar) => {
+      const close = num(bar.c)
+      const volume = num(bar.v)
+      const date = str(bar.d) ?? str(bar.date) ?? ""
+      if (close == null || volume == null) return null
+      return { date, close, volume }
+    })
+    .filter((bar): bar is { date: string; close: number; volume: number } => bar != null)
+}
+
 /** Latest index close from KBS daily chart (VNINDEX, VN30, HNX, UPCOM). */
 export async function fetchKbsIndexSnapshot(symbol: string): Promise<{
   price: number

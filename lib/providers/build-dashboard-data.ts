@@ -7,7 +7,6 @@ import { getMockData as getHeatmapMock } from "@/lib/providers/heatmap-provider"
 import type { HeatmapMarket } from "@/lib/providers/heatmap-provider"
 import {
   getData as getCryptoData,
-  deriveCryptoFearGreed,
   type CryptoAsset,
 } from "@/lib/providers/crypto-provider"
 import {
@@ -18,8 +17,10 @@ import {
   getData as getVietnamMarketData,
   type VietnamMarketIndex,
 } from "@/lib/providers/vietnam-market-provider"
+import { buildFearGreedItems } from "@/lib/providers/fear-greed-provider"
+import { fetchHeatmapMarket } from "@/lib/market/heatmap"
 import { buildVietnamMarketIndexQuoteMap } from "@/lib/vietnam-market-merge"
-import { fearGreedData, type FearGreedItem } from "@/lib/fear-greed"
+import type { FearGreedItem } from "@/lib/fear-greed"
 
 export type DashboardData = {
   dashboardTickerBarItems: TickerBarItem[]
@@ -111,13 +112,6 @@ function buildQuoteMap(
   return map
 }
 
-function buildFearGreedItems(cryptoAssets: CryptoAsset[]): FearGreedItem[] {
-  const cryptoValue = deriveCryptoFearGreed(cryptoAssets)
-  return fearGreedData.map((item) =>
-    item.key === "fg.crypto" ? { ...item, value: cryptoValue } : item,
-  )
-}
-
 export async function buildDashboardData(): Promise<DashboardData> {
   const marketMock = getMarketMock()
   const heatmapMock = getHeatmapMock()
@@ -126,17 +120,23 @@ export async function buildDashboardData(): Promise<DashboardData> {
   let globalQuotes: GlobalQuote[] = []
   let cryptoAssets: CryptoAsset[] = []
   let vnHeatmapMarket: HeatmapMarket | null = null
+  let fearGreedItems: FearGreedItem[] = []
 
   try {
-    const [vietnam, globalMarket, crypto] = await Promise.all([
+    const [vietnam, globalMarket, crypto, usHeatmap] = await Promise.all([
       getVietnamMarketData(),
       getGlobalMarketData(),
       getCryptoData(),
+      fetchHeatmapMarket("us"),
     ])
     vietnamIndices = vietnam.indices ?? []
     globalQuotes = globalMarket.quotes ?? []
     cryptoAssets = crypto.assets ?? []
     vnHeatmapMarket = vietnam.heatmapMarket ?? pickHeatmapMarket(heatmapMock.markets, "vn")
+    fearGreedItems = await buildFearGreedItems({
+      vietnam,
+      usHeatmapItems: usHeatmap.items,
+    })
   } catch {
     vnHeatmapMarket = pickHeatmapMarket(heatmapMock.markets, "vn")
   }
@@ -162,6 +162,9 @@ export async function buildDashboardData(): Promise<DashboardData> {
     dashboardTickerBarItems,
     overviewByCategory,
     heatmapMarkets,
-    fearGreedItems: buildFearGreedItems(cryptoAssets),
+    fearGreedItems:
+      fearGreedItems.length > 0
+        ? fearGreedItems
+        : await buildFearGreedItems().catch(() => []),
   }
 }

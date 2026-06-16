@@ -13,6 +13,7 @@ import { Sidebar } from "@/components/marketwall/sidebar"
 import { FearGreed } from "@/components/marketwall/fear-greed"
 import { HeatmapSection } from "@/components/marketwall/heatmap"
 import { VietnamMarketDashboard } from "@/components/marketwall/vietnam-market-dashboard"
+import { VietnamMarketAnalyticsPanel } from "@/components/marketwall/vietnam-market-analytics"
 import { CurrencyStrength } from "@/components/marketwall/currency-strength"
 import { EconomicCalendar } from "@/components/marketwall/economic-calendar"
 import { MarketNews } from "@/components/marketwall/market-news"
@@ -74,6 +75,9 @@ export default async function Page() {
             <SectionErrorBoundary name="vn-dashboard">
               <VietnamMarketDashboard />
             </SectionErrorBoundary>
+            <SectionErrorBoundary name="vn-analytics">
+              <VietnamMarketAnalyticsPanel />
+            </SectionErrorBoundary>
             {features.currencyStrength && (
               <SectionErrorBoundary name="currency-strength">
                 <CurrencyStrength />
@@ -89,11 +93,11 @@ export default async function Page() {
             aria-label="Calendar and news"
             className="flex min-w-0 flex-col gap-4 md:col-start-2 md:row-start-2 lg:col-start-3 lg:row-start-1 lg:sticky lg:top-[104px] lg:self-start"
           >
-            <SectionErrorBoundary name="calendar">
-              <EconomicCalendar fallbackEvents={calendarFallback} />
-            </SectionErrorBoundary>
             <SectionErrorBoundary name="news">
               <MarketNews fallbackItems={newsFallback} />
+            </SectionErrorBoundary>
+            <SectionErrorBoundary name="calendar">
+              <EconomicCalendar fallbackEvents={calendarFallback} />
             </SectionErrorBoundary>
           </aside>
         </div>

@@ -6,14 +6,15 @@ import { getMockHeatmapAssets } from "@/lib/mockHeatmapData"
 import { overlayHeatmapQuotes } from "@/lib/market/normalize"
 import { CACHE_KEYS, CACHE_TTL, cachedProvider } from "@/lib/providers/cache"
 import { getData as getCryptoData, getMockData as getCryptoMock } from "@/lib/providers/crypto-provider"
-import { getData as getVietnamData, getMockData as getVietnamMock } from "@/lib/providers/vietnam-market-provider"
+import { getData as getVietnamData, getMockData as getVietnamMock, type VietnamMarketData } from "@/lib/providers/vietnam-market-provider"
 import { fetchYahooStockQuotes } from "@/lib/providers/yahoo-finance"
 import type { HeatmapAsset, MarketType } from "@/types/market"
 
 const HEATMAP_CACHE_TTL_MS = CACHE_TTL.heatmap
 const US_LIVE_MIN_PRICES = 5
 const US_HEATMAP_MIN_ITEMS = 50
-const VN_HEATMAP_SIZE = 100
+const VN_HEATMAP_SIZE = 150
+const VN_HEATMAP_MIN_ITEMS = 100
 
 type HeatmapRowResult = {
   items: HeatmapAsset[]
@@ -60,18 +61,16 @@ function mockAssetsToRows(market: "us" | "crypto"): HeatmapAsset[] {
   }))
 }
 
-function vnTilesToRows(
-  heatmapMarket: Awaited<ReturnType<typeof getVietnamData>>["heatmapMarket"],
-): HeatmapAsset[] {
-  const tiles = heatmapMarket.exchanges?.flatMap((ex) => ex.tiles) ?? heatmapMarket.tiles ?? []
-  return tiles.map((tile) => ({
-    symbol: tile.symbol,
-    name: tile.name.en,
-    price: tile.price ?? 0,
-    changePercent: tile.changePercent,
-    volume: 0,
-    sector: "Equity",
-    marketCap: 0,
+function vnStocksToRows(data: VietnamMarketData): HeatmapAsset[] {
+  const all = [...data.heatmapStocks.hose, ...data.heatmapStocks.hnx, ...data.heatmapStocks.upcom]
+  return all.map((stock) => ({
+    symbol: stock.symbol,
+    name: stock.name.en,
+    price: stock.price,
+    changePercent: stock.changePercent,
+    volume: stock.volume,
+    sector: stock.sector,
+    marketCap: stock.marketCap,
   }))
 }
 
@@ -122,11 +121,11 @@ function buildHeatmapRowResult(
 async function fetchVietnamRows(): Promise<HeatmapRowResult> {
   const mock = getVietnamMock()
   const seedCount = VN_HEATMAP_SIZE
-  const baseItems = sortByMarketCap(vnTilesToRows(mock.heatmapMarket)).slice(0, VN_HEATMAP_SIZE)
+  const baseItems = sortByMarketCap(vnStocksToRows(mock)).slice(0, VN_HEATMAP_SIZE)
 
   try {
     const data = await getVietnamData()
-    const liveItems = sortByMarketCap(vnTilesToRows(data.heatmapMarket))
+    const liveItems = sortByMarketCap(vnStocksToRows(data))
     const liveBySymbol = new Map(liveItems.map((row) => [row.symbol.toUpperCase(), row]))
 
     let items = baseItems.map((row) => {
@@ -136,13 +135,23 @@ async function fetchVietnamRows(): Promise<HeatmapRowResult> {
         ...row,
         price: live.price,
         changePercent: live.changePercent,
+        volume: live.volume || row.volume,
+        sector: live.sector || row.sector,
         marketCap: row.marketCap || live.marketCap,
       }
     })
 
-    if (items.length < seedCount) {
-      items = ensureMinHeatmapRows(items, baseItems, seedCount)
+    for (const live of liveItems) {
+      if (items.length >= seedCount) break
+      if (items.some((row) => row.symbol.toUpperCase() === live.symbol.toUpperCase())) continue
+      items.push(live)
     }
+
+    if (items.length < VN_HEATMAP_MIN_ITEMS) {
+      items = ensureMinHeatmapRows(items, baseItems, VN_HEATMAP_MIN_ITEMS)
+    }
+
+    items = sortByMarketCap(items).slice(0, seedCount)
 
     const livePriceCount = countLivePrices(items)
     const source =

@@ -16,10 +16,18 @@ import {
 import { CACHE_KEYS, CACHE_TTL } from "@/lib/providers/cache"
 import { withFallback } from "@/lib/providers/fallback"
 import {
+  fetchKbsForeignTotalRows,
+  fetchKbsIndexDailyBars,
   fetchKbsIndexSnapshot,
   fetchKbsMarketDashboard,
+  parseKbsForeignTotalRow,
   type KbsLeaderboardRow,
 } from "@/lib/providers/kbs-client"
+import {
+  buildUnavailableAnalytics,
+  buildVietnamMarketAnalytics,
+  type VietnamMarketAnalytics,
+} from "@/lib/vietnam/market-analytics"
 import type {
   HeatmapExchange,
   HeatmapMarket,
@@ -66,6 +74,8 @@ export type VietnamMarketDashboard = {
   updatedAt: string
 }
 
+export type { VietnamMarketAnalytics } from "@/lib/vietnam/market-analytics"
+
 export type VietnamMarketData = {
   indices: VietnamMarketIndex[]
   heatmapStocks: {
@@ -75,6 +85,7 @@ export type VietnamMarketData = {
   }
   heatmapMarket: HeatmapMarket
   dashboard: VietnamMarketDashboard
+  analytics: VietnamMarketAnalytics
   source: "mock" | "live"
   /** Primary heatmap quote provider when live. */
   heatmapProvider?: "vps" | "kbs" | "tcbs" | "vietstock" | "fireant"
@@ -353,8 +364,26 @@ export function getMockData(): VietnamMarketData {
     heatmapStocks,
     heatmapMarket: buildHeatmapMarket(heatmapStocks),
     dashboard: buildMockDashboard(),
+    analytics: buildUnavailableAnalytics(),
     source: "mock",
   }
+}
+
+async function fetchPreviousVnindexSession(): Promise<{
+  volume: number | null
+  value: number | null
+}> {
+  const bars = await fetchKbsIndexDailyBars("VNINDEX", 5)
+  if (bars.length < 2) return { volume: null, value: null }
+  const prev = bars[bars.length - 2]
+  return { volume: prev.volume, value: null }
+}
+
+async function fetchKbsForeignRowsForAnalytics() {
+  const raw = await fetchKbsForeignTotalRows()
+  return raw
+    .map(parseKbsForeignTotalRow)
+    .filter((row): row is NonNullable<typeof row> => row != null)
 }
 
 /** Try Vietnam adapters (TCBS public API) then fall back to enriched mock data. */
@@ -379,9 +408,11 @@ async function fetchLiveVietnamMarketData(): Promise<VietnamMarketData | null> {
   const mock = getMockData()
   const { data } = result
 
-  const [kbsDashboard, kbsIndices] = await Promise.all([
+  const [kbsDashboard, kbsIndices, foreignRows, previousSession] = await Promise.all([
     fetchKbsMarketDashboard(),
     data.indices.length === 0 ? fetchLiveKbsIndices() : Promise.resolve([]),
+    fetchKbsForeignRowsForAnalytics(),
+    fetchPreviousVnindexSession(),
   ])
 
   const indexSource =
@@ -406,6 +437,14 @@ async function fetchLiveVietnamMarketData(): Promise<VietnamMarketData | null> {
   const hasLiveStocks =
     data.stocks.hose.length + data.stocks.hnx.length + data.stocks.upcom.length > 0
 
+  const liveSymbols = hasLiveStocks
+    ? new Set(
+        [...data.stocks.hose, ...data.stocks.hnx, ...data.stocks.upcom].map((s) =>
+          s.symbol.toUpperCase(),
+        ),
+      )
+    : undefined
+
   const heatmapStocks = hasLiveStocks
     ? mergeHeatmapStocks(mock.heatmapStocks, normalizedStocksToHeatmapBuckets(data.stocks))
     : mock.heatmapStocks
@@ -415,9 +454,16 @@ async function fetchLiveVietnamMarketData(): Promise<VietnamMarketData | null> {
     heatmapStocks,
     heatmapMarket: buildHeatmapMarket(heatmapStocks),
     dashboard: kbsDashboard ? kbsDashboardToProvider(kbsDashboard) : mock.dashboard,
+    analytics: buildVietnamMarketAnalytics({
+      stocks: heatmapStocks,
+      hasLiveStocks,
+      foreignRows,
+      previousSession,
+      liveSymbols,
+    }),
     source: "live",
     heatmapProvider: data.provider,
-    enrichmentProvider: kbsDashboard ? "kbs" : undefined,
+    enrichmentProvider: kbsDashboard || foreignRows.length > 0 ? "kbs" : undefined,
   }
 }
 
