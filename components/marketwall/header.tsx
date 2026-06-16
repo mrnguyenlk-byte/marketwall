@@ -28,7 +28,7 @@ export function Header({ tickerItems }: HeaderProps) {
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur">
-      <div className="grid h-11 w-full grid-cols-[auto_1fr_auto] items-center gap-2 px-3 sm:px-4 md:h-12 lg:px-6">
+      <div className="relative flex h-11 w-full items-center justify-between gap-2 px-3 sm:px-4 md:h-12 lg:px-6">
         <div className="flex shrink-0 items-center">
           <BrandLogo height={36} priority className="md:hidden" />
           <BrandLogo height={54} priority className="hidden md:inline-flex" />
@@ -36,7 +36,7 @@ export function Header({ tickerItems }: HeaderProps) {
 
         <nav
           aria-label="Main navigation"
-          className="hidden min-w-0 items-center justify-center gap-0 md:flex"
+          className="pointer-events-none absolute left-1/2 hidden -translate-x-1/2 items-center gap-0 md:flex"
         >
           {NAV_ITEMS.map((item) => {
             const active = item.match
@@ -47,7 +47,7 @@ export function Header({ tickerItems }: HeaderProps) {
                 key={item.key}
                 href={item.href}
                 className={cn(
-                  "relative px-3 py-1 text-[13px] font-semibold leading-none transition-colors sm:text-sm",
+                  "pointer-events-auto relative px-3 py-1 text-[13px] font-semibold leading-none transition-colors sm:text-sm",
                   active ? "text-primary" : "text-muted-foreground hover:text-foreground",
                 )}
                 aria-current={active ? "page" : undefined}

@@ -120,7 +120,7 @@ export function Sidebar({
   overviewByCategory: Record<OverviewCategory, OverviewListItem[]>
 }) {
   return (
-    <div className="flex w-full min-w-0 max-w-full flex-col gap-3">
+    <div className="flex w-full min-w-0 max-w-full flex-col gap-2">
       <PromoBanner href="/brokers" />
       <PartnerBanner href="/contact" />
       {features.watchlist && (

@@ -70,7 +70,7 @@ function ControlGroup({ children }: { children: React.ReactNode }) {
 }
 
 const HEATMAP_VIEWPORT_CLASS =
-  "h-[clamp(520px,calc(100svh-260px),680px)] max-h-[680px] min-h-[480px]"
+  "h-[clamp(420px,42vh,480px)] max-h-[480px] min-h-[420px]"
 
 function HeatmapViewport({ children }: { children: ReactNode }) {
   return (
@@ -475,7 +475,7 @@ function LegacyHeatmapSection({ markets }: { markets: HeatmapMarket[] }) {
     return (
       <section aria-labelledby="heatmap-title" className="min-w-0">
         <SectionHeading id="heatmap-title" title={t("sec.vnHeatmap")} />
-        <div className="h-[clamp(520px,calc(100svh-260px),680px)] max-h-[680px] min-h-[480px] rounded-lg border border-border bg-card/40 p-px">
+        <div className="h-[clamp(420px,42vh,480px)] max-h-[480px] min-h-[420px] rounded-lg border border-border bg-card/40 p-px">
           <HeatmapGridSkeleton />
         </div>
       </section>

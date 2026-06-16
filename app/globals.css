@@ -207,3 +207,97 @@
     transform: translateX(-50%);
   }
 }
+
+/* Dashboard layout — Sprint 37 root grid + sticky offset */
+:root {
+  --dashboard-header-height: 44px;
+  --dashboard-mobile-nav-height: 26px;
+  --dashboard-ticker-height: 28px;
+  --dashboard-top-offset: calc(
+    var(--dashboard-header-height) + var(--dashboard-mobile-nav-height) +
+      var(--dashboard-ticker-height)
+  );
+}
+
+@media (min-width: 768px) {
+  :root {
+    --dashboard-header-height: 48px;
+    --dashboard-top-offset: calc(
+      var(--dashboard-header-height) + var(--dashboard-ticker-height)
+    );
+  }
+}
+
+@layer components {
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    align-items: start;
+    gap: 0.5rem;
+  }
+
+  @media (min-width: 1024px) {
+    .dashboard-grid {
+      grid-template-columns: 240px minmax(0, 1fr);
+    }
+  }
+
+  @media (min-width: 1440px) {
+    .dashboard-grid {
+      grid-template-columns: 240px minmax(0, 1fr) 300px;
+    }
+  }
+
+  .dashboard-sidebar-left,
+  .dashboard-sidebar-right {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .dashboard-center {
+    min-width: 0;
+  }
+
+  @media (min-width: 1024px) {
+    .dashboard-sidebar-left {
+      grid-column: 1;
+      grid-row: 1;
+    }
+
+    .dashboard-center {
+      grid-column: 2;
+      grid-row: 1;
+    }
+
+    .dashboard-sidebar-right {
+      grid-column: 2;
+      grid-row: 2;
+    }
+  }
+
+  @media (min-width: 1440px) {
+    .dashboard-sidebar-left {
+      grid-column: 1;
+      grid-row: 1;
+    }
+
+    .dashboard-center {
+      grid-column: 2;
+      grid-row: 1;
+    }
+
+    .dashboard-sidebar-right {
+      grid-column: 3;
+      grid-row: 1;
+    }
+
+    .dashboard-sidebar-left,
+    .dashboard-sidebar-right {
+      position: sticky;
+      top: var(--dashboard-top-offset);
+      height: calc(100vh - var(--dashboard-top-offset));
+      overflow-y: auto;
+      align-self: start;
+    }
+  }
+}

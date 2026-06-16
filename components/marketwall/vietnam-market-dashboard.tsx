@@ -228,7 +228,7 @@ export function VietnamMarketDashboard() {
           {isLive ? t("vnDashboard.sourceVps") : t("vnDashboard.sourceMock")}
         </span>
       </div>
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
         <LeaderboardCard
           title={t("vnDashboard.topVolume")}
           rows={dashboard?.topVolume ?? []}
@@ -241,14 +241,14 @@ export function VietnamMarketDashboard() {
           metric="value"
           loading={isLoading}
         />
-        <div className="md:col-span-2">
+        <div className="lg:col-span-2">
           <ForeignFlowChart
             buyRows={dashboard?.topForeignBuy ?? []}
             sellRows={dashboard?.topForeignSell ?? []}
             loading={isLoading}
           />
         </div>
-        <div className="md:col-span-2">
+        <div className="lg:col-span-2">
           <ProprietaryTradingChart proprietary={data?.analytics?.proprietary} loading={isLoading} />
         </div>
       </div>

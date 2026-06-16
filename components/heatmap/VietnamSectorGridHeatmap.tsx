@@ -44,11 +44,11 @@ export function VietnamSectorGridHeatmap({
   )
 
   return (
-    <TooltipProvider delay={175}>
+    <TooltipProvider delay={150}>
       <div
         className="relative h-full w-full overflow-hidden bg-heatmap-gap"
         data-market-type="vn"
-        data-grouping="sector-grid"
+        data-grouping="sector-treemap"
         data-sizing={sizing}
       >
         {layout.sectors.map((sector) => (

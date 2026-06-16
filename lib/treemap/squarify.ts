@@ -13,7 +13,7 @@ export type TreemapLayoutNode<T> = {
   rect: TreemapRect
 }
 
-function sumValues<T>(items: Array<{ value: number }>): number {
+function sumValues(items: Array<{ value: number }>): number {
   return items.reduce((sum, item) => sum + Math.max(item.value, 0), 0)
 }
 
@@ -37,7 +37,7 @@ function chooseOrientation(rect: TreemapRect): boolean {
 
 function layoutRow<T>(
   row: Array<{ data: T; value: number }>,
-  rect: TreemapRect,
+  band: TreemapRect,
   horizontal: boolean,
   out: TreemapLayoutNode<T>[],
 ) {
@@ -45,26 +45,59 @@ function layoutRow<T>(
   if (rowSum <= 0) return
 
   if (horizontal) {
-    let x = rect.x
+    let x = band.x
     for (const item of row) {
-      const w = (item.value / rowSum) * rect.w
-      out.push({ data: item.data, value: item.value, rect: { x, y: rect.y, w, h: rect.h } })
+      const w = (item.value / rowSum) * band.w
+      out.push({ data: item.data, value: item.value, rect: { x, y: band.y, w, h: band.h } })
       x += w
     }
   } else {
-    let y = rect.y
+    let y = band.y
     for (const item of row) {
-      const h = (item.value / rowSum) * rect.h
-      out.push({ data: item.data, value: item.value, rect: { x: rect.x, y, w: rect.w, h } })
+      const h = (item.value / rowSum) * band.h
+      out.push({ data: item.data, value: item.value, rect: { x: band.x, y, w: band.w, h } })
       y += h
     }
   }
 }
 
-export function squarify<T>(
+function rowBandRect<T>(
+  row: Array<{ data: T; value: number }>,
+  remaining: TreemapRect,
+  horizontal: boolean,
+  total: number,
+  container: TreemapRect,
+): TreemapRect {
+  const rowSum = sumValues(row)
+  if (horizontal) {
+    const bandW = (rowSum / total) * container.w
+    return { x: remaining.x, y: remaining.y, w: bandW, h: remaining.h }
+  }
+  const bandH = (rowSum / total) * container.h
+  return { x: remaining.x, y: remaining.y, w: remaining.w, h: bandH }
+}
+
+function advanceRemaining<T>(
+  row: Array<{ data: T; value: number }>,
+  remaining: TreemapRect,
+  horizontal: boolean,
+  total: number,
+  container: TreemapRect,
+): TreemapRect {
+  const rowSum = sumValues(row)
+  if (horizontal) {
+    const used = (rowSum / total) * container.w
+    return { x: remaining.x + used, y: remaining.y, w: remaining.w - used, h: remaining.h }
+  }
+  const used = (rowSum / total) * container.h
+  return { x: remaining.x, y: remaining.y + used, w: remaining.w, h: remaining.h - used }
+}
+
+function squarifyCore<T>(
   items: Array<{ data: T; value: number }>,
   rect: TreemapRect,
-  minValue = 0.0001,
+  minValue: number,
+  orientationFor: (remaining: TreemapRect) => boolean,
 ): TreemapLayoutNode<T>[] {
   if (!items.length || rect.w <= 0 || rect.h <= 0) return []
 
@@ -76,7 +109,16 @@ export function squarify<T>(
   const out: TreemapLayoutNode<T>[] = []
   let row: Array<{ data: T; value: number }> = []
   let remaining = { ...rect }
-  let horizontal = chooseOrientation(remaining)
+  let horizontal = orientationFor(remaining)
+
+  const flushRow = () => {
+    if (!row.length) return
+    const band = rowBandRect(row, remaining, horizontal, total, rect)
+    layoutRow(row, band, horizontal, out)
+    remaining = advanceRemaining(row, remaining, horizontal, total, rect)
+    horizontal = orientationFor(remaining)
+    row = []
+  }
 
   for (const item of normalized) {
     const next = [...row, item]
@@ -84,22 +126,35 @@ export function squarify<T>(
     if (!row.length || worst(next.map((n) => n.value), length) <= worst(row.map((n) => n.value), length)) {
       row = next
     } else {
-      layoutRow(row, remaining, horizontal, out)
-      const rowSum = sumValues(row)
-      if (horizontal) {
-        const used = (rowSum / total) * rect.w
-        remaining = { x: remaining.x + used, y: remaining.y, w: remaining.w - used, h: remaining.h }
-      } else {
-        const used = (rowSum / total) * rect.h
-        remaining = { x: remaining.x, y: remaining.y + used, w: remaining.w, h: remaining.h - used }
-      }
-      horizontal = chooseOrientation(remaining)
+      flushRow()
       row = [item]
     }
   }
 
-  if (row.length) layoutRow(row, remaining, horizontal, out)
+  if (row.length) {
+    const band = rowBandRect(row, remaining, horizontal, total, rect)
+    layoutRow(row, band, horizontal, out)
+  }
+
   return out
+}
+
+export function squarify<T>(
+  items: Array<{ data: T; value: number }>,
+  rect: TreemapRect,
+  minValue = 0.0001,
+): TreemapLayoutNode<T>[] {
+  return squarifyCore(items, rect, minValue, chooseOrientation)
+}
+
+/** Squarify with a fixed slice orientation (horizontal = side-by-side columns sharing height). */
+export function squarifyWithOrientation<T>(
+  items: Array<{ data: T; value: number }>,
+  rect: TreemapRect,
+  initialHorizontal: boolean,
+  minValue = 0.0001,
+): TreemapLayoutNode<T>[] {
+  return squarifyCore(items, rect, minValue, () => initialHorizontal)
 }
 
 /** Partition container among weighted groups, then squarify leaves in each cell. */
