@@ -10,6 +10,7 @@ import {
   type Broker,
   type BrokerBadge,
 } from "@/lib/broker-data"
+import { brokerSlug } from "@/lib/brokers/registry"
 import { cn } from "@/lib/utils"
 
 const BADGE_STYLES: Record<BrokerBadge, string> = {
@@ -56,6 +57,8 @@ function BrokerBadges({ badges }: { badges: BrokerBadge[] }) {
 function BrokerCard({ broker }: { broker: Broker }) {
   const { t, lang } = useLang()
   const isVn = broker.category === "vn"
+  const slug = brokerSlug(broker.name)
+  const redirectUrl = `/api/brokers/redirect?slug=${encodeURIComponent(slug)}&source=listing`
 
   return (
     <Card className="group gap-0 overflow-hidden border-border/80 py-0 shadow-sm transition-all hover:border-primary/35">
@@ -85,15 +88,21 @@ function BrokerCard({ broker }: { broker: Broker }) {
 
         <p className="text-xs text-muted-foreground">{broker.license[lang]}</p>
 
-        <a
-          href={broker.websiteUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-auto inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-md bg-primary px-3 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-        >
-          <ExternalLink className="size-3.5" aria-hidden />
-          {t("misc.visitBroker")}
-        </a>
+        <div className="mt-auto flex flex-col gap-2">
+          <a
+            href={`/brokers/${slug}`}
+            className="inline-flex h-8 w-full items-center justify-center rounded-md border border-border bg-secondary/40 px-3 text-xs font-semibold text-foreground transition-colors hover:bg-secondary/70"
+          >
+            {t("misc.viewReview")}
+          </a>
+          <a
+            href={redirectUrl}
+            className="inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-md bg-primary px-3 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            <ExternalLink className="size-3.5" aria-hidden />
+            {t("misc.visitBroker")}
+          </a>
+        </div>
       </CardContent>
     </Card>
   )

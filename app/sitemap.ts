@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next"
 
 import { features } from "@/lib/config/features"
+import { getBrokerStaticParams, getCompareStaticParams } from "@/lib/brokers/registry"
 import { MARKET_PAGE_SLUGS } from "@/lib/market-pages"
 import { SITE_URL } from "@/lib/seo"
 import { marketPagePath } from "@/lib/symbol-detail"
@@ -29,7 +30,19 @@ export default function sitemap(): MetadataRoute.Sitemap {
       }))
     : []
 
-  return [...STABLE_ROUTES, ...marketRoutes].map(({ path, changeFrequency, priority }) => ({
+  const brokerRoutes = getBrokerStaticParams().map(({ slug }) => ({
+    path: `/brokers/${slug}`,
+    changeFrequency: "weekly" as const,
+    priority: 0.75,
+  }))
+
+  const compareRoutes = getCompareStaticParams().map(({ pair }) => ({
+    path: `/compare/${pair}`,
+    changeFrequency: "weekly" as const,
+    priority: 0.7,
+  }))
+
+  return [...STABLE_ROUTES, ...marketRoutes, ...brokerRoutes, ...compareRoutes].map(({ path, changeFrequency, priority }) => ({
     url: `${SITE_URL}${path}`,
     lastModified,
     changeFrequency,
