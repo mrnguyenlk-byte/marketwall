@@ -1,0 +1,20 @@
+﻿{
+  "inputAssets": 200,
+  "sectorCount": 10,
+  "renderedTiles": {
+    "banking": 19,
+    "securities": 15,
+    "realEstate": 13,
+    "other": 18,
+    "industrial": 15,
+    "oilGas": 10,
+    "retail": 5,
+    "steel": 7,
+    "technology": 5,
+    "utilities": 4,
+    "total": 103
+  },
+  "maxTileAspectRatio": 1.95,
+  "maxSectorAspectRatio": 8.25,
+  "maxTileSectorAreaShare": "24.7%"
+}

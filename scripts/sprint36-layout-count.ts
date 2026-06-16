@@ -1,17 +1,12 @@
 import {
-  buildVietnamSectorGridLayout,
-  countVnSectorGridTiles,
+  analyzeVnSectorTreemapLayout,
+  buildVietnamSectorTreemapLayout,
+  countVnSectorTreemapTiles,
 } from "../lib/vietnam/vietnam-sector-grid-layout"
 import { heatmapRowsToMarketAssets } from "../lib/market/heatmap-assets"
 import { limitHeatmapAssets } from "../lib/market/heatmap-limits"
-import type { TreemapRect } from "../lib/treemap/squarify"
 
-const BASE = process.argv[2] ?? "http://localhost:3016"
-
-function aspectRatio(rect: TreemapRect): number {
-  const minEdge = Math.max(Math.min(rect.w, rect.h), 1e-9)
-  return Math.max(rect.w, rect.h) / minEdge
-}
+const BASE = process.argv[2] ?? "http://localhost:3015"
 
 async function main() {
   const res = await fetch(`${BASE}/api/heatmaps/vn`)
@@ -21,27 +16,19 @@ async function main() {
     "vn",
     "tradingValue",
   )
-  const layout = buildVietnamSectorGridLayout(assets, "tradingValue")
-  const counts = countVnSectorGridTiles(layout)
-
-  let maxAspect = 0
-  let maxSectorShare = 0
-  for (const sector of layout.sectors) {
-    const headerH = Math.min(sector.rect.h * 0.07, 0.032)
-    const innerArea = sector.rect.w * Math.max(sector.rect.h - headerH, 0)
-    for (const tile of sector.tiles) {
-      maxAspect = Math.max(maxAspect, aspectRatio(tile.rect))
-      maxSectorShare = Math.max(maxSectorShare, (tile.rect.w * tile.rect.h) / innerArea)
-    }
-  }
+  const layout = buildVietnamSectorTreemapLayout(assets, "tradingValue")
+  const counts = countVnSectorTreemapTiles(layout)
+  const analysis = analyzeVnSectorTreemapLayout(layout)
 
   console.log(
     JSON.stringify(
       {
         inputAssets: assets.length,
+        sectorCount: layout.sectors.length,
         renderedTiles: counts,
-        maxAspectRatio: Number(maxAspect.toFixed(2)),
-        maxTileSectorAreaShare: Number((maxSectorShare * 100).toFixed(1)) + "%",
+        maxTileAspectRatio: Number(analysis.maxTileAspect.toFixed(2)),
+        maxSectorAspectRatio: Number(analysis.maxSectorAspect.toFixed(2)),
+        maxTileSectorAreaShare: Number((analysis.maxTileSectorAreaShare * 100).toFixed(1)) + "%",
       },
       null,
       2,

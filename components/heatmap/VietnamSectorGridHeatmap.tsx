@@ -5,7 +5,7 @@ import { useMemo } from "react"
 import { HeatmapTile } from "@/components/heatmap/HeatmapTile"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import {
-  buildVietnamSectorGridLayout,
+  buildVietnamSectorTreemapLayout,
   tierToTileSize,
 } from "@/lib/vietnam/vietnam-sector-grid-layout"
 import type { VnHeatmapSizingMode } from "@/lib/vietnam/heatmap-sizing"
@@ -39,12 +39,12 @@ export function VietnamSectorGridHeatmap({
   onTileClick,
 }: VietnamSectorGridHeatmapProps) {
   const layout = useMemo(
-    () => buildVietnamSectorGridLayout(assets, sizing),
+    () => buildVietnamSectorTreemapLayout(assets, sizing),
     [assets, sizing],
   )
 
   return (
-    <TooltipProvider delay={150}>
+    <TooltipProvider delay={175}>
       <div
         className="relative h-full w-full overflow-hidden bg-heatmap-gap"
         data-market-type="vn"
