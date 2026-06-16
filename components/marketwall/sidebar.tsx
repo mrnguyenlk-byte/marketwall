@@ -10,8 +10,6 @@ import { Watchlist } from "./watchlist"
 import { SectionErrorBoundary } from "./section-error-boundary"
 import type { OverviewCategory, OverviewListItem } from "@/lib/market-types"
 
-const SIDEBAR_W = 300
-
 const BANNER_H = {
   promo: 178,
   partner: 178,
@@ -43,13 +41,14 @@ function BannerShell({
     <Link
       href={href}
       aria-label={ariaLabel}
-      className="group block w-full shrink-0 overflow-hidden rounded-[12px] border border-border shadow-md transition-opacity hover:opacity-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:border-white/10 dark:shadow-[0_4px_18px_rgba(0,0,0,0.35)]"
-      style={{ width: SIDEBAR_W, height }}
+      className="group block w-full max-w-[300px] shrink-0 overflow-hidden rounded-[12px] border border-border shadow-md transition-opacity hover:opacity-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:border-white/10 dark:shadow-[0_4px_18px_rgba(0,0,0,0.35)]"
+      style={{ height }}
     >
       <div
         className="relative h-full w-full bg-[#060d17] bg-cover bg-right bg-no-repeat"
         style={{
-          backgroundImage: `${BANNER_GRADIENT}, url("${imageSrc}")`,
+          // Image layer on top; gradient underneath when image fails to load.
+          backgroundImage: `url("${imageSrc}"), ${BANNER_GRADIENT}`,
         }}
       >
         <div
