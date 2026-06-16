@@ -17,6 +17,7 @@ import { SITE_NAME, SITE_LOGO } from "@/lib/brand"
 import { SITE_URL } from "@/lib/seo"
 
 import { ContactFab } from "@/components/marketwall/contact-fab"
+import { AuthSessionProvider } from "@/components/providers/session-provider"
 import { StockDetailModal } from "@/components/heatmap/stock-detail-modal-lazy"
 import { SymbolDetailModal } from "@/components/marketwall/symbol-detail-modal-lazy"
 
@@ -97,16 +98,18 @@ export default function RootLayout({
       </head>
       <body className="bg-background font-sans antialiased">
         <ThemeProvider>
-          <LanguageProvider>
-            <SymbolDetailProvider>
-              <HeatmapDetailProvider>
-                {children}
-                {features.symbolModal && <SymbolDetailModal />}
-                {features.heatmapDetailModal && <StockDetailModal />}
-                <ContactFab />
-              </HeatmapDetailProvider>
-            </SymbolDetailProvider>
-          </LanguageProvider>
+          <AuthSessionProvider>
+            <LanguageProvider>
+              <SymbolDetailProvider>
+                <HeatmapDetailProvider>
+                  {children}
+                  {features.symbolModal && <SymbolDetailModal />}
+                  {features.heatmapDetailModal && <StockDetailModal />}
+                  <ContactFab />
+                </HeatmapDetailProvider>
+              </SymbolDetailProvider>
+            </LanguageProvider>
+          </AuthSessionProvider>
         </ThemeProvider>
 
         <Analytics />

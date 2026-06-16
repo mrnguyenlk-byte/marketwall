@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo } from "react"
+import { useSession } from "next-auth/react"
 
 import { Plus, Star, X } from "lucide-react"
 
@@ -73,6 +74,7 @@ function WatchlistRow({
 
 export function Watchlist() {
   const { t } = useLang()
+  const { status } = useSession()
   const { symbols, add, remove, available } = useWatchlist()
 
   const vietnam = useVietnamMarkets()
@@ -102,7 +104,7 @@ export function Watchlist() {
       <Card className="py-0">
         <CardContent className="px-0 pb-3">
           <p className="border-b border-border px-3 py-2 text-[11px] leading-snug text-muted-foreground">
-            {t("watchlist.privacy")}
+            {status === "authenticated" ? t("watchlist.synced") : t("watchlist.privacy")}
           </p>
 
           {symbols.length === 0 ? (

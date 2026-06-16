@@ -2,7 +2,7 @@ export const features = {
   symbolModal: false,
   /** FireAnt-style heatmap tile → stock detail modal (mock data). */
   heatmapDetailModal: true,
-  watchlist: false,
+  watchlist: true,
   liveClientFetch: true,
   /** FX strength section — live via Twelve Data pairs with mock fallback. */
   currencyStrength: true,

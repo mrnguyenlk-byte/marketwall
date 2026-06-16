@@ -33,10 +33,31 @@ const dict: Dict = {
   "action.theme.toggle": { vi: "Chuyển giao diện", en: "Toggle theme" },
   "action.login": { vi: "Đăng nhập", en: "Login" },
   "action.register": { vi: "Đăng ký", en: "Register" },
+  "action.logout": { vi: "Đăng xuất", en: "Log out" },
   "action.notifications": { vi: "Thông báo", en: "Notifications" },
   "action.viewAll": { vi: "Xem tất cả", en: "View all" },
   "action.viewFullHeatmap": { vi: "Xem bản đồ nhiệt đầy đủ", en: "View full heatmap" },
   "action.language": { vi: "Ngôn ngữ", en: "Language" },
+
+  // Auth
+  "auth.loginTitle": { vi: "Đăng nhập", en: "Sign in" },
+  "auth.registerTitle": { vi: "Tạo tài khoản", en: "Create account" },
+  "auth.email": { vi: "Email", en: "Email" },
+  "auth.password": { vi: "Mật khẩu", en: "Password" },
+  "auth.name": { vi: "Tên (tuỳ chọn)", en: "Name (optional)" },
+  "auth.signingIn": { vi: "Đang đăng nhập…", en: "Signing in…" },
+  "auth.creatingAccount": { vi: "Đang tạo tài khoản…", en: "Creating account…" },
+  "auth.loading": { vi: "Đang tải…", en: "Loading…" },
+  "auth.invalidCredentials": {
+    vi: "Email hoặc mật khẩu không đúng.",
+    en: "Invalid email or password.",
+  },
+  "auth.registerFailed": {
+    vi: "Không thể tạo tài khoản. Vui lòng thử lại.",
+    en: "Could not create account. Please try again.",
+  },
+  "auth.noAccount": { vi: "Chưa có tài khoản?", en: "No account yet?" },
+  "auth.haveAccount": { vi: "Đã có tài khoản?", en: "Already have an account?" },
 
   // Section titles
   "sec.overview": { vi: "Tổng quan thị trường", en: "Market Overview" },
@@ -55,6 +76,10 @@ const dict: Dict = {
   "watchlist.privacy": {
     vi: "Lưu trên thiết bị này. Không cần đăng nhập.",
     en: "Stored on this device only. No login required.",
+  },
+  "watchlist.synced": {
+    vi: "Đồng bộ với tài khoản của bạn.",
+    en: "Synced to your account.",
   },
   "watchlist.empty": {
     vi: "Thêm mã để theo dõi giá.",

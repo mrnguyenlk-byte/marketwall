@@ -2,11 +2,11 @@
 
 import { Search } from "lucide-react"
 import { usePathname } from "next/navigation"
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { BrandLogo } from "./brand-logo"
 import { LanguageSwitcher } from "./language-switcher"
 import { ThemeToggle } from "./theme-toggle"
+import { AuthButtons } from "./auth-buttons"
 import { useLang } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
 
@@ -40,12 +40,7 @@ export function Header() {
         <div className="flex items-center justify-end gap-2 pr-3">
           <LanguageSwitcher />
           <ThemeToggle />
-          <Button variant="ghost" size="sm" className="hidden text-foreground sm:inline-flex">
-            {t("action.login")}
-          </Button>
-          <Button size="sm" className="hidden bg-primary font-semibold text-white sm:inline-flex">
-            {t("action.register")}
-          </Button>
+          <AuthButtons />
         </div>
       </div>
 

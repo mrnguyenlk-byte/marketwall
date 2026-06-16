@@ -1,1 +1,1 @@
-export const ZALO_LINK = "https://zalo.me/0901234567"
+export { TELEGRAM_LINK, ZALO_LINK } from "./contact"

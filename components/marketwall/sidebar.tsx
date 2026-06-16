@@ -7,6 +7,7 @@ import { features } from "@/lib/config/features"
 import { useLang } from "@/lib/i18n"
 import { MarketOverview } from "./market-overview"
 import { Watchlist } from "./watchlist"
+import { WatchlistSessionSync } from "./watchlist-session-sync"
 import { SectionErrorBoundary } from "./section-error-boundary"
 import type { OverviewCategory, OverviewListItem } from "@/lib/market-types"
 
@@ -123,9 +124,12 @@ export function Sidebar({
       <PromoBanner href="/brokers" />
       <PartnerBanner href="/contact" />
       {features.watchlist && (
-        <SectionErrorBoundary name="watchlist">
-          <Watchlist />
-        </SectionErrorBoundary>
+        <>
+          <WatchlistSessionSync />
+          <SectionErrorBoundary name="watchlist">
+            <Watchlist />
+          </SectionErrorBoundary>
+        </>
       )}
       <SectionErrorBoundary name="market-overview">
         <MarketOverview overviewByCategory={overviewByCategory} />
