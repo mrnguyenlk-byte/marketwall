@@ -102,6 +102,12 @@ export type MarketAsset = {
   tradingValue?: number
   volumeShares?: number
   volumeLot?: number
+  foreignBuy?: number
+  foreignSell?: number
+  foreignNet?: number
+  foreignBuyValue?: number
+  foreignSellValue?: number
+  foreignNetValue?: number
   lastUpdated: string
   tradingViewSymbol: string
   open: number

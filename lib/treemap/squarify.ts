@@ -27,6 +27,14 @@ function worst(row: number[], length: number): number {
   return Math.max((l2 * max) / s2, s2 / (l2 * min))
 }
 
+/** Prefer vertical slices on very wide rects to avoid long horizontal strips. */
+function chooseOrientation(rect: TreemapRect): boolean {
+  const ratio = rect.w / Math.max(rect.h, 1e-9)
+  if (ratio > 2.2) return false
+  if (ratio < 1 / 2.2) return true
+  return rect.w >= rect.h
+}
+
 function layoutRow<T>(
   row: Array<{ data: T; value: number }>,
   rect: TreemapRect,
@@ -68,7 +76,7 @@ export function squarify<T>(
   const out: TreemapLayoutNode<T>[] = []
   let row: Array<{ data: T; value: number }> = []
   let remaining = { ...rect }
-  let horizontal = remaining.w >= remaining.h
+  let horizontal = chooseOrientation(remaining)
 
   for (const item of normalized) {
     const next = [...row, item]
@@ -85,7 +93,7 @@ export function squarify<T>(
         const used = (rowSum / total) * rect.h
         remaining = { x: remaining.x, y: remaining.y + used, w: remaining.w, h: remaining.h - used }
       }
-      horizontal = remaining.w >= remaining.h
+      horizontal = chooseOrientation(remaining)
       row = [item]
     }
   }
@@ -107,14 +115,14 @@ export function squarifyGroups<T, G>(
 
   return groupNodes.map((node) => {
     const group = node.data
-    const headerH = Math.min(node.rect.h * headerRatio, 14 / rect.h)
+    const headerH = Math.min(node.rect.h * headerRatio, 0.032)
     const inner: TreemapRect = {
       x: node.rect.x,
       y: node.rect.y + headerH,
       w: node.rect.w,
       h: Math.max(node.rect.h - headerH, 0),
     }
-    const children = squarify(group.items, inner)
+    const children = inner.h > 0 && inner.w > 0 ? squarify(group.items, inner) : []
     return {
       data: group.data,
       value: group.value,

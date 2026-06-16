@@ -44,13 +44,18 @@ function loadTradingViewScript(): Promise<void> {
 type TradingViewChartProps = {
   symbol: string
   className?: string
+  onAvailabilityChange?: (available: boolean) => void
 }
 
-export function TradingViewChart({ symbol, className }: TradingViewChartProps) {
-  const { lang, t } = useLang()
+export function TradingViewChart({
+  symbol,
+  className,
+  onAvailabilityChange,
+}: TradingViewChartProps) {
+  const { lang } = useLang()
   const containerRef = useRef<HTMLDivElement>(null)
   const containerId = useId().replace(/:/g, "")
-  const [status, setStatus] = useState<"loading" | "ready" | "error">("loading")
+  const [failed, setFailed] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -58,7 +63,8 @@ export function TradingViewChart({ symbol, className }: TradingViewChartProps) {
     if (!container) return
 
     container.innerHTML = ""
-    setStatus("loading")
+    setFailed(false)
+    onAvailabilityChange?.(false)
 
     loadTradingViewScript()
       .then(() => {
@@ -86,17 +92,23 @@ export function TradingViewChart({ symbol, className }: TradingViewChartProps) {
           studies: [],
         })
 
-        if (!cancelled) setStatus("ready")
+        if (!cancelled) onAvailabilityChange?.(true)
       })
       .catch(() => {
-        if (!cancelled) setStatus("error")
+        if (!cancelled) {
+          setFailed(true)
+          onAvailabilityChange?.(false)
+        }
       })
 
     return () => {
       cancelled = true
       container.innerHTML = ""
+      onAvailabilityChange?.(false)
     }
-  }, [symbol, lang, containerId])
+  }, [symbol, lang, containerId, onAvailabilityChange])
+
+  if (failed) return null
 
   return (
     <div
@@ -106,13 +118,6 @@ export function TradingViewChart({ symbol, className }: TradingViewChartProps) {
       )}
     >
       <div ref={containerRef} className="absolute inset-0" />
-      {status !== "ready" && (
-        <div className="absolute inset-0 flex items-center justify-center bg-chart-bg/90 px-4 text-center text-xs text-muted-foreground">
-          {status === "loading"
-            ? t("heatmapDetail.chartLoading")
-            : t("heatmapDetail.chartFallback")}
-        </div>
-      )}
     </div>
   )
 }

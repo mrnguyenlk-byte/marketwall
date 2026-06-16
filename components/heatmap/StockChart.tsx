@@ -1,38 +1,42 @@
 "use client"
 
+import type { VnChartResponse } from "@/hooks/useVietnamChart"
+import { hasVnChartData } from "@/lib/market/asset-detail-availability"
 import type { MarketAsset } from "@/types/market"
 
-import { VietnamNativeChart } from "./VietnamNativeChart"
 import { TradingViewChart } from "./TradingViewChart"
+import { VietnamNativeChart } from "./VietnamNativeChart"
 
 type StockChartProps = {
   asset: MarketAsset
   className?: string
-  /** Pre-fetched VN chart payload (optional — avoids duplicate hook when parent loads data). */
-  vnChartData?: Parameters<typeof VietnamNativeChart>[0]["data"]
-  vnChartLoading?: boolean
-  vnChartError?: boolean
+  vnChart?: VnChartResponse | null
+  onAvailabilityChange?: (available: boolean) => void
 }
 
-/** Route HOSE/HNX/UPCOM to native Lightweight chart; others use TradingView. */
+/** Renders a chart only when production data exists; otherwise returns null. */
 export function StockChart({
   asset,
   className,
-  vnChartData,
-  vnChartLoading,
-  vnChartError,
+  vnChart,
+  onAvailabilityChange,
 }: StockChartProps) {
   if (asset.marketType === "vn") {
+    if (!hasVnChartData(vnChart)) return null
     return (
       <VietnamNativeChart
         symbol={asset.symbol}
         className={className}
-        data={vnChartData}
-        isLoading={vnChartLoading}
-        hasError={vnChartError}
+        data={vnChart ?? undefined}
       />
     )
   }
 
-  return <TradingViewChart symbol={asset.tradingViewSymbol} className={className} />
+  return (
+    <TradingViewChart
+      symbol={asset.tradingViewSymbol}
+      className={className}
+      onAvailabilityChange={onAvailabilityChange}
+    />
+  )
 }

@@ -13,15 +13,12 @@ import {
 } from "lightweight-charts"
 
 import type { VnChartResponse } from "@/hooks/useVietnamChart"
-import { useLang } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
 
 type VietnamNativeChartProps = {
   symbol: string
   className?: string
   data?: VnChartResponse
-  isLoading?: boolean
-  hasError?: boolean
 }
 
 const MA_COLORS = {
@@ -40,14 +37,7 @@ function toChartTime(date: string): Time {
   return date as Time
 }
 
-export function VietnamNativeChart({
-  symbol,
-  className,
-  data,
-  isLoading,
-  hasError,
-}: VietnamNativeChartProps) {
-  const { t } = useLang()
+export function VietnamNativeChart({ symbol, className, data }: VietnamNativeChartProps) {
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -116,7 +106,6 @@ export function VietnamNativeChart({
       })),
     )
 
-    const maSeries: ISeriesApi<"Line">[] = []
     const maDefs = [
       { key: "ma10" as const, color: MA_COLORS.ma10, label: "MA10" },
       { key: "ma20" as const, color: MA_COLORS.ma20, label: "MA20" },
@@ -134,7 +123,6 @@ export function VietnamNativeChart({
         title: ma.label,
       })
       line.setData(points.map((p) => ({ time: toChartTime(p.time), value: p.value })))
-      maSeries.push(line)
     }
 
     chart.timeScale().fitContent()
@@ -150,8 +138,7 @@ export function VietnamNativeChart({
     }
   }, [data, symbol])
 
-  const showLoading = isLoading && !data?.bars?.length
-  const showError = hasError || (data?.unavailable && !data?.bars?.length)
+  if (!data?.bars?.length) return null
 
   return (
     <div
@@ -161,18 +148,11 @@ export function VietnamNativeChart({
       )}
     >
       <div ref={containerRef} className="absolute inset-0" />
-      {data?.bars?.length ? (
-        <div className="pointer-events-none absolute left-2 top-2 flex flex-wrap gap-2 text-[10px] font-medium">
-          <span className="rounded bg-card/80 px-1.5 py-0.5 text-gain">MA10</span>
-          <span className="rounded bg-card/80 px-1.5 py-0.5 text-cyan-400">MA20</span>
-          <span className="rounded bg-card/80 px-1.5 py-0.5 text-violet-400">MA50</span>
-        </div>
-      ) : null}
-      {(showLoading || showError) && (
-        <div className="absolute inset-0 flex items-center justify-center bg-chart-bg/90 px-4 text-center text-xs text-muted-foreground">
-          {showLoading ? t("heatmapDetail.chartLoading") : t("heatmapDetail.chartFallback")}
-        </div>
-      )}
+      <div className="pointer-events-none absolute left-2 top-2 flex flex-wrap gap-2 text-[10px] font-medium">
+        <span className="rounded bg-card/80 px-1.5 py-0.5 text-gain">MA10</span>
+        <span className="rounded bg-card/80 px-1.5 py-0.5 text-cyan-400">MA20</span>
+        <span className="rounded bg-card/80 px-1.5 py-0.5 text-violet-400">MA50</span>
+      </div>
     </div>
   )
 }

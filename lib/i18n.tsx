@@ -242,7 +242,7 @@ const dict: Dict = {
   "heatmapDetail.tab.shareholders": { vi: "Cổ đông", en: "Shareholders" },
   "heatmapDetail.tab.dividends": { vi: "Cổ tức", en: "Dividends" },
   "heatmapDetail.tab.financials": { vi: "Tài chính", en: "Financials" },
-  "heatmapDetail.tab.historical": { vi: "Giá lịch sử", en: "Historical Prices" },
+  "heatmapDetail.tab.historical": { vi: "Giá quá khứ", en: "Historical Prices" },
   "heatmapDetail.exchange": { vi: "Sàn", en: "Exchange" },
   "heatmapDetail.sector": { vi: "Ngành", en: "Sector" },
   "heatmapDetail.open": { vi: "Mở cửa", en: "Open" },
@@ -263,6 +263,10 @@ const dict: Dict = {
   "heatmapDetail.chartFallback": {
     vi: "Biểu đồ không khả dụng. Dữ liệu minh họa.",
     en: "Chart unavailable. Illustrative data.",
+  },
+  "heatmapDetail.vnChartPreparing": {
+    vi: "Biểu đồ nội bộ cho mã Việt Nam đang được chuẩn bị.",
+    en: "Internal chart for Vietnam symbols is being prepared.",
   },
   "heatmapDetail.noDividends": {
     vi: "Không có dữ liệu cổ tức.",

@@ -67,7 +67,6 @@ export function SectorTreemap({
                   key={asset.symbol}
                   asset={asset}
                   size={tileSizeForRank(index, block.assets.length)}
-                  detailedTooltip
                   onClick={onTileClick}
                 />
               ))}

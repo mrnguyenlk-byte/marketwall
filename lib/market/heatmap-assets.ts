@@ -37,6 +37,12 @@ export function heatmapRowsToMarketAssets(
             volumeLot: row.volumeLot ?? row.volume,
             volumeShares: row.volumeShares,
             tradingValue: row.tradingValue,
+            foreignBuy: row.foreignBuy,
+            foreignSell: row.foreignSell,
+            foreignNet: row.foreignNet,
+            foreignBuyValue: row.foreignBuyValue,
+            foreignSellValue: row.foreignSellValue,
+            foreignNetValue: row.foreignNetValue,
           }
         : {}),
       sector: row.sector,

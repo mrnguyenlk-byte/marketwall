@@ -1,5 +1,6 @@
 "use client"
 
+import { useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Tooltip,
@@ -10,6 +11,7 @@ import {
 import { useVietnamMarkets } from "@/lib/swr/use-market-apis"
 import { useLang } from "@/lib/i18n"
 import type { VietnamDashboardRow } from "@/lib/providers/vietnam-market-provider"
+import { buildHeatmapSymbolRecords } from "@/lib/symbol-heatmap-registry"
 import { cn } from "@/lib/utils"
 
 import { fmt, SectionHeading, signClass } from "./shared"
@@ -22,6 +24,8 @@ type LeaderboardProps = {
   metric: "volume" | "value"
   loading?: boolean
 }
+
+const TABLE_COLS = "1.25rem 2.75rem minmax(2.25rem,1fr) minmax(3.5rem,1fr)"
 
 function formatChangeBadge(changePercent: number | undefined): string {
   if (changePercent == null) return "—"
@@ -37,17 +41,19 @@ function volumeForRow(row: VietnamDashboardRow): number {
   return row.volumeShares ?? row.volume ?? 0
 }
 
-function CompactChangeBadge({ value }: { value: number | undefined }) {
-  if (value == null) return null
+function ChangeBadge({ value }: { value: number | undefined }) {
+  if (value == null) {
+    return <span className="font-mono text-[11px] tabular-nums text-muted-foreground">—</span>
+  }
   const up = value > 0
   const down = value < 0
   return (
     <span
       className={cn(
-        "font-mono text-[10px] font-semibold tabular-nums leading-none",
-        up && "text-gain",
-        down && "text-loss",
-        !up && !down && "text-muted-foreground",
+        "inline-flex min-w-[2.75rem] justify-end rounded px-1 py-0.5 font-mono text-[10px] font-semibold tabular-nums leading-none sm:text-[11px]",
+        up && "bg-gain/15 text-gain",
+        down && "bg-loss/15 text-loss",
+        !up && !down && "bg-secondary/50 text-muted-foreground",
       )}
     >
       {formatChangeBadge(value)}
@@ -90,9 +96,16 @@ function RowTooltipContent({ row }: { row: VietnamDashboardRow }) {
 }
 
 function LeaderboardCard({ title, rows, metric, loading }: LeaderboardProps) {
-  const { t } = useLang()
-  const metricLabel =
-    metric === "volume" ? t("vnDashboard.volumeShares") : t("vnDashboard.tradingValue")
+  const { t, lang } = useLang()
+  const nameBySymbol = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const record of buildHeatmapSymbolRecords()) {
+      map.set(record.symbol.toUpperCase(), record.name[lang])
+    }
+    return map
+  }, [lang])
+
+  const metricHeader = metric === "volume" ? "KL" : t("vnDashboard.tradingValue")
 
   return (
     <Card className="gap-0 border-border/80 py-0 shadow-sm">
@@ -106,48 +119,62 @@ function LeaderboardCard({ title, rows, metric, loading }: LeaderboardProps) {
           <TooltipProvider delay={120}>
             <div className="overflow-x-auto">
               <div
-                className="grid min-w-[180px] text-[11px] leading-tight"
-                style={{ gridTemplateColumns: "1.75rem 1fr auto" }}
+                className="grid min-w-[240px] text-[11px] leading-none sm:text-xs"
+                style={{ gridTemplateColumns: TABLE_COLS }}
               >
-                <div className="col-span-3 grid grid-cols-[1.75rem_1fr_auto] border-b border-border/50 bg-secondary/20 text-[10px] text-muted-foreground">
-                  <span className="px-2 py-1 font-medium">#</span>
-                  <span className="px-2 py-1 font-medium">{t("label.symbol")}</span>
-                  <span className="px-2 py-1 text-right font-medium">{metricLabel}</span>
-                </div>
-                {rows.map((row) => (
-                  <Tooltip key={`${title}-${row.rank}-${row.symbol}`}>
-                    <TooltipTrigger
-                      render={
-                        <div
-                          role="row"
-                          className="col-span-3 grid cursor-default grid-cols-[1.75rem_1fr_auto] items-center border-b border-border/30 transition-colors last:border-0 hover:bg-secondary/25"
-                        >
-                          <span className="px-2 py-[3px] font-mono text-[10px] tabular-nums text-muted-foreground">
-                            {row.rank}
-                          </span>
-                          <span className="flex items-center gap-1.5 px-2 py-[3px]">
-                            <span className="min-w-[2.25rem] font-bold tracking-tight text-foreground">
+                <span className="border-b border-border/50 bg-secondary/20 px-1.5 py-1.5 text-center font-medium text-muted-foreground">
+                  #
+                </span>
+                <span className="border-b border-border/50 bg-secondary/20 px-1.5 py-1.5 font-medium text-muted-foreground">
+                  {t("label.symbol")}
+                </span>
+                <span className="border-b border-border/50 bg-secondary/20 px-1.5 py-1.5 text-right font-medium text-muted-foreground">
+                  %
+                </span>
+                <span className="border-b border-border/50 bg-secondary/20 px-1.5 py-1.5 text-right font-medium text-muted-foreground">
+                  {metricHeader}
+                </span>
+
+                {rows.map((row) => {
+                  const companyName = nameBySymbol.get(row.symbol.toUpperCase())
+                  return (
+                    <Tooltip key={`${title}-${row.rank}-${row.symbol}`}>
+                      <TooltipTrigger
+                        render={
+                          <div
+                            role="row"
+                            className="contents cursor-default [&>*]:flex [&>*]:h-[28px] [&>*]:items-center [&>*]:border-b [&>*]:border-border/30 [&>*]:transition-colors hover:[&>*]:bg-secondary/25 sm:[&>*]:h-[30px]"
+                          >
+                            <span className="justify-center px-1 font-mono text-[10px] tabular-nums text-muted-foreground">
+                              {row.rank}
+                            </span>
+                            <span className="whitespace-nowrap px-1.5 font-bold tracking-tight text-foreground">
                               {row.symbol}
                             </span>
-                            <CompactChangeBadge value={row.changePercent} />
-                          </span>
-                          <span className="px-2 py-[3px] text-right font-mono text-[11px] font-semibold tabular-nums text-foreground">
-                            {metric === "volume"
-                              ? fmt(volumeForRow(row), { notation: "compact" })
-                              : fmt(tradingValueForRow(row), { notation: "compact" })}
-                          </span>
-                        </div>
-                      }
-                    />
-                    <TooltipContent
-                      side="left"
-                      className="max-w-[200px] flex-col items-start gap-0.5 p-2 text-xs"
-                    >
-                      <p className="font-semibold">{row.symbol}</p>
-                      <RowTooltipContent row={row} />
-                    </TooltipContent>
-                  </Tooltip>
-                ))}
+                            <span className="justify-end px-1">
+                              <ChangeBadge value={row.changePercent} />
+                            </span>
+                            <span className="justify-end px-1.5 font-mono font-semibold tabular-nums text-foreground">
+                              {metric === "volume"
+                                ? fmt(volumeForRow(row), { notation: "compact" })
+                                : fmt(tradingValueForRow(row), { notation: "compact" })}
+                            </span>
+                          </div>
+                        }
+                      />
+                      <TooltipContent
+                        side="left"
+                        className="max-w-[220px] flex-col items-start gap-0.5 p-2 text-xs"
+                      >
+                        <p className="font-semibold">{row.symbol}</p>
+                        {companyName ? (
+                          <p className="text-background/80">{companyName}</p>
+                        ) : null}
+                        <RowTooltipContent row={row} />
+                      </TooltipContent>
+                    </Tooltip>
+                  )
+                })}
               </div>
             </div>
           </TooltipProvider>

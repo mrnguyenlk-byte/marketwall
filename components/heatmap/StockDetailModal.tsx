@@ -1,11 +1,12 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
-import { BarChart3, Star, X } from "lucide-react"
+import { useCallback, useEffect, useRef, useState } from "react"
+import { Star, X } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { ChangePill, fmt } from "@/components/marketwall/shared"
 import { features } from "@/lib/config/features"
+import { isHeatmapOnlyAsset } from "@/lib/market/asset-detail-availability"
 import { useLang } from "@/lib/i18n"
 import { useHeatmapDetail } from "@/lib/heatmap-detail-context"
 import type { MarketAsset } from "@/types/market"
@@ -29,43 +30,41 @@ function StockDetailContent({ asset, onClose }: { asset: MarketAsset; onClose: (
   const [activeTab, setActiveTab] = useState("overview")
   const [watching, setWatching] = useState(false)
   const locale = lang === "vi" ? "vi-VN" : "en-US"
+  const heatmapOnly = isHeatmapOnlyAsset(asset)
+  const showName =
+    asset.name[lang].trim() &&
+    asset.name[lang].trim() !== asset.symbol
 
   return (
     <>
-      <header className="shrink-0 border-b border-border bg-card/95 px-3 py-3 sm:px-4">
+      <header className="shrink-0 border-b border-border bg-card/95 px-3 py-2.5 sm:px-4">
         <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
               <h2 id="stock-detail-title" className="text-lg font-bold sm:text-xl">
                 {asset.symbol}
               </h2>
-              <span className="truncate text-sm text-muted-foreground">{asset.name[lang]}</span>
-              <span className="rounded bg-secondary/70 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+              {showName ? (
+                <span className="truncate text-sm text-muted-foreground">{asset.name[lang]}</span>
+              ) : null}
+              <span className="rounded bg-secondary/70 px-1.5 py-0.5 text-[10px] font-medium uppercase text-muted-foreground">
                 {asset.exchange}
               </span>
             </div>
-            <div className="mt-2 flex flex-wrap items-end gap-3">
-              <p className="font-mono text-2xl font-bold tabular-nums">
+            <div className="mt-1.5 flex flex-wrap items-center gap-2 sm:gap-3">
+              <p className="font-mono text-xl font-bold tabular-nums sm:text-2xl">
                 {fmt(asset.price)} {asset.currency}
               </p>
               <ChangePill value={asset.changePercent} />
             </div>
-            <p className="mt-1 text-[11px] text-muted-foreground">
-              {t("label.updated")}: {formatUpdatedAt(asset.lastUpdated, locale)}
-            </p>
+            {!heatmapOnly ? (
+              <p className="mt-1 text-[10px] text-muted-foreground">
+                {t("label.updated")}: {formatUpdatedAt(asset.lastUpdated, locale)}
+              </p>
+            ) : null}
           </div>
 
           <div className="flex shrink-0 items-center gap-1">
-            <Button
-              type="button"
-              variant={activeTab === "chart" ? "secondary" : "ghost"}
-              size="sm"
-              className="hidden gap-1 sm:inline-flex"
-              onClick={() => setActiveTab("chart")}
-            >
-              <BarChart3 className="size-3.5" aria-hidden />
-              {t("heatmapDetail.tab.chart")}
-            </Button>
             <Button
               type="button"
               variant="ghost"
@@ -147,7 +146,7 @@ export function StockDetailModal() {
         onClick={(event) => event.stopPropagation()}
         className={cn(
           "flex h-[100dvh] w-full flex-col overflow-hidden border border-border bg-card text-foreground shadow-2xl",
-          "sm:h-[88vh] sm:max-h-[88vh] sm:w-[90vw] sm:max-w-[90vw] sm:rounded-lg",
+          "sm:h-[min(88vh,820px)] sm:max-h-[88vh] sm:w-[min(92vw,960px)] sm:max-w-[960px] sm:rounded-lg",
         )}
       >
         <StockDetailContent key={asset.symbol} asset={asset} onClose={closeAsset} />

@@ -13,6 +13,7 @@ import {
 import type { TreemapRect } from "@/lib/treemap/squarify"
 import type { VnHeatmapSizingMode } from "@/lib/vietnam/heatmap-sizing"
 import type { MarketAsset, MarketType } from "@/types/market"
+import { TooltipProvider } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 
 import { HeatmapTile } from "./HeatmapTile"
@@ -59,15 +60,6 @@ export function FinvizTreemap({
     () => buildHeatmapTreemapLayout(assets, marketType, grouping, sizing),
     [assets, marketType, grouping, sizing],
   )
-
-  const detailedTooltip = true
-
-  const onWheel = useCallback((e: React.WheelEvent) => {
-    if (!e.ctrlKey && !e.metaKey) return
-    e.preventDefault()
-    const delta = e.deltaY > 0 ? -0.1 : 0.1
-    setZoom((z) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z + delta)))
-  }, [])
 
   const onPointerDown = useCallback(
     (e: React.PointerEvent) => {
@@ -130,56 +122,56 @@ export function FinvizTreemap({
         </button>
       </div>
 
-      <div
-        ref={containerRef}
-        className={cn(
-          "relative h-full w-full touch-none overflow-hidden bg-heatmap-gap",
-          zoom > 1 && "cursor-grab active:cursor-grabbing",
-        )}
-        onWheel={onWheel}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={onPointerUp}
-        data-market-type={marketType}
-        data-grouping={grouping}
-        data-sizing={sizing}
-      >
+      <TooltipProvider delay={175}>
         <div
-          className="absolute inset-0 origin-top-left transition-transform duration-75"
-          style={{
-            transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
-          }}
+          ref={containerRef}
+          className={cn(
+            "relative h-full w-full touch-none overflow-hidden bg-heatmap-gap",
+            zoom > 1 && "cursor-grab active:cursor-grabbing",
+          )}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerCancel={onPointerUp}
+          data-market-type={marketType}
+          data-grouping={grouping}
+          data-sizing={sizing}
         >
-          <div className="relative h-full w-full">
-            {showGroups
-              ? layout.groups.map((group) => (
-                  <div
-                    key={group.id}
-                    className="pointer-events-none absolute box-border overflow-hidden border border-black/30"
-                    style={rectStyle(group.rect)}
-                  >
-                    <div className="flex min-h-[14px] items-center truncate bg-black/65 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-[inset_0_-1px_0_rgba(255,255,255,0.12)] sm:text-[11px] min-[1440px]:text-xs">
-                      {group.labelKey && groupLabel
-                        ? groupLabel(group.labelKey)
-                        : group.label}
+          <div
+            className="absolute inset-0 origin-top-left"
+            style={{
+              transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+            }}
+          >
+            <div className="relative h-full w-full">
+              {showGroups
+                ? layout.groups.map((group) => (
+                    <div
+                      key={group.id}
+                      className="pointer-events-none absolute box-border overflow-hidden border border-black/30"
+                      style={rectStyle(group.rect)}
+                    >
+                      <div className="flex min-h-[14px] items-center truncate bg-black/65 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-[inset_0_-1px_0_rgba(255,255,255,0.12)] sm:text-[11px] min-[1440px]:text-xs">
+                        {group.labelKey && groupLabel
+                          ? groupLabel(group.labelKey)
+                          : group.label}
+                      </div>
                     </div>
-                  </div>
-                ))
-              : null}
-            {layout.leaves.map((leaf) => (
-              <HeatmapTile
-                key={leaf.data.symbol}
-                asset={leaf.data}
-                size={tileSizeFromRect(leaf.rect)}
-                rect={leaf.rect}
-                detailedTooltip={detailedTooltip}
-                onClick={onTileClick}
-              />
-            ))}
+                  ))
+                : null}
+              {layout.leaves.map((leaf) => (
+                <HeatmapTile
+                  key={leaf.data.symbol}
+                  asset={leaf.data}
+                  size={tileSizeFromRect(leaf.rect)}
+                  rect={leaf.rect}
+                  onClick={onTileClick}
+                />
+              ))}
+            </div>
           </div>
         </div>
-      </div>
+      </TooltipProvider>
     </div>
   )
 }

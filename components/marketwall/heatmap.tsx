@@ -130,7 +130,7 @@ function HeatGrid({ tiles }: { tiles: HeatmapTile[] }) {
         const className = cn(
           "group/tile flex flex-col items-start justify-between rounded-none border border-black/20 text-left transition-[filter,transform]",
           tier === "tiny" ? "min-h-[28px] p-0" : "p-1 sm:p-1.5 lg:p-2",
-          symbolClickEnabled && "hover:z-10 hover:brightness-110",
+          symbolClickEnabled && "cursor-pointer",
           tileSpan(tile.weight),
         )
         const content = (

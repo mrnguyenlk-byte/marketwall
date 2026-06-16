@@ -3,12 +3,10 @@
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { heatStyle, fmt } from "@/components/marketwall/shared"
 import { useLang } from "@/lib/i18n"
-import { vnTradingValueMetric } from "@/lib/treemap/heatmap-engine"
 import type { TreemapRect } from "@/lib/treemap/squarify"
 import type { MarketAsset } from "@/types/market"
 import { cn } from "@/lib/utils"
@@ -49,73 +47,28 @@ type HeatmapTileProps = {
   asset: MarketAsset
   size: TileSize
   rect?: TreemapRect
-  detailedTooltip?: boolean
   onClick: (asset: MarketAsset) => void
 }
 
-function TileTooltipContent({
-  asset,
-  up,
-  detailed,
-}: {
-  asset: MarketAsset
-  up: boolean
-  detailed: boolean
-}) {
-  const { lang, t } = useLang()
-  const tv = asset.tradingValue ?? vnTradingValueMetric(asset)
+function CompactTooltip({ asset, up }: { asset: MarketAsset; up: boolean }) {
+  const { lang } = useLang()
 
   return (
-    <>
+    <div className="flex flex-col gap-0.5 leading-tight">
       <p className="font-semibold">{asset.symbol}</p>
-      <p className="text-background/80">{asset.name[lang]}</p>
-      <p className="font-mono tabular-nums">
-        {fmt(asset.price)} {asset.currency}
+      <p className="max-w-[140px] truncate text-[10px] text-background/75">{asset.name[lang]}</p>
+      <p className="font-mono text-[11px] tabular-nums">
+        {fmt(asset.price)} ·{" "}
+        <span className={up ? "text-emerald-300" : "text-red-300"}>
+          {up ? "+" : ""}
+          {asset.changePercent.toFixed(2)}%
+        </span>
       </p>
-      <p className={cn("font-mono tabular-nums", up ? "text-emerald-300" : "text-red-300")}>
-        {up ? "+" : ""}
-        {asset.changePercent.toFixed(2)}%
-      </p>
-      {detailed ? (
-        <>
-          <p>
-            {t("heatmap.tradingValue")}: {fmt(tv, { notation: "compact" })}
-          </p>
-          <p>
-            {t("label.volume")} (lot): {fmt(asset.volume, { notation: "compact" })}
-          </p>
-          {"volumeShares" in asset && asset.volumeShares != null ? (
-            <p>
-              {t("label.volume")} (shares): {fmt(asset.volumeShares, { notation: "compact" })}
-            </p>
-          ) : null}
-          <p>
-            {t("heatmap.marketCap")}: {fmt(asset.marketCap, { notation: "compact" })}
-          </p>
-          {asset.industry ? (
-            <p>
-              {t("heatmap.industry")}: {asset.industry}
-            </p>
-          ) : null}
-          <p>
-            {t("heatmap.sector")}: {asset.sector}
-          </p>
-        </>
-      ) : (
-        <>
-          <p>
-            {t("label.volume")}: {fmt(asset.volume, { notation: "compact" })}
-          </p>
-          <p>
-            {t("heatmap.sector")}: {asset.sector}
-          </p>
-        </>
-      )}
-    </>
+    </div>
   )
 }
 
-export function HeatmapTile({ asset, size, rect, detailedTooltip = false, onClick }: HeatmapTileProps) {
+export function HeatmapTile({ asset, size, rect, onClick }: HeatmapTileProps) {
   const up = asset.changePercent >= 0
   const classes = sizeClasses[size]
   const showChange = size === "large" || size === "medium"
@@ -176,7 +129,7 @@ export function HeatmapTile({ asset, size, rect, detailedTooltip = false, onClic
       }}
       aria-label={`${asset.symbol} ${up ? "+" : ""}${asset.changePercent.toFixed(2)}%`}
       className={cn(
-        "group/tile flex flex-col items-start justify-between rounded-none border border-black/20 text-left transition-[filter,transform] hover:z-10 hover:brightness-110",
+        "group/tile flex flex-col items-start justify-between rounded-none border border-black/20 text-left",
         size === "tiny" ? "min-h-0 p-0" : "p-0.5 sm:p-1",
         !rect && classes.grid,
       )}
@@ -186,13 +139,16 @@ export function HeatmapTile({ asset, size, rect, detailedTooltip = false, onClic
   )
 
   return (
-    <TooltipProvider delay={150}>
-      <Tooltip>
-        <TooltipTrigger render={tileButton} />
-        <TooltipContent side="top" className="max-w-[220px] flex-col items-start gap-0.5 p-2.5">
-          <TileTooltipContent asset={asset} up={up} detailed={detailedTooltip} />
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <Tooltip>
+      <TooltipTrigger render={tileButton} />
+      <TooltipContent
+        side="top"
+        align="center"
+        sideOffset={6}
+        className="pointer-events-none max-w-[160px] flex-col items-start p-2"
+      >
+        <CompactTooltip asset={asset} up={up} />
+      </TooltipContent>
+    </Tooltip>
   )
 }
