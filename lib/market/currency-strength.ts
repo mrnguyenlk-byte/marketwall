@@ -65,19 +65,16 @@ export async function fetchLiveCurrencyStrength(): Promise<CurrencyStrengthFetch
 
     console.log(`[currency-strength] pairs=${pairCount} coverage=${coverage}`)
 
-    if (coverage === "unavailable") {
-      console.warn(
-        `[currency-strength] unavailable pairCount=${pairCount} reason=${pairCount === 0 ? "fx_provider_zero_pairs" : "coverage_below_degraded_threshold"}`,
-      )
-      return { items: [], source: "live", unavailable: true, pairCount, coverage }
-    }
-
     const rows = toStrengthRows(snapshot.currencies)
-    if (rows.length === 0) {
-      return { items: [], source: "live", unavailable: true, pairCount, coverage }
+    const unavailable = rows.length < LIVE_CURRENCIES.size
+
+    if (unavailable) {
+      console.warn(
+        `[currency-strength] unavailable pairCount=${pairCount} items=${rows.length} reason=${pairCount === 0 ? "fx_provider_zero_pairs" : "strength_rows_incomplete"}`,
+      )
     }
 
-    return { items: rows, source: "live", unavailable: false, pairCount, coverage }
+    return { items: rows, source: "live", unavailable, pairCount, coverage }
   } catch {
     return {
       items: [],

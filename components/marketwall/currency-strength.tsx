@@ -5,11 +5,9 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { clientDebug, features } from "@/lib/config/features"
 import { buildStrengthSeries } from "@/lib/currency-strength/calculate-strength"
-import { buildStrengthChartPoints } from "@/lib/currency-strength/chart-points"
 import type { StrengthCoverage } from "@/lib/currency-strength"
 import { useLang } from "@/lib/i18n"
 import {
-  currencyStrengthChartMeta,
   currencyStrengthItems as currencyStrengthFallback,
   type CurrencyStrengthMockItem,
 } from "@/lib/currency-strength-mock"
@@ -17,7 +15,6 @@ import {
   useCurrencyStrength,
   type CurrencyStrengthResponse,
 } from "@/hooks/useCurrencyStrength"
-import { LightweightChart } from "./lightweight-chart"
 import { SectionHeading } from "./shared"
 import { cn } from "@/lib/utils"
 
@@ -75,24 +72,12 @@ function resolveStrengthItems(
   }
 
   if (api?.items?.length) {
-    if (api.source === "mock") {
-      clientDebug("CurrencyStrength", "explicit mock fallback from API")
-      return {
-        items: liveItemsToMockItems(api.items),
-        unavailable: true,
-        coverage: api.coverage,
-      }
-    }
-    clientDebug("CurrencyStrength", "using live API data")
+    const items = liveItemsToMockItems(api.items)
     return {
-      items: liveItemsToMockItems(api.items),
-      unavailable: false,
+      items,
+      unavailable: items.length < STRENGTH_CURRENCY_COUNT,
       coverage: api.coverage,
     }
-  }
-
-  if (api?.unavailable) {
-    return { items: [], unavailable: true, coverage: api.coverage }
   }
 
   if (!api) {
@@ -100,23 +85,8 @@ function resolveStrengthItems(
     return { items: [], unavailable: false }
   }
 
-  if (api.fallback) {
-    return { items: [], unavailable: true }
-  }
-
-  return { items: [], unavailable: false }
+  return { items: [], unavailable: true, coverage: api.coverage }
 }
-
-const LINE_COLORS = [
-  "var(--gain)",
-  "#22d3ee",
-  "var(--primary)",
-  "#a78bfa",
-  "#f472b6",
-  "#38bdf8",
-  "#fb923c",
-  "#4ade80",
-]
 
 function strengthBoxClass(rankKey: string, active: boolean) {
   const base =
@@ -132,112 +102,68 @@ function strengthBoxClass(rankKey: string, active: boolean) {
   return cn(base, !active && "opacity-40 saturate-50")
 }
 
-type StrengthChartProps = {
+function strengthBarColor(rankKey: string): string {
+  if (rankKey === "strength.strongest" || rankKey === "strength.veryStrong") {
+    return "bg-gain"
+  }
+  if (rankKey === "strength.strong") return "bg-primary"
+  if (rankKey === "strength.neutral") return "bg-muted-foreground/70"
+  if (rankKey === "strength.weak") return "bg-warn"
+  return "bg-loss"
+}
+
+type StrengthBarsProps = {
   visible: Set<string>
   items: CurrencyStrengthMockItem[]
 }
 
-function StrengthChart({ visible, items }: StrengthChartProps) {
-  const series = useMemo(
+function StrengthBars({ visible, items }: StrengthBarsProps) {
+  const sorted = useMemo(
     () =>
-      items
-        .map((c, ci) => ({ c, ci }))
-        .filter(({ c }) => visible.has(c.code))
-        .map(({ c, ci }) => ({
-          data: buildStrengthChartPoints(c.strength),
-          color: LINE_COLORS[ci % LINE_COLORS.length],
-          lineWidth: 2,
-        })),
+      [...items]
+        .filter((c) => visible.has(c.code))
+        .sort((a, b) => b.strength - a.strength),
     [visible, items],
   )
 
   return (
-    <LightweightChart
-      series={series}
-      height={228}
-      showTimeScale={false}
-      showGrid
-      priceMin={STRENGTH_SCALE_MIN}
-      priceMax={STRENGTH_SCALE_MAX}
-      referencePrice={STRENGTH_NEUTRAL}
-      className="h-full"
-    />
-  )
-}
-
-function TimeAxis() {
-  const { timezone, timeLabels } = currencyStrengthChartMeta
-  const leftPct = "5.5%"
-  const rightPct = "1.1%"
-
-  return (
-    <div className="shrink-0 border-t border-border/50 pt-1.5">
-      <div
-        className="grid items-center gap-0"
-        style={{
-          paddingLeft: leftPct,
-          paddingRight: rightPct,
-          gridTemplateColumns: `auto repeat(${timeLabels.length}, 1fr)`,
-        }}
-      >
-        <span className="w-8 pr-1 text-[9px] font-medium text-muted-foreground">
-          {timezone}
-        </span>
-        {timeLabels.map((label) => (
-          <span
-            key={label}
-            className="text-center font-mono text-[10px] tabular-nums text-muted-foreground"
+    <div className="flex h-full flex-col justify-center gap-2.5 px-1 py-2">
+      <div className="mb-1 flex items-center justify-between px-8 text-[9px] font-medium uppercase tracking-wide text-muted-foreground">
+        <span>{STRENGTH_SCALE_MIN}</span>
+        <span>{STRENGTH_NEUTRAL}</span>
+        <span>{STRENGTH_SCALE_MAX}</span>
+      </div>
+      {sorted.map((c) => {
+        const widthPct = Math.min(
+          STRENGTH_SCALE_MAX,
+          Math.max(STRENGTH_SCALE_MIN, c.strength),
+        )
+        return (
+          <div
+            key={c.code}
+            className="grid grid-cols-[2.25rem_1fr_2.75rem] items-center gap-2"
           >
-            {label}
-          </span>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-type LegendProps = {
-  visible: Set<string>
-  onToggle: (code: string) => void
-  items: CurrencyStrengthMockItem[]
-}
-
-function StrengthLegend({ visible, onToggle, items }: LegendProps) {
-  const { t } = useLang()
-
-  return (
-    <div className="flex w-[100px] shrink-0 flex-col border-l border-border/60 pl-2.5">
-      <div className="mb-2 grid grid-cols-[1fr_auto] gap-x-1 border-b border-border/50 pb-1.5 text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">
-        <span>{t("label.currency")}</span>
-        <span className="text-right">{t("label.strength")}</span>
-      </div>
-      <div className="flex min-h-0 flex-1 flex-col justify-between gap-1">
-        {items.map((c, i) => {
-          const active = visible.has(c.code)
-          return (
-            <button
-              key={c.code}
-              type="button"
-              onClick={() => onToggle(c.code)}
-              className={cn(
-                "grid w-full grid-cols-[auto_1fr_auto] items-center gap-1 rounded px-0.5 py-0.5 text-left text-[10px] transition-opacity hover:bg-secondary/40",
-                !active && "opacity-40",
-              )}
-              aria-pressed={active}
-              title={active ? t("action.hideLine") : t("action.showLine")}
-            >
-              <span
-                className="size-2 shrink-0 rounded-full"
-                style={{ backgroundColor: LINE_COLORS[i % LINE_COLORS.length] }}
+            <span className="text-[10px] font-bold text-foreground">{c.code}</span>
+            <div className="relative h-3.5 rounded-full bg-secondary/50">
+              <div
+                className="pointer-events-none absolute inset-y-0 w-px bg-muted-foreground/40"
+                style={{ left: `${STRENGTH_NEUTRAL}%` }}
+                aria-hidden
               />
-              <span className="truncate font-medium text-foreground">{c.code}</span>
-              <span className="font-mono font-semibold tabular-nums text-foreground">
-                {c.strength.toFixed(1)}
-              </span>
-            </button>
-          )
-        })}
-      </div>
+              <div
+                className={cn(
+                  "absolute inset-y-0 left-0 rounded-full transition-[width]",
+                  strengthBarColor(c.rankKey),
+                )}
+                style={{ width: `${widthPct}%` }}
+              />
+            </div>
+            <span className="font-mono text-[10px] font-semibold tabular-nums text-foreground">
+              {c.strength.toFixed(1)}
+            </span>
+          </div>
+        )
+      })}
     </div>
   )
 }
@@ -273,9 +199,7 @@ export function CurrencyStrength() {
   const hasFullStrengthSet = currencyStrength.length >= STRENGTH_CURRENCY_COUNT
 
   const showUnavailableMessage =
-    !isLoading &&
-    currencyStrength.length < STRENGTH_CURRENCY_COUNT &&
-    (dataUnavailable || Boolean(strengthApi.error) || currencyStrength.length > 0)
+    !isLoading && currencyStrength.length < STRENGTH_CURRENCY_COUNT && dataUnavailable
 
   const coverageBadgeKey =
     coverage === "degraded"
@@ -328,18 +252,12 @@ export function CurrencyStrength() {
                   )
                 })}
               </div>
-              <div className="flex min-h-0 flex-1 gap-2">
-                <div
-                  className="flex min-h-[260px] min-w-0 flex-1 flex-col overflow-hidden rounded-md border border-border bg-chart-bg p-1.5"
-                  role="img"
-                  aria-label={t("sec.currencyStrength1D")}
-                >
-                  <div className="min-h-0 flex-1">
-                    <StrengthChart visible={visible} items={currencyStrength} />
-                  </div>
-                  <TimeAxis />
-                </div>
-                <StrengthLegend visible={visible} onToggle={toggle} items={currencyStrength} />
+              <div
+                className="flex min-h-[220px] min-w-0 flex-1 flex-col overflow-hidden rounded-md border border-border bg-chart-bg p-2"
+                role="img"
+                aria-label={t("sec.currencyStrength1D")}
+              >
+                <StrengthBars visible={visible} items={currencyStrength} />
               </div>
             </>
           )}
