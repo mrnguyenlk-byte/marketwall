@@ -1,5 +1,7 @@
 export const features = {
   symbolModal: false,
+  /** FireAnt-style heatmap tile → stock detail modal (mock data). */
+  heatmapDetailModal: true,
   watchlist: false,
   liveClientFetch: true,
   /** Hidden until a reliable public FX strength feed is wired. */

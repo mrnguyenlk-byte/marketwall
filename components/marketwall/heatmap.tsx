@@ -4,17 +4,27 @@ import { useMemo, useState } from "react"
 import { ArrowUpRight } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { MarketHeatmap } from "@/components/heatmap/MarketHeatmap"
 import { clientDebug, features } from "@/lib/config/features"
+import { useHeatmapDetail } from "@/lib/heatmap-detail-context"
 import { useLang } from "@/lib/i18n"
+import { getMockHeatmapAssets } from "@/lib/mockHeatmapData"
 import { useSymbolDetail } from "@/lib/symbol-detail-context"
 import { useMarketsLoading, useVietnamMarkets } from "@/lib/swr/use-market-apis"
 import type { HeatmapMarket, HeatmapTile, VnExchangeId } from "@/lib/market-types"
+import type { MarketType } from "@/types/market"
 import { SectionHeading, heatStyle } from "./shared"
 import { HeatmapGridSkeleton } from "./data-skeletons"
 import { cn } from "@/lib/utils"
 
 const timeframes = ["1D", "7D", "1M"] as const
 const VN_EXCHANGE_IDS: VnExchangeId[] = ["hose", "hnx", "upcom"]
+
+const DETAIL_MARKET_TABS: { id: MarketType; labelKey: string; flag: string }[] = [
+  { id: "vn", labelKey: "tab.vnMarket", flag: "🇻🇳" },
+  { id: "us", labelKey: "tab.usMarket", flag: "🇺🇸" },
+  { id: "crypto", labelKey: "tab.cryptoMarket", flag: "₿" },
+]
 
 function tileSpan(weight: number) {
   if (weight >= 12) return "col-span-4 row-span-4"
@@ -122,7 +132,127 @@ function filterVnExchanges(market: HeatmapMarket): HeatmapMarket {
   }
 }
 
+function HeatmapDetailSection() {
+  const { t, lang } = useLang()
+  const { openAsset } = useHeatmapDetail()
+  const [activeMarket, setActiveMarket] = useState<MarketType>("vn")
+  const [timeframe, setTimeframe] = useState<(typeof timeframes)[number]>("1D")
+
+  const assets = useMemo(
+    () => getMockHeatmapAssets(activeMarket),
+    [activeMarket],
+  )
+
+  const activeTab = DETAIL_MARKET_TABS.find((tab) => tab.id === activeMarket) ?? DETAIL_MARKET_TABS[0]
+
+  return (
+    <section aria-labelledby="heatmap-title" className="min-w-0">
+      <SectionHeading
+        id="heatmap-title"
+        title={t("sec.heatmaps")}
+        badge={
+          <Badge variant="secondary" className="gap-1 text-[10px]">
+            {t("label.weighted")}
+          </Badge>
+        }
+      />
+
+      <div className="overflow-hidden rounded-lg border border-border bg-card/40 shadow-sm ring-1 ring-border/80">
+        <div className="flex flex-col gap-2 border-b border-border bg-gradient-to-r from-card/90 to-card/60 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+            <span aria-hidden>{activeTab.flag}</span>
+            {t(activeTab.labelKey)}
+          </div>
+
+          <div className="flex shrink-0 items-center gap-2">
+            <div className="flex items-center gap-0.5 rounded-md bg-secondary/60 p-0.5 ring-1 ring-border/50">
+              {timeframes.map((tf) => (
+                <button
+                  key={tf}
+                  type="button"
+                  onClick={() => setTimeframe(tf)}
+                  className={cn(
+                    "rounded px-2.5 py-1 text-[11px] font-semibold transition-colors",
+                    timeframe === tf
+                      ? "bg-card text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {tf}
+                </button>
+              ))}
+            </div>
+            <div className="hidden items-center gap-1 sm:flex">
+              {["-3%", "0%", "+3%"].map((label) => (
+                <span
+                  key={label}
+                  className="rounded px-2 py-0.5 text-[10px] font-medium text-muted-foreground ring-1 ring-border/50"
+                >
+                  {label}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div
+          role="tablist"
+          aria-label="Market"
+          className="flex flex-wrap items-center gap-1 border-b border-border bg-card/50 px-3 py-1.5"
+        >
+          {DETAIL_MARKET_TABS.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={activeMarket === tab.id}
+              onClick={() => setActiveMarket(tab.id)}
+              className={cn(
+                "rounded-md px-2.5 py-1 text-[11px] font-semibold transition-colors sm:text-xs",
+                activeMarket === tab.id
+                  ? "bg-primary/15 text-primary ring-1 ring-primary/30"
+                  : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground",
+              )}
+            >
+              {t(tab.labelKey)}
+            </button>
+          ))}
+        </div>
+
+        <div className="h-[520px] bg-chart-bg p-px">
+          <MarketHeatmap
+            assets={assets}
+            locale={lang}
+            marketType={activeMarket}
+            onTileClick={(asset) => openAsset(asset.symbol)}
+          />
+        </div>
+
+        <div className="flex items-center justify-between gap-3 border-t border-border bg-card/60 px-3 py-2 text-[10px] text-muted-foreground">
+          <span>{t("misc.delayed")}</span>
+          <Button
+            variant="link"
+            size="sm"
+            className="ml-auto h-auto shrink-0 gap-0.5 p-0 text-[10px] text-primary"
+          >
+            {t("action.viewFullHeatmap")}
+            <ArrowUpRight className="size-3" aria-hidden />
+          </Button>
+        </div>
+      </div>
+    </section>
+  )
+}
+
 export function HeatmapSection({ markets }: { markets: HeatmapMarket[] }) {
+  if (features.heatmapDetailModal) {
+    return <HeatmapDetailSection />
+  }
+
+  return <LegacyHeatmapSection markets={markets} />
+}
+
+function LegacyHeatmapSection({ markets }: { markets: HeatmapMarket[] }) {
   const { t } = useLang()
   const [activeExchange, setActiveExchange] = useState<VnExchangeId>("hose")
   const [timeframe, setTimeframe] = useState<(typeof timeframes)[number]>("1D")

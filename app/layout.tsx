@@ -7,6 +7,7 @@ import type { Metadata, Viewport } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 
 import { LanguageProvider } from "@/lib/i18n"
+import { HeatmapDetailProvider } from "@/lib/heatmap-detail-context"
 import { SymbolDetailProvider } from "@/lib/symbol-detail-context"
 import { features } from "@/lib/config/features"
 
@@ -16,6 +17,7 @@ import { SITE_NAME, SITE_LOGO } from "@/lib/brand"
 import { SITE_URL } from "@/lib/seo"
 
 import { ContactFab } from "@/components/marketwall/contact-fab"
+import { StockDetailModal } from "@/components/heatmap/stock-detail-modal-lazy"
 import { SymbolDetailModal } from "@/components/marketwall/symbol-detail-modal-lazy"
 
 import "./globals.css"
@@ -97,9 +99,12 @@ export default function RootLayout({
         <ThemeProvider>
           <LanguageProvider>
             <SymbolDetailProvider>
-              {children}
-              {features.symbolModal && <SymbolDetailModal />}
-              <ContactFab />
+              <HeatmapDetailProvider>
+                {children}
+                {features.symbolModal && <SymbolDetailModal />}
+                {features.heatmapDetailModal && <StockDetailModal />}
+                <ContactFab />
+              </HeatmapDetailProvider>
             </SymbolDetailProvider>
           </LanguageProvider>
         </ThemeProvider>

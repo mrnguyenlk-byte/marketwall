@@ -1,0 +1,65 @@
+import type { Bi } from "@/lib/market-utils"
+
+export type MarketType = "vn" | "us" | "crypto"
+
+export type ShareholderRow = {
+  name: string
+  percent: number
+}
+
+export type DividendRow = {
+  date: string
+  amount: number
+}
+
+export type HistoricalPriceRow = {
+  date: string
+  open: number
+  high: number
+  low: number
+  close: number
+  volume: number
+}
+
+export type FinancialSnapshot = {
+  revenue: number
+  netIncome: number
+  totalAssets: number
+  totalLiabilities: number
+  roe: number
+  roa: number
+}
+
+/** Unified asset record for heatmap tiles and stock detail modal. */
+export type MarketAsset = {
+  symbol: string
+  name: Bi
+  exchange: string
+  marketType: MarketType
+  price: number
+  change: number
+  changePercent: number
+  marketCap: number
+  volume: number
+  sector: string
+  currency: string
+  lastUpdated: string
+  tradingViewSymbol: string
+  open: number
+  high: number
+  low: number
+  close: number
+  prevClose: number
+  avgVolume: number
+  sharesOutstanding?: number
+  pe?: number
+  eps?: number
+  dividendYield?: number
+  week52High?: number
+  week52Low?: number
+  profile: Bi
+  shareholders: ShareholderRow[]
+  dividends: DividendRow[]
+  financials: FinancialSnapshot
+  historicalPrices: HistoricalPriceRow[]
+}
