@@ -29,18 +29,29 @@
 | Broker schema types (Prisma-ready) | ✅ | `types/broker.ts` |
 | Broker registry + slugs | ✅ | `lib/brokers/registry.ts` |
 | Affiliate URL builder | ✅ | `lib/brokers/affiliate.ts` |
-| Click logging (file-based) | ✅ | `lib/brokers/click-store.ts`, `app/api/brokers/clicks/route.ts` |
+| Click logging (file-based) | ✅ superseded by Sprint 3 | `lib/brokers/click-store.ts` |
 | Redirect service | ✅ | `app/api/brokers/redirect/route.ts` |
 | Comparison engine | ✅ | `lib/brokers/compare.ts` |
 | `/brokers` listing (enhanced links) | ✅ | `app/brokers/page.tsx` |
 | `/brokers/[slug]` detail | ✅ | `app/brokers/[slug]/page.tsx` |
 | `/compare/[pair]` comparison | ✅ | `app/compare/[pair]/page.tsx` |
 
+### Sprint 3 — PostgreSQL + Prisma ✅
+
+| Item | Status | Location |
+|------|--------|----------|
+| Prisma schema (User, Watchlist, Alert, Broker, BrokerClick) | ✅ | `prisma/schema.prisma` |
+| Migration SQL | ✅ generated | `prisma/migrations/20250616120000_sprint3_init/` |
+| Prisma client singleton | ✅ | `lib/prisma.ts` |
+| Broker click persistence (Postgres) | ✅ | `lib/brokers/click-store.ts` |
+| Database audit | ✅ | `SPRINT3_DATABASE_AUDIT.md` |
+
 ## Environment
 
 ```env
 TWELVE_DATA_API_KEY=...        # required for live market data
 BROKER_AFFILIATE_ID=marketwall # optional affiliate ref param
+DATABASE_URL=...               # PostgreSQL — broker clicks (Prisma)
 ```
 
 ## Constraints
@@ -51,5 +62,5 @@ BROKER_AFFILIATE_ID=marketwall # optional affiliate ref param
 
 ## Future (not in scope)
 
-- PostgreSQL + Prisma migration for brokers and click analytics
+- Broker catalog seed/sync into Postgres `Broker` table
 - Real-time WebSocket quotes

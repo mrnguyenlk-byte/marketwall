@@ -1,0 +1,112 @@
+// MarketWall — PostgreSQL schema (Sprint 3)
+// Broker catalog remains static JSON; Broker model is forward-looking for future seed/sync.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// Auth-ready user (watchlist + alerts when features are enabled).
+model User {
+  id        String   @id @default(cuid())
+  email     String?  @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  watchlists Watchlist[]
+  alerts     Alert[]
+}
+
+model Watchlist {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String   @default("Default")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user  User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items WatchlistItem[]
+
+  @@index([userId])
+}
+
+/// Symbol codes align with `WatchlistSymbol` in `lib/watchlist.ts`.
+model WatchlistItem {
+  id          String   @id @default(cuid())
+  watchlistId String
+  symbol      String
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  watchlist Watchlist @relation(fields: [watchlistId], references: [id], onDelete: Cascade)
+
+  @@unique([watchlistId, symbol])
+  @@index([watchlistId])
+}
+
+/// Price/change alerts — forward-looking (no UI yet).
+model Alert {
+  id            String   @id @default(cuid())
+  userId        String
+  symbol        String
+  condition     String
+  targetPrice   Float?
+  targetPercent Float?
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([symbol])
+}
+
+/// Mirrors `BrokerRecord` in `types/broker.ts` — seed from static catalog in a future sprint.
+model Broker {
+  slug            String   @id
+  name            String
+  initials        String
+  category        String
+  websiteUrl      String
+  affiliateUrl    String?
+  rating          Float
+  trustScore      Int
+  minDeposit      String
+  minDepositValue Float
+  license         Json
+  licenseTags     String[]
+  spread          String
+  spreadValue     Float
+  platforms       Json
+  platformTags    String[]
+  leverage        String
+  executionType   Json
+  region          Json
+  accountType     Json
+  offer           Json
+  withdrawalTime  Json
+  badges          String[]
+  featured        Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+/// Outbound broker click analytics — replaces `data/broker-clicks.jsonl`.
+model BrokerClick {
+  id        String   @id @default(uuid())
+  slug      String
+  timestamp DateTime @default(now())
+  referer   String?
+  userAgent String?
+  source    String?
+  campaign  String?
+
+  @@index([slug])
+  @@index([timestamp])
+}
