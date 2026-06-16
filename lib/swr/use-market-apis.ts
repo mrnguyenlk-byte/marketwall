@@ -3,8 +3,16 @@
 import useSWR from "swr"
 
 import { features } from "@/lib/config/features"
-import type { CryptoAsset, GlobalQuote, VietnamMarketIndex } from "@/lib/market-types"
+import type {
+  CryptoAsset,
+  GlobalQuote,
+  VietnamMarketIndex,
+} from "@/lib/market-types"
 
+import type { CurrencyStrengthResponse as CurrencyStrengthApiResponse } from "@/hooks/useCurrencyStrength"
+import { useCurrencyStrength } from "@/hooks/useCurrencyStrength"
+import type { QuotesResponse } from "@/hooks/useQuotes"
+import { useQuotes } from "@/hooks/useQuotes"
 import { jsonFetcher } from "./fetcher"
 import { SWR_KEYS } from "./keys"
 
@@ -31,6 +39,10 @@ export type CryptoResponse = {
   heatmapTiles?: import("@/lib/market-types").HeatmapTile[]
 }
 
+export type MarketQuotesResponse = QuotesResponse
+
+export type CurrencyStrengthResponse = CurrencyStrengthApiResponse
+
 function useLiveSwr<T>(key: string | null) {
   return useSWR<T>(features.liveClientFetch ? key : null, jsonFetcher<T>, swrOptions)
 }
@@ -45,6 +57,16 @@ export function useGlobalMarkets() {
 
 export function useCryptoMarkets() {
   return useLiveSwr<CryptoResponse>(SWR_KEYS.crypto)
+}
+
+/** @deprecated Prefer hooks/useQuotes */
+export function useMarketQuotes() {
+  return useQuotes()
+}
+
+/** @deprecated Prefer hooks/useCurrencyStrength */
+export function useCurrencyStrengthApi() {
+  return useCurrencyStrength()
 }
 
 export function useNewsApi() {

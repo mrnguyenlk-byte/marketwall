@@ -21,6 +21,28 @@ export type HistoricalPriceRow = {
   volume: number
 }
 
+/** Normalized quote from GET /api/market/quotes. */
+export type MarketQuote = {
+  symbol: string
+  name: string
+  price: number
+  change: number
+  changePercent: number
+  open: number
+  high: number
+  low: number
+  volume: number
+  updatedAt: string
+}
+
+/** Currency strength row from GET /api/currency-strength. */
+export type CurrencyStrengthQuote = {
+  currency: string
+  strength: number
+  change: number
+  label: string
+}
+
 export type FinancialSnapshot = {
   revenue: number
   netIncome: number

@@ -19,6 +19,10 @@ export const CACHE_KEYS = {
   marketIndices: "provider:market:indices",
   globalMarkets: "provider:global:quotes",
   vietnamMarkets: "provider:vietnam:markets",
+  marketQuotes: "api:market:quotes",
+  currencyStrength: "api:currency:strength",
+  news: "api:news",
+  events: "api:events:calendar",
 } as const
 
 export function getCached<T>(key: string): { value: T; source: DataSource } | null {

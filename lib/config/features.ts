@@ -4,8 +4,8 @@ export const features = {
   heatmapDetailModal: true,
   watchlist: false,
   liveClientFetch: true,
-  /** Hidden until a reliable public FX strength feed is wired. */
-  currencyStrength: false,
+  /** FX strength section — live via Twelve Data pairs with mock fallback. */
+  currencyStrength: true,
   /** Dynamic /markets/[symbol] pages — off until symbol detail flow is stable. */
   dynamicMarketPages: false,
 } as const

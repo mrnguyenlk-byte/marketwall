@@ -1,6 +1,7 @@
 import "server-only"
 
-import { type Bi, type Trend, strengthSeries } from "@/lib/market-utils"
+import { fetchLiveCurrencyStrength } from "@/lib/api/currencyStrength"
+import { type Bi, type Trend, strengthSeries, toTrend } from "@/lib/market-utils"
 import { CACHE_KEYS } from "@/lib/providers/cache"
 import { withFallback, type ProviderResult } from "@/lib/providers/fallback"
 import { currencyStrengthFromItem } from "@/lib/providers/mappers"
@@ -53,18 +54,39 @@ export function getMockData(): CurrencyData {
   return buildCurrencyData(getMockStrengths(), "mock")
 }
 
-/** Placeholder for future live FX strength feed (e.g. OANDA, Twelve Data). */
-async function fetchLiveCurrencyStrength(): Promise<CurrencyStrength[] | null> {
+/** Live FX strength via Twelve Data pairs (env: TWELVE_DATA_API_KEY). */
+async function fetchLiveCurrencyStrengthItems(): Promise<CurrencyStrength[] | null> {
   if (process.env.CURRENCY_STRENGTH_ENABLED === "false") return null
-  // Prepared hook — return null until a live FX provider is wired.
-  return null
+
+  try {
+    const result = await fetchLiveCurrencyStrength()
+    if (result.source !== "live" || !result.items.length) return null
+
+    const liveByCode = new Map(result.items.map((row) => [row.currency, row]))
+    return MOCK_STRENGTHS.map((item) => {
+      const live = liveByCode.get(item.code)
+      if (!live) return currencyStrengthFromItem(item, "live")
+      return currencyStrengthFromItem(
+        {
+          ...item,
+          strength: live.strength,
+          changePercent: live.change,
+          trend: toTrend(live.change),
+          series: strengthSeries(Math.round(live.strength)),
+        },
+        "live",
+      )
+    })
+  } catch {
+    return null
+  }
 }
 
 export async function getDataAsync(): Promise<ProviderResult<CurrencyData>> {
   const resolved = await withFallback(
-    fetchLiveCurrencyStrength,
+    fetchLiveCurrencyStrengthItems,
     getMockStrengths,
-    { provider: "currency-strength", cacheKey: CACHE_KEYS.currency },
+    { provider: "currency-strength", cacheKey: CACHE_KEYS.currency, cacheTtlMs: 60_000 },
   )
 
   return {

@@ -1,5 +1,6 @@
 import "server-only"
 
+import { fetchTradingEconomicsCalendar } from "@/lib/api/tradingEconomics"
 import { safeFetchJson } from "@/lib/providers/fetch-utils"
 import { CACHE_KEYS } from "@/lib/providers/cache"
 import { chainProviders } from "@/lib/providers/fallback"
@@ -271,7 +272,32 @@ async function fetchFairEconomyCalendar(): Promise<EconomicEventRecord[] | null>
 }
 
 async function fetchTradingEconomics(): Promise<EconomicEventRecord[] | null> {
-  const key = process.env.TRADING_ECONOMICS_KEY?.trim()
+  try {
+    const events = await fetchTradingEconomicsCalendar(20)
+    if (!events.length) return null
+
+    return events.map((event, index) => ({
+      id: `te-${event.country}-${index}-${event.event.slice(0, 24)}`,
+      time: event.time,
+      country: event.country,
+      currency: event.country.slice(0, 2),
+      event: event.event,
+      impact: event.impact,
+      previous: event.previous,
+      forecast: event.forecast,
+      actual: event.actual,
+      source: "Trading Economics",
+      publishedAt: new Date().toISOString(),
+    }))
+  } catch {
+    return null
+  }
+}
+
+async function fetchTradingEconomicsLegacy(): Promise<EconomicEventRecord[] | null> {
+  const key =
+    process.env.TRADING_ECONOMICS_API_KEY?.trim() ||
+    process.env.TRADING_ECONOMICS_KEY?.trim()
   if (!key) return null
 
   const url = `https://api.tradingeconomics.com/calendar?c=${encodeURIComponent(key)}&format=json`
@@ -289,11 +315,12 @@ async function fetchTradingEconomics(): Promise<EconomicEventRecord[] | null> {
 export async function getData(): Promise<EconomicCalendarData> {
   const resolved = await chainProviders(
     [
+      { name: "trading-economics-api", fetch: fetchTradingEconomics },
       { name: "fair-economy", fetch: fetchFairEconomyCalendar },
-      { name: "trading-economics", fetch: fetchTradingEconomics },
+      { name: "trading-economics-legacy", fetch: fetchTradingEconomicsLegacy },
     ],
     () => MOCK_RECORDS,
-    { cacheKey: CACHE_KEYS.economic },
+    { cacheKey: CACHE_KEYS.economic, cacheTtlMs: 600_000 },
   )
 
   return buildCalendarData(

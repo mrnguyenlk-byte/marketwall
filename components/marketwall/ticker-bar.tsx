@@ -5,7 +5,9 @@ import { Radio } from "lucide-react"
 
 import { mergeCryptoAssetsIntoTickerItems } from "@/lib/crypto-market-merge"
 import { clientDebug, features } from "@/lib/config/features"
+import { useQuotes } from "@/hooks/useQuotes"
 import { mergeGlobalQuotesIntoTickerItems } from "@/lib/global-market-merge"
+import { mergeMarketQuotesIntoTickerItems } from "@/lib/market-quotes-merge"
 import { mergeVietnamIndicesIntoTickerItems } from "@/lib/vietnam-market-merge"
 import { useLang } from "@/lib/i18n"
 import { useSymbolDetail } from "@/lib/symbol-detail-context"
@@ -72,7 +74,8 @@ export function TickerBar({ items: fallbackItems }: { items: TickerBarItem[] }) 
   const vietnam = useVietnamMarkets()
   const global = useGlobalMarkets()
   const crypto = useCryptoMarkets()
-  const loading = useMarketsLoading(vietnam, global, crypto)
+  const marketQuotes = useQuotes()
+  const loading = useMarketsLoading(vietnam, global, crypto, marketQuotes)
 
   const items = useMemo(() => {
     if (!features.liveClientFetch) {
@@ -90,8 +93,11 @@ export function TickerBar({ items: fallbackItems }: { items: TickerBarItem[] }) 
     if (crypto.data?.assets?.length) {
       merged = mergeCryptoAssetsIntoTickerItems(merged, crypto.data.assets)
     }
+    if (marketQuotes.data?.quotes?.length) {
+      merged = mergeMarketQuotesIntoTickerItems(merged, marketQuotes.data.quotes)
+    }
     return merged
-  }, [fallbackItems, vietnam.data, global.data, crypto.data])
+  }, [fallbackItems, vietnam.data, global.data, crypto.data, marketQuotes.data])
 
   if (loading) {
     return <TickerBarSkeleton count={Math.min(fallbackItems.length, 10)} />

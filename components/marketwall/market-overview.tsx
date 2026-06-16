@@ -9,8 +9,10 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 
 import { clientDebug, features } from "@/lib/config/features"
+import { useQuotes } from "@/hooks/useQuotes"
 import { mergeCryptoAssetsIntoOverview } from "@/lib/crypto-market-merge"
 import { mergeGlobalQuotesIntoOverview } from "@/lib/global-market-merge"
+import { mergeMarketQuotesIntoOverview } from "@/lib/market-quotes-merge"
 import { reorderIndicesTab } from "@/lib/overview-order"
 import { mergeVietnamIndicesIntoOverview } from "@/lib/vietnam-market-merge"
 import { useLang } from "@/lib/i18n"
@@ -100,7 +102,8 @@ export function MarketOverview({
   const vietnam = useVietnamMarkets()
   const global = useGlobalMarkets()
   const crypto = useCryptoMarkets()
-  const loading = useMarketsLoading(vietnam, global, crypto)
+  const marketQuotes = useQuotes()
+  const loading = useMarketsLoading(vietnam, global, crypto, marketQuotes)
 
   const overviewByCategory = useMemo(() => {
     if (!features.liveClientFetch) {
@@ -122,11 +125,15 @@ export function MarketOverview({
       merged = mergeCryptoAssetsIntoOverview(merged, crypto.data.assets)
     }
 
+    if (marketQuotes.data?.quotes?.length) {
+      merged = mergeMarketQuotesIntoOverview(merged, marketQuotes.data.quotes)
+    }
+
     return {
       ...merged,
       indices: reorderIndicesTab(merged.indices),
     }
-  }, [fallbackOverview, vietnam.data, global.data, crypto.data])
+  }, [fallbackOverview, vietnam.data, global.data, crypto.data, marketQuotes.data])
 
   const items = overviewByCategory[tab]
   const symbolClickEnabled = features.symbolModal

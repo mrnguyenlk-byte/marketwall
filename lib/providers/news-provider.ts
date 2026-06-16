@@ -1,6 +1,8 @@
 import "server-only"
 
 import { type Bi } from "@/lib/market-utils"
+import { fetchFinnhubMarketNews } from "@/lib/api/finnhub"
+import { CACHE_KEYS, cachedProvider } from "@/lib/providers/cache"
 import { fetchNewsFromRss, type NormalizedNewsItem } from "@/lib/news/rss"
 
 export type { NormalizedNewsItem }
@@ -111,6 +113,13 @@ export function getMockData(): NewsData {
 
 async function fetchLiveNews(): Promise<NormalizedNewsItem[] | null> {
   try {
+    const finnhub = await fetchFinnhubMarketNews()
+    if (finnhub.length) return finnhub
+  } catch {
+    // fall through
+  }
+
+  try {
     const rss = await fetchNewsFromRss()
     return rss.length ? rss : null
   } catch {
@@ -121,9 +130,30 @@ async function fetchLiveNews(): Promise<NormalizedNewsItem[] | null> {
 export async function getData(): Promise<NewsData> {
   const mock = getMockData()
 
-  if (!isRssEnabled()) return mock
+  if (!isRssEnabled()) {
+    try {
+      const finnhub = await fetchFinnhubMarketNews()
+      if (finnhub.length) return buildNewsData(finnhub, "live")
+    } catch {
+      // fall through
+    }
+    return mock
+  }
 
   try {
+    const cached = await cachedProvider(
+      CACHE_KEYS.news,
+      async () => {
+        const live = await fetchLiveNews()
+        return live?.length ? { data: live, source: "live" as const } : null
+      },
+      { ttlMs: 300_000 },
+    )
+
+    if (cached?.data.length) {
+      return buildNewsData(cached.data, cached.source === "live" ? "live" : "mock")
+    }
+
     const live = await fetchLiveNews()
     if (live?.length) return buildNewsData(live, "live")
   } catch {
