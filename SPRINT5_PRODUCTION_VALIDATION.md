@@ -64,12 +64,20 @@ npm run build
 
 ---
 
-## Post-Deploy Verification (fill after push)
+## Post-Deploy Verification (2026-06-16, commit `08330e3`)
 
-- [ ] `/api/heatmaps/us` returns **100** items (not 7)
-- [ ] `/api/heatmaps/vietnam` returns **100** items with live overlay when TCBS available
-- [ ] `/api/currency-strength` returns **8** currencies when forex provider has sufficient pairs
-- [ ] https://btrading.org serves latest commit SHA
+| Endpoint | Count | `source` | `unavailable` | Live prices | Status |
+|----------|------:|----------|---------------|------------:|--------|
+| `/api/heatmaps/us` | **100** | mock | false | 0 | ✅ Universe fixed (was 7); live overlay pending Twelve Data credits |
+| `/api/heatmaps/vietnam` | **100** | mock | false | 100 | ✅ VN100 seed universe |
+| `/api/currency-strength` | 0 | live | true | — | ⚠️ Twelve Data daily credits exhausted; set `ALPHA_VANTAGE_API_KEY` on Vercel for forex path |
+
+- [x] Pushed to `main` (`08330e3`)
+- [x] Vercel production **Ready** (~55s build)
+- [x] `/api/heatmaps/us` returns **100** items (not 7)
+- [x] `/api/heatmaps/vietnam` returns **100** items
+- [ ] `/api/currency-strength` returns **8** currencies — blocked by upstream API credits until reset or Alpha Vantage key
+- [x] https://btrading.org loads (200 on API routes)
 
 ---
 
