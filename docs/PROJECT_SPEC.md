@@ -97,6 +97,25 @@
 
 > Alpha Vantage migration **rejected** — see `SPRINT6_REVISED_PROVIDER_STRATEGY.md`. Module kept at `lib/alphavantage/` for reference only.
 
+### Sprint 17 — Vietnam Market Analytics Tabs ✅
+
+| Item | Status | Location |
+|------|--------|----------|
+| 4 analytics tabs (breadth, foreign, proprietary, liquidity) | ✅ | `components/marketwall/vietnam-market-analytics.tsx` |
+| Analytics engine (HOSE+HNX+UPCOM aggregate) | ✅ | `lib/vietnam/market-analytics.ts` |
+| Extended `/api/vietnam-markets` | ✅ | `app/api/vietnam-markets/route.ts` |
+| Sprint doc | ✅ | `SPRINT17_VIETNAM_MARKET_ANALYTICS.md` |
+
+### Sprint 18 — Currency Strength Stability ✅
+
+| Item | Status | Location |
+|------|--------|----------|
+| Z-score strength formula (28 pairs) | ✅ | `lib/currency-strength/calculate-strength.ts` |
+| 5 min server cache + client SWR | ✅ | `lib/providers/cache.ts`, `hooks/useCurrencyStrength.ts` |
+| No realtime overlay for FX strength | ✅ | `hooks/useCurrencyStrength.ts` |
+| API `updatedAt` / `nextUpdateAt` | ✅ | `app/api/currency-strength/route.ts` |
+| Sprint doc + deploy audit | ✅ | `SPRINT18_CURRENCY_STRENGTH_STABILITY.md`, `SPRINT18_AUDIT.md` |
+
 ## Environment
 
 ```env
