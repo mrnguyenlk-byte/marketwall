@@ -14,9 +14,9 @@ export const DEFAULT_CACHE_TTL_MS = 60_000
 
 /** Sprint 5 server-side TTLs (reduce Twelve Data overuse). */
 export const CACHE_TTL = {
-  forex: 30_000,
+  forex: 60_000,
   crypto: 45_000,
-  heatmap: 180_000,
+  heatmap: 300_000,
   overview: 30_000,
 } as const
 
@@ -30,6 +30,7 @@ export const CACHE_KEYS = {
   marketQuotes: "api:market:quotes",
   marketsOverview: "api:markets:overview",
   currencyStrength: "api:currency:strength",
+  forexAlphaVantage: "provider:forex:alphavantage:pairs",
   heatmapVietnam: "api:heatmaps:vietnam",
   heatmapUs: "api:heatmaps:us",
   heatmapCrypto: "api:heatmaps:crypto",

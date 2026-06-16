@@ -15,6 +15,8 @@ import { getStockQuotes } from "@/lib/twelvedata/client"
 import type { HeatmapAsset, MarketType } from "@/types/market"
 
 const HEATMAP_CACHE_TTL_MS = CACHE_TTL.heatmap
+const US_LIVE_MIN_PRICES = 5
+const VN_HEATMAP_SIZE = 100
 
 const CACHE_BY_MARKET: Record<MarketType, string> = {
   vn: CACHE_KEYS.heatmapVietnam,
@@ -72,39 +74,52 @@ function sortByMarketCap(items: HeatmapAsset[]): HeatmapAsset[] {
   return [...items].sort((a, b) => b.marketCap - a.marketCap)
 }
 
-function hasLivePrices(items: HeatmapAsset[], minCount: number): boolean {
-  return items.filter((row) => row.price > 0).length >= minCount
-}
-
 async function fetchVietnamRows(): Promise<{ items: HeatmapAsset[]; source: "live" | "mock" }> {
+  const mock = getVietnamMock()
+  const baseItems = sortByMarketCap(vnTilesToRows(mock.heatmapMarket)).slice(0, VN_HEATMAP_SIZE)
+
   try {
     const data = await getVietnamData()
-    const items = sortByMarketCap(vnTilesToRows(data.heatmapMarket)).slice(0, 100)
-    if (items.length) return { items, source: data.source }
+    const liveItems = sortByMarketCap(vnTilesToRows(data.heatmapMarket))
+    const liveBySymbol = new Map(liveItems.map((row) => [row.symbol.toUpperCase(), row]))
+
+    const items = baseItems.map((row) => {
+      const live = liveBySymbol.get(row.symbol.toUpperCase())
+      if (!live || live.price <= 0) return row
+      return {
+        ...row,
+        price: live.price,
+        changePercent: live.changePercent,
+        marketCap: row.marketCap || live.marketCap,
+      }
+    })
+
+    const livePriceCount = items.filter((row) => row.price > 0).length
+    const source =
+      data.source === "live" && livePriceCount >= US_LIVE_MIN_PRICES ? "live" : "mock"
+    return { items, source }
   } catch {
-    /* fall through */
-  }
-  const mock = getVietnamMock()
-  return {
-    items: sortByMarketCap(vnTilesToRows(mock.heatmapMarket)).slice(0, 100),
-    source: "mock",
+    return { items: baseItems, source: "mock" }
   }
 }
 
 async function fetchUsRows(): Promise<{ items: HeatmapAsset[]; source: "live" | "mock" }> {
   const seedRows = seedsToRows(US_HEATMAP_SEEDS)
+  let items = sortByMarketCap(seedRows)
+
   try {
     const liveQuotes = await getStockQuotes(getUsHeatmapApiSymbols())
-    if (liveQuotes.length >= 20) {
-      const items = overlayHeatmapQuotes(seedRows, liveQuotes)
-      if (hasLivePrices(items, 20)) {
-        return { items: sortByMarketCap(items), source: "live" }
-      }
+    if (liveQuotes.length > 0) {
+      items = sortByMarketCap(overlayHeatmapQuotes(seedRows, liveQuotes))
+    }
+    const livePriceCount = items.filter((row) => row.price > 0).length
+    return {
+      items,
+      source: livePriceCount >= US_LIVE_MIN_PRICES ? "live" : "mock",
     }
   } catch {
-    /* fall through */
+    return { items, source: "mock" }
   }
-  return { items: sortByMarketCap(mockAssetsToRows("us")), source: "mock" }
 }
 
 async function fetchCryptoRows(): Promise<{ items: HeatmapAsset[]; source: "live" | "mock" }> {

@@ -82,13 +82,31 @@
 | Server cache TTLs (forex/crypto/heatmap) | ✅ | `lib/providers/cache.ts` |
 | Mock isolated to API fallback | ✅ | `toApiJson().fallback`, heatmap/currency providers |
 | Consolidated sprint audit | ✅ | `SPRINT5_DATA_REALTIME_AUDIT.md` |
+| Production validation fix | ✅ | `SPRINT5_PRODUCTION_VALIDATION.md` |
+
+### Sprint 6 — Provider Strategy (revised) ✅
+
+| Item | Status | Location |
+|------|--------|----------|
+| Provider abstraction layer | ✅ | `lib/forex/pairs-provider.ts` |
+| FX primary: Twelve Data (AV rejected) | ✅ | `lib/forex/pairs-provider.ts` → `lib/twelvedata/client.ts` |
+| Crypto: CoinGecko | ✅ | `lib/providers/crypto-provider.ts` |
+| Vietnam: TCBS adapters | ✅ | `lib/adapters/vietnam/tcbs-adapter.ts` |
+| News/calendar: Finnhub (+ TE) | ✅ | `lib/providers/news-provider.ts`, `economic-provider.ts` |
+| Revised strategy doc | ✅ | `SPRINT6_REVISED_PROVIDER_STRATEGY.md` |
+
+> Alpha Vantage migration **rejected** — see `SPRINT6_REVISED_PROVIDER_STRATEGY.md`. Module kept at `lib/alphavantage/` for reference only.
 
 ## Environment
 
 ```env
-TWELVE_DATA_API_KEY=...        # required for live market data + WebSocket relay (server-only)
+TWELVE_DATA_API_KEY=...        # forex, overview, US heatmap, WS relay (server-only)
+FINNHUB_API_KEY=...            # news, calendar (target)
+TRADING_ECONOMICS_API_KEY=...  # economic calendar (current)
 BROKER_AFFILIATE_ID=marketwall # optional affiliate ref param
 DATABASE_URL=...               # PostgreSQL — broker clicks (Prisma)
+AUTH_SECRET=...                # NextAuth
+NEXTAUTH_URL=...               # production URL
 ```
 
 Realtime: browser connects to `GET /api/realtime/stream` (SSE). The server relay connects to Twelve Data WebSocket using `TWELVE_DATA_API_KEY` — the key is never exposed to the client. Disable via `features.realtimeStream` in `lib/config/features.ts`.
@@ -111,6 +129,8 @@ At the end of **every sprint**, agents must run the automated deploy pipeline de
 | `SPRINT5_CURRENCY_STRENGTH_AUDIT.md` |
 | `SPRINT5_REALTIME_AUDIT.md` |
 | `SPRINT5_DATA_REALTIME_AUDIT.md` (consolidated template) |
+| `SPRINT5_PRODUCTION_VALIDATION.md` |
+| `SPRINT6_REVISED_PROVIDER_STRATEGY.md` |
 
 ## Constraints
 

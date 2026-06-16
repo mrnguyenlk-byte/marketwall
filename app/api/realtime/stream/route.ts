@@ -1,7 +1,8 @@
 import "server-only"
 
 import { OVERVIEW_SYMBOLS } from "@/config/market-symbols"
-import { getOverviewQuotes, getForexPairsForCurrencyStrength } from "@/lib/twelvedata/client"
+import { getForexPairsForCurrencyStrength } from "@/lib/forex/pairs-provider"
+import { getOverviewQuotes } from "@/lib/twelvedata/client"
 import { getTwelveDataWsRelay } from "@/lib/twelvedata/ws-relay"
 import type { RealtimeChannel, RealtimeEvent } from "@/lib/realtime/types"
 import { REALTIME_CHANNELS } from "@/lib/realtime/types"

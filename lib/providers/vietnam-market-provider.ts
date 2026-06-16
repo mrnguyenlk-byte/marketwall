@@ -202,6 +202,37 @@ function buildIndices(source: "mock" | "live"): VietnamMarketIndex[] {
   }))
 }
 
+function mergeHeatmapStockBucket(
+  seeds: VietnamHeatmapStock[],
+  live: VietnamHeatmapStock[],
+): VietnamHeatmapStock[] {
+  const liveBySymbol = new Map(live.map((stock) => [stock.symbol.toUpperCase(), stock]))
+  const merged = seeds.map((seed) => {
+    const liveStock = liveBySymbol.get(seed.symbol.toUpperCase())
+    if (!liveStock) return seed
+    return {
+      ...seed,
+      price: liveStock.price,
+      change: liveStock.change,
+      changePercent: liveStock.changePercent,
+      volume: liveStock.volume,
+      value: liveStock.value,
+    }
+  })
+  return assignWeights(merged)
+}
+
+function mergeHeatmapStocks(
+  seeds: VietnamMarketData["heatmapStocks"],
+  live: VietnamMarketData["heatmapStocks"],
+): VietnamMarketData["heatmapStocks"] {
+  return {
+    hose: mergeHeatmapStockBucket(seeds.hose, live.hose),
+    hnx: mergeHeatmapStockBucket(seeds.hnx, live.hnx),
+    upcom: mergeHeatmapStockBucket(seeds.upcom, live.upcom),
+  }
+}
+
 function buildHeatmapStocks(): VietnamMarketData["heatmapStocks"] {
   const hose = assignWeights(HOSE_SEEDS.map((seed) => buildStock(seed, "hose")))
   const hnx = assignWeights(HNX_SEEDS.map((seed) => buildStock(seed, "hnx")))
@@ -272,7 +303,7 @@ async function fetchLiveVietnamMarketData(): Promise<VietnamMarketData | null> {
     data.stocks.hose.length + data.stocks.hnx.length + data.stocks.upcom.length > 0
 
   const heatmapStocks = hasLiveStocks
-    ? normalizedStocksToHeatmapBuckets(data.stocks)
+    ? mergeHeatmapStocks(mock.heatmapStocks, normalizedStocksToHeatmapBuckets(data.stocks))
     : mock.heatmapStocks
 
   return {

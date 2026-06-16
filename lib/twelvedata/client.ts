@@ -6,6 +6,7 @@ import {
   getIndexSymbolDefs,
   OVERVIEW_SYMBOLS,
 } from "@/config/market-symbols"
+import { buildCurrencyStrengthSnapshot } from "@/lib/currency-strength/calculate-strength"
 import {
   defsFromSymbols,
   extractQuoteRow,
@@ -34,6 +35,13 @@ const BASE_URL = "https://api.twelvedata.com"
 const DEFAULT_REVALIDATE_SECONDS = 30
 const MAX_RETRIES = 3
 const RETRY_BASE_MS = 400
+/** Free-tier safe batch size (each symbol ≈ 1 API credit). */
+const QUOTE_BATCH_SIZE = 8
+const STOCK_QUOTE_BATCH_SIZE = 25
+const BATCH_PAUSE_MS = 300
+const FOREX_CACHE_TTL_MS = 60_000
+
+let forexPairsCache: { expiresAt: number; pairs: FxPairQuote[] } | null = null
 
 function getApiKey(): string | null {
   try {
@@ -159,47 +167,98 @@ export async function getTimeSeries(
   }
 }
 
-/** Fetch multiple quotes in one batch request. */
-export async function getQuotes(symbols: string[]): Promise<MarketQuote[]> {
+function resolveQuoteDefs(symbols: string[]) {
+  const defs = defsFromSymbols(symbols, OVERVIEW_SYMBOLS)
+  const unknown = symbols.filter((s) => !defs.some((d) => d.apiSymbol === s))
+  const extraDefs = unknown.map((symbol) =>
+    symbol.includes("/") ? pairDef(symbol) : stockDef(symbol),
+  )
+  return [...defs, ...extraDefs]
+}
+
+async function fetchQuoteBatch(
+  defs: ReturnType<typeof resolveQuoteDefs>,
+): Promise<{ quotes: MarketQuote[]; rateLimited: boolean }> {
+  if (defs.length === 0) return { quotes: [], rateLimited: false }
+
+  const joined = defs.map((d) => d.apiSymbol).join(",")
   try {
-    if (symbols.length === 0) return []
-    const defs = defsFromSymbols(symbols, OVERVIEW_SYMBOLS)
-    const unknown = symbols.filter((s) => !defs.some((d) => d.apiSymbol === s))
-    const extraDefs = unknown.map((symbol) =>
-      symbol.includes("/") ? pairDef(symbol) : stockDef(symbol),
-    )
-    const allDefs = [...defs, ...extraDefs]
-    if (allDefs.length === 0) return []
-
-    const joined = allDefs.map((d) => d.apiSymbol).join(",")
     const json = await tdFetch<TwelveDataQuoteResponse>("/quote", { symbol: joined })
-
     const quotes: MarketQuote[] = []
-    for (const def of allDefs) {
+    for (const def of defs) {
       const row = extractQuoteRow(json, def.apiSymbol)
       if (!row) continue
       const quote = normalizeQuoteRow(row, def)
       if (quote) quotes.push(quote)
     }
-    return quotes
-  } catch {
-    return []
+    return { quotes, rateLimited: false }
+  } catch (error) {
+    const rateLimited =
+      error instanceof TwelveDataApiError &&
+      (error.code === 429 || /credit/i.test(error.message))
+    return { quotes: [], rateLimited }
   }
 }
 
-/** FX pairs for currency strength calculation. */
-export async function getForexPairsForCurrencyStrength(): Promise<FxPairQuote[]> {
-  try {
-    const quotes = await getQuotes([...CURRENCY_STRENGTH_PAIRS])
-    return quotes.map((quote) => ({
-      symbol: quote.symbol.replace("/", ""),
-      price: quote.price,
-      changePercent: quote.changePercent,
-      updatedAt: quote.updatedAt,
-    }))
-  } catch {
-    return []
+/** Fetch multiple quotes in batched requests; returns partial results on rate limits. */
+export async function getQuotes(symbols: string[]): Promise<MarketQuote[]> {
+  if (symbols.length === 0) return []
+
+  const allDefs = resolveQuoteDefs(symbols)
+  if (allDefs.length === 0) return []
+
+  const quotes: MarketQuote[] = []
+  for (let i = 0; i < allDefs.length; i += QUOTE_BATCH_SIZE) {
+    const batchDefs = allDefs.slice(i, i + QUOTE_BATCH_SIZE)
+    const { quotes: batch, rateLimited } = await fetchQuoteBatch(batchDefs)
+    quotes.push(...batch)
+    if (rateLimited) break
+    if (i + QUOTE_BATCH_SIZE < allDefs.length) await sleep(BATCH_PAUSE_MS)
   }
+  return quotes
+}
+
+/** FX pairs for currency strength calculation (cached; stops early when coverage is met). */
+export async function getForexPairsForCurrencyStrength(): Promise<FxPairQuote[]> {
+  if (forexPairsCache && Date.now() < forexPairsCache.expiresAt) {
+    return forexPairsCache.pairs
+  }
+
+  const pairs: FxPairQuote[] = []
+  const pairList = [...CURRENCY_STRENGTH_PAIRS]
+
+  for (let i = 0; i < pairList.length; i += QUOTE_BATCH_SIZE) {
+    const batchPairs = pairList.slice(i, i + QUOTE_BATCH_SIZE)
+    const quotes = await getQuotes(batchPairs)
+
+    for (const quote of quotes) {
+      pairs.push({
+        symbol: quote.symbol.replace("/", ""),
+        price: quote.price,
+        changePercent: quote.changePercent,
+        updatedAt: quote.updatedAt,
+      })
+    }
+
+    const snapshot = buildCurrencyStrengthSnapshot(
+      pairs.map((pair) => ({
+        symbol: pair.symbol,
+        price: pair.price,
+        changePercent: pair.changePercent,
+        updatedAt: pair.updatedAt,
+      })),
+    )
+    if (snapshot.available) break
+
+    if (quotes.length === 0 && batchPairs.length > 0) break
+    if (i + QUOTE_BATCH_SIZE < pairList.length) await sleep(BATCH_PAUSE_MS)
+  }
+
+  if (pairs.length > 0) {
+    forexPairsCache = { expiresAt: Date.now() + FOREX_CACHE_TTL_MS, pairs }
+  }
+
+  return pairs
 }
 
 /** BTC/USD and ETH/USD quotes. */
@@ -234,8 +293,6 @@ export async function getOverviewQuotes(): Promise<MarketQuote[]> {
   return getQuotes(OVERVIEW_SYMBOLS.map((s) => s.apiSymbol))
 }
 
-const STOCK_QUOTE_BATCH_SIZE = 50
-
 /** Batch equity quotes (e.g. US heatmap universe). */
 export async function getStockQuotes(symbols: string[]): Promise<MarketQuote[]> {
   if (symbols.length === 0) return []
@@ -245,6 +302,8 @@ export async function getStockQuotes(symbols: string[]): Promise<MarketQuote[]> 
     const chunk = symbols.slice(i, i + STOCK_QUOTE_BATCH_SIZE)
     const batch = await getQuotes(chunk)
     quotes.push(...batch)
+    if (batch.length === 0 && chunk.length > 0) break
+    if (i + STOCK_QUOTE_BATCH_SIZE < symbols.length) await sleep(BATCH_PAUSE_MS)
   }
   return quotes
 }

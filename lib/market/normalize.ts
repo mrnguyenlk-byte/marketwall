@@ -18,14 +18,42 @@ export function parseNumber(value: string | number | undefined | null, fallback 
   return Number.isFinite(n) ? n : fallback
 }
 
+function quoteRowKeyVariants(symbol: string): string[] {
+  const trimmed = symbol.trim()
+  const compact = trimmed.replace(/[^A-Za-z0-9]/g, "")
+  return [
+    trimmed,
+    trimmed.toUpperCase(),
+    trimmed.replace("/", ""),
+    trimmed.replace("/", "."),
+    trimmed.replace("/", "-"),
+    compact,
+    compact.toUpperCase(),
+  ]
+}
+
 export function extractQuoteRow(
   json: TwelveDataQuoteResponse,
   symbol: string,
 ): TwelveDataQuoteRow | null {
   if (!json || typeof json !== "object") return null
   if ("close" in json || "symbol" in json) return json as TwelveDataQuoteRow
+
   const keyed = json as Record<string, TwelveDataQuoteRow>
-  return keyed[symbol] ?? null
+  const variants = new Set(quoteRowKeyVariants(symbol))
+
+  for (const key of variants) {
+    const row = keyed[key]
+    if (row?.close != null || row?.symbol) return row
+  }
+
+  for (const row of Object.values(keyed)) {
+    if (!row?.symbol) continue
+    const rowVariants = quoteRowKeyVariants(row.symbol)
+    if (rowVariants.some((v) => variants.has(v))) return row
+  }
+
+  return null
 }
 
 export function normalizeQuoteRow(

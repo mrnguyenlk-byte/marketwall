@@ -67,12 +67,7 @@ export type NormalizedTimeSeriesPoint = {
   volume: number
 }
 
-export type FxPairQuote = {
-  symbol: string
-  price: number
-  changePercent: number
-  updatedAt: string
-}
+export type { FxPairQuote } from "@/lib/forex/types"
 
 export type HeatmapQuoteRow = {
   symbol: string

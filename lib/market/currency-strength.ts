@@ -3,7 +3,7 @@ import "server-only"
 import { CURRENCY_STRENGTH_PAIRS } from "@/config/market-symbols"
 import { buildCurrencyStrengthSnapshot } from "@/lib/currency-strength"
 import { getMockStrengths } from "@/lib/providers/currency-provider"
-import { getForexPairsForCurrencyStrength } from "@/lib/twelvedata/client"
+import { getForexPairsForCurrencyStrength } from "@/lib/forex/pairs-provider"
 import type { CurrencyStrengthQuote } from "@/types/market"
 
 const LIVE_CURRENCIES = new Set(["USD", "EUR", "GBP", "JPY", "AUD", "NZD", "CAD", "CHF"])
