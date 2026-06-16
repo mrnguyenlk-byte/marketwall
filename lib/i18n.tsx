@@ -384,6 +384,22 @@ const dict: Dict = {
     vi: "Cập nhật mỗi 5 phút",
     en: "Updates every 5 minutes",
   },
+  "strength.footerSource": { vi: "Nguồn", en: "Source" },
+  "strength.footerCoverage": { vi: "Độ phủ", en: "Coverage" },
+  "strength.footerUpdated": { vi: "Cập nhật", en: "Updated" },
+  "strength.footerNextUpdate": { vi: "Cập nhật tiếp", en: "Next update" },
+  "strength.footerCadence": { vi: "Chu kỳ làm mới", en: "Refresh cadence" },
+  "strength.footerCadenceValue": { vi: "5 phút", en: "5 min" },
+  "strength.sourceYahoo": { vi: "Yahoo Finance", en: "Yahoo Finance" },
+  "strength.sourceYahooEcb": { vi: "Yahoo Finance + ECB", en: "Yahoo Finance + ECB" },
+  "strength.coverageIdeal": { vi: "ideal", en: "ideal" },
+  "strength.coverageValidLabel": { vi: "valid", en: "valid" },
+  "strength.coverageDegradedLabel": { vi: "degraded", en: "degraded" },
+  "foreignFlow.today": { vi: "Hôm nay", en: "Today" },
+  "foreignFlow.historicalUnavailable": {
+    vi: "Lịch sử dòng tiền nước ngoài không có từ các nguồn miễn phí hiện tại.",
+    en: "Historical foreign-flow data not available from current free providers.",
+  },
 
   // Footer
   "footer.about": { vi: "Về chúng tôi", en: "About Us" },

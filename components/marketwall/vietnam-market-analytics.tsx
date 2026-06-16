@@ -243,7 +243,6 @@ function BreadthTab({ analytics, loading }: { analytics?: VietnamMarketAnalytics
 function ForeignTab({ analytics, loading }: { analytics?: VietnamMarketAnalytics; loading: boolean }) {
   const { t } = useLang()
   const f = analytics?.foreignFlow
-  const [range, setRange] = useState<"today" | "7d" | "28d">("today")
 
   if (loading && !f?.available) {
     return <EmptyPanel message={t("heatmapDetail.chartLoading")} />
@@ -254,38 +253,26 @@ function ForeignTab({ analytics, loading }: { analytics?: VietnamMarketAnalytics
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap gap-1.5">
-        {(["today", "7d", "28d"] as const).map((key) => {
-          const disabled = key !== "today" && !f.historicalAvailable
-          const btn = (
-            <button
-              key={key}
-              type="button"
-              disabled={disabled}
-              onClick={() => !disabled && setRange(key)}
-              className={cn(
-                "rounded border px-2 py-0.5 text-[11px] font-medium transition-colors",
-                range === key
-                  ? "border-primary/60 bg-primary/15 text-foreground"
-                  : "border-border/60 text-muted-foreground hover:text-foreground",
-                disabled && "cursor-not-allowed opacity-40",
-              )}
-            >
-              {t(`vnAnalytics.range.${key}`)}
-            </button>
-          )
-          if (!disabled) return btn
-          return (
-            <TooltipProvider key={key}>
-              <Tooltip>
-                <TooltipTrigger render={btn} />
-                <TooltipContent side="bottom" className="max-w-[220px] text-xs">
-                  {t("vnAnalytics.historicalForeignUnavailable")}
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )
-        })}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="rounded border border-primary/60 bg-primary/15 px-2 py-0.5 text-[11px] font-medium">
+          {t("foreignFlow.today")}
+        </span>
+        {!f.historicalAvailable && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <span className="cursor-help text-[10px] text-muted-foreground underline decoration-dotted underline-offset-2">
+                    {t("foreignFlow.historicalUnavailable")}
+                  </span>
+                }
+              />
+              <TooltipContent side="bottom" className="max-w-[240px] text-xs">
+                {t("foreignFlow.historicalUnavailable")}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
       </div>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         <StatCell label={t("vnAnalytics.foreignBuyVol")} value={fmt(f.buyVolume, { notation: "compact" })} className="text-gain" />

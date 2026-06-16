@@ -116,6 +116,32 @@
 | API `updatedAt` / `nextUpdateAt` | ✅ | `app/api/currency-strength/route.ts` |
 | Sprint doc + deploy audit | ✅ | `SPRINT18_CURRENCY_STRENGTH_STABILITY.md`, `SPRINT18_AUDIT.md` |
 
+### Sprint 19 — Production Readiness ✅
+
+| Item | Status | Location |
+|------|--------|----------|
+| VN heatmap sizing audit (trading value default) | ✅ | `lib/vietnam/heatmap-sizing.ts` |
+| Currency strength metadata footer | ✅ | `components/marketwall/currency-strength.tsx` |
+| Foreign flow today-only (no 7D/30D estimate) | ✅ | `foreign-flow-chart.tsx`, `vietnam-market-analytics.tsx` |
+| Production endpoint audit | ✅ | `SPRINT19_PRODUCTION_READINESS.md` |
+
+### Sprint 20 — Trader Layout Optimization ✅
+
+| Item | Status | Location |
+|------|--------|----------|
+| 75/25 desktop grid (heatmap primary) | ✅ | `app/page.tsx` |
+| Fear & Greed → right rail (compact) | ✅ | `app/page.tsx`, `fear-greed.tsx` |
+| Packed sector treemap (VN) | ✅ | `SectorTreemap.tsx`, `sector-treemap-layout.ts` |
+| Taller heatmap viewport | ✅ | `heatmap.tsx` |
+| Sprint doc | ✅ | `SPRINT20_TRADER_LAYOUT.md` |
+
+### Sprint 21 — Data Accuracy Audit ✅
+
+| Item | Status | Location |
+|------|--------|----------|
+| Cross-provider quote audit (8 symbols) | ✅ | `DATA_ACCURACY_AUDIT.md` |
+| Reproducible audit script | ✅ | `scripts/data-accuracy-audit.mjs` |
+
 ## Environment
 
 ```env

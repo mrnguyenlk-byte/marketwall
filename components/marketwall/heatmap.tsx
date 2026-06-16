@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useMemo, useState, type ReactNode } from "react"
 import { ArrowUpRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { MarketHeatmap, type HeatmapGroupingMode } from "@/components/heatmap/MarketHeatmap"
@@ -30,6 +30,17 @@ const DETAIL_MARKET_TABS: { id: MarketType; labelKey: string; flag: string }[] =
   { id: "us", labelKey: "tab.usMarket", flag: "🇺🇸" },
   { id: "crypto", labelKey: "tab.cryptoMarket", flag: "₿" },
 ]
+
+const HEATMAP_VIEWPORT_CLASS =
+  "h-[clamp(680px,calc(100svh-200px),920px)] min-h-[680px] 2xl:min-h-[720px]"
+
+function HeatmapViewport({ children }: { children: ReactNode }) {
+  return (
+    <div className={cn("overflow-hidden bg-chart-bg p-px", HEATMAP_VIEWPORT_CLASS)}>
+      <div className="h-full w-full">{children}</div>
+    </div>
+  )
+}
 
 function tileSpan(weight: number) {
   if (weight >= 12) return "col-span-3 row-span-3"
@@ -290,7 +301,7 @@ function HeatmapDetailSection() {
           ))}
         </div>
 
-        <div className="h-[min(640px,65vh)] min-h-[480px] bg-chart-bg p-px sm:min-h-[520px] lg:min-h-[600px]">
+        <HeatmapViewport>
           {loading ? (
             <HeatmapGridSkeleton />
           ) : assets.length > 0 ? (
@@ -306,7 +317,7 @@ function HeatmapDetailSection() {
           ) : (
             <HeatmapGridSkeleton />
           )}
-        </div>
+        </HeatmapViewport>
 
         <div className="flex items-center justify-between gap-3 border-t border-border bg-card/60 px-3 py-2 text-[10px] text-muted-foreground">
           <span>{t("misc.delayed")}</span>
@@ -359,7 +370,7 @@ function LegacyHeatmapSection({ markets }: { markets: HeatmapMarket[] }) {
     return (
       <section aria-labelledby="heatmap-title" className="min-w-0">
         <SectionHeading id="heatmap-title" title={t("sec.vnHeatmap")} />
-        <div className="h-[min(640px,65vh)] min-h-[480px] rounded-lg border border-border bg-card/40 p-px sm:min-h-[520px] lg:min-h-[600px]">
+        <div className="h-[clamp(680px,calc(100svh-200px),920px)] min-h-[680px] rounded-lg border border-border bg-card/40 p-px">
           <HeatmapGridSkeleton />
         </div>
       </section>
@@ -437,9 +448,9 @@ function LegacyHeatmapSection({ markets }: { markets: HeatmapMarket[] }) {
           </div>
         )}
 
-        <div className="h-[min(640px,65vh)] min-h-[480px] bg-chart-bg p-px sm:min-h-[520px] lg:min-h-[600px]">
+        <HeatmapViewport>
           {loading ? <HeatmapGridSkeleton /> : <HeatGrid tiles={activeTiles} />}
-        </div>
+        </HeatmapViewport>
 
         <div className="flex items-center justify-between gap-3 border-t border-border bg-card/60 px-3 py-2 text-[10px] text-muted-foreground">
           <span>{t("misc.delayed")}</span>

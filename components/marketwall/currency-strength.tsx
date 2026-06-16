@@ -102,28 +102,59 @@ function strengthBoxClass(rankKey: string, active: boolean) {
   return cn(base, !active && "opacity-40 saturate-50")
 }
 
-function formatStrengthTimestamp(iso: string | undefined, locale: string): string | null {
+function formatStrengthTimeOnly(iso: string | undefined, locale: string): string | null {
   if (!iso) return null
   const date = new Date(iso)
   if (Number.isNaN(date.getTime())) return null
-  return date.toLocaleString(locale, {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  })
+  return date.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })
 }
 
-function strengthMetaLabel(
+function strengthSourceLabel(
   t: (key: string) => string,
-  lang: "vi" | "en",
-  updatedAt?: string,
+  source?: CurrencyStrengthResponse["source"],
 ): string {
+  if (source === "yahoo+ecb") return t("strength.sourceYahooEcb")
+  if (source === "yahoo") return t("strength.sourceYahoo")
+  return t("strength.sourceYahoo")
+}
+
+function strengthCoverageLabel(
+  t: (key: string) => string,
+  coverage?: StrengthCoverage,
+): string {
+  if (coverage === "ideal") return t("strength.coverageIdeal")
+  if (coverage === "valid") return t("strength.coverageValidLabel")
+  if (coverage === "degraded") return t("strength.coverageDegradedLabel")
+  return "—"
+}
+
+type StrengthFooterProps = {
+  api?: CurrencyStrengthResponse
+  lang: "vi" | "en"
+  t: (key: string) => string
+}
+
+function StrengthFooter({ api, lang, t }: StrengthFooterProps) {
   const locale = lang === "vi" ? "vi-VN" : "en-US"
-  const time = formatStrengthTimestamp(updatedAt, locale)
-  const cadence = t("strength.updatesEvery5Min")
-  if (!time) return cadence
-  return `${t("strength.lastUpdated").replace("{time}", time)} · ${cadence}`
+  const updated = formatStrengthTimeOnly(api?.updatedAt, locale)
+  const next = formatStrengthTimeOnly(api?.nextUpdateAt, locale)
+
+  return (
+    <div className="mt-2 shrink-0 space-y-0.5 border-t border-border/50 pt-2 text-center text-[10px] leading-relaxed text-muted-foreground">
+      <p>
+        {t("strength.footerSource")}: {strengthSourceLabel(t, api?.source)}
+        {" · "}
+        {t("strength.footerCoverage")}: {strengthCoverageLabel(t, api?.coverage)}
+      </p>
+      <p>
+        {t("strength.footerUpdated")}: {updated ?? "—"}
+        {" · "}
+        {t("strength.footerNextUpdate")}: {next ?? "—"}
+        {" · "}
+        {t("strength.footerCadence")}: {t("strength.footerCadenceValue")}
+      </p>
+    </div>
+  )
 }
 
 function strengthBarColor(rankKey: string): string {
@@ -232,8 +263,6 @@ export function CurrencyStrength() {
         ? "strength.coveragePartial"
         : null
 
-  const metaLabel = strengthMetaLabel(t, lang, strengthApi.data?.updatedAt)
-
   return (
     <section aria-labelledby="currency-strength-title" className="h-[400px]">
       <div className="mb-1 flex items-center gap-2">
@@ -285,9 +314,7 @@ export function CurrencyStrength() {
               >
                 <StrengthBars visible={visible} items={currencyStrength} />
               </div>
-              <p className="mt-2 shrink-0 text-center text-[10px] text-muted-foreground">
-                {metaLabel}
-              </p>
+              <StrengthFooter api={strengthApi.data} lang={lang} t={t} />
             </>
           )}
         </CardContent>

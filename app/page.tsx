@@ -56,21 +56,18 @@ export default async function Page() {
         <TickerBar items={dashboard.dashboardTickerBarItems} />
       </SectionErrorBoundary>
 
-      <main className="w-full px-3 py-4 lg:px-4">
-        <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-[300px_minmax(0,1fr)] lg:grid-cols-[300px_minmax(0,1fr)_280px]">
+      <main className="w-full px-3 py-3 lg:px-4">
+        <div className="grid grid-cols-1 items-start gap-3 md:grid-cols-[minmax(240px,280px)_minmax(0,1fr)] xl:grid-cols-[minmax(0,3fr)_minmax(220px,1fr)] xl:gap-4">
           <aside
             aria-label="Market sidebar"
-            className="w-full md:col-start-1 md:row-start-1 lg:sticky lg:top-[104px] lg:w-[300px] lg:shrink-0 lg:self-start"
+            className="w-full md:col-start-1 md:row-start-1 md:sticky md:top-[104px] md:self-start xl:hidden"
           >
             <Sidebar overviewByCategory={dashboard.overviewByCategory} />
           </aside>
 
-          <section className="min-w-0 space-y-4 md:col-start-2 md:row-start-1 lg:col-start-2">
+          <section className="min-w-0 space-y-3 md:col-start-2 md:row-start-1 xl:col-start-1">
             <SectionErrorBoundary name="heatmap">
               <HeatmapSection markets={dashboard.heatmapMarkets} />
-            </SectionErrorBoundary>
-            <SectionErrorBoundary name="fear-greed">
-              <FearGreed items={dashboard.fearGreedItems} />
             </SectionErrorBoundary>
             <SectionErrorBoundary name="vn-dashboard">
               <VietnamMarketDashboard />
@@ -90,9 +87,12 @@ export default async function Page() {
           </section>
 
           <aside
-            aria-label="Calendar and news"
-            className="flex min-w-0 flex-col gap-4 md:col-start-2 md:row-start-2 lg:col-start-3 lg:row-start-1 lg:sticky lg:top-[104px] lg:self-start"
+            aria-label="Trader sidebar"
+            className="flex min-w-0 flex-col gap-3 md:col-span-2 md:col-start-1 md:row-start-2 xl:col-span-1 xl:col-start-2 xl:row-start-1 xl:sticky xl:top-[104px] xl:max-w-[360px] xl:justify-self-end xl:w-full"
           >
+            <SectionErrorBoundary name="fear-greed">
+              <FearGreed items={dashboard.fearGreedItems} variant="sidebar" />
+            </SectionErrorBoundary>
             <SectionErrorBoundary name="news">
               <MarketNews fallbackItems={newsFallback} />
             </SectionErrorBoundary>

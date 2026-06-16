@@ -15,7 +15,9 @@ import {
   type VnSectorGroupId,
 } from "@/lib/vietnam/sector-groups"
 import type { MarketAsset, MarketType } from "@/types/market"
+import { cn } from "@/lib/utils"
 
+import { SectorTreemap } from "./SectorTreemap"
 import { HeatmapTile, type TileSize } from "./HeatmapTile"
 
 export type HeatmapGroupingMode = "sector" | "marketCap"
@@ -118,29 +120,18 @@ export function MarketHeatmap({
 
   if (sectorGroups) {
     return (
-      <div
-        className="flex h-full flex-col gap-3 overflow-y-auto p-1"
-        data-market-type={marketType}
-        data-grouping="sector"
-        data-sizing={vnSizing}
-      >
-        {sectorGroups.map((group) => (
-          <section key={group.id} aria-label={groupLabel?.(group.labelKey) ?? group.id}>
-            <h3 className="mb-1 px-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground sm:text-[11px]">
-              {groupLabel?.(group.labelKey) ?? group.labelKey}
-            </h3>
-            <div className={GRID_CLASS}>
-              {renderTiles(group.assets, onTileClick, detailedTooltip)}
-            </div>
-          </section>
-        ))}
-      </div>
+      <SectorTreemap
+        assets={assets}
+        sizingMode={vnSizing}
+        groupLabel={groupLabel}
+        onTileClick={onTileClick}
+      />
     )
   }
 
   return (
     <div
-      className={GRID_CLASS}
+      className={cn(GRID_CLASS, "h-full")}
       data-market-type={marketType}
       data-grouping="marketCap"
       data-sizing={marketType === "vn" ? vnSizing : "marketCap"}

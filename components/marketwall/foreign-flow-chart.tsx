@@ -14,7 +14,6 @@ import {
   buildDivergingRows,
   maxDisplayMagnitude,
   type ForeignFlowDisplayMode,
-  type ForeignFlowPeriod,
   type ForeignFlowSide,
 } from "@/lib/vietnam/foreign-flow"
 import { sectorForSymbol } from "@/lib/vietnam/symbol-sectors"
@@ -22,8 +21,6 @@ import type { VietnamDashboardRow } from "@/lib/providers/vietnam-market-provide
 import { cn } from "@/lib/utils"
 
 import { fmt } from "./shared"
-
-const PERIODS: ForeignFlowPeriod[] = ["1d", "7d", "30d"]
 
 type ForeignFlowChartProps = {
   buyRows: VietnamDashboardRow[]
@@ -110,12 +107,11 @@ function FlowBar({
 
 export function ForeignFlowChart({ buyRows, sellRows, loading }: ForeignFlowChartProps) {
   const { t } = useLang()
-  const [period, setPeriod] = useState<ForeignFlowPeriod>("1d")
   const [mode, setMode] = useState<ForeignFlowDisplayMode>("value")
 
   const rows = useMemo(
-    () => buildDivergingRows(buyRows, sellRows, period, mode, sectorForSymbol),
-    [buyRows, sellRows, period, mode],
+    () => buildDivergingRows(buyRows, sellRows, "1d", mode, sectorForSymbol),
+    [buyRows, sellRows, mode],
   )
 
   const maxMag = useMemo(() => maxDisplayMagnitude(rows), [rows])
@@ -123,25 +119,13 @@ export function ForeignFlowChart({ buyRows, sellRows, loading }: ForeignFlowChar
   return (
     <Card className="gap-0 border-border/80 py-0 shadow-sm md:col-span-2">
       <CardHeader className="flex flex-col gap-2 border-b border-border/60 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between">
-        <CardTitle className="text-sm font-semibold">{t("foreignFlow.title")}</CardTitle>
+        <div className="flex items-center gap-2">
+          <CardTitle className="text-sm font-semibold">{t("foreignFlow.title")}</CardTitle>
+          <span className="rounded border border-border/60 bg-secondary/40 px-2 py-0.5 text-[10px] font-semibold uppercase text-foreground">
+            {t("foreignFlow.today")}
+          </span>
+        </div>
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-0.5 rounded-md bg-secondary/60 p-0.5 ring-1 ring-border/50">
-            {PERIODS.map((p) => (
-              <button
-                key={p}
-                type="button"
-                onClick={() => setPeriod(p)}
-                className={cn(
-                  "rounded px-2 py-1 text-[10px] font-semibold uppercase transition-colors sm:text-[11px]",
-                  period === p
-                    ? "bg-card text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                {p}
-              </button>
-            ))}
-          </div>
           <div className="flex items-center gap-0.5 rounded-md bg-secondary/60 p-0.5 ring-1 ring-border/50">
             <button
               type="button"
@@ -243,7 +227,6 @@ export function ForeignFlowChart({ buyRows, sellRows, loading }: ForeignFlowChar
 
               <p className="mt-3 text-center text-[10px] text-muted-foreground">
                 {mode === "value" ? t("foreignFlow.unitBillionVnd") : t("foreignFlow.unitShares")}
-                {period !== "1d" ? ` · ${t("foreignFlow.periodEstimate")}` : null}
               </p>
             </div>
           </TooltipProvider>
