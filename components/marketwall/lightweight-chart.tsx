@@ -6,6 +6,7 @@ import {
   ColorType,
   createChart,
   LineSeries,
+  LineStyle,
   type AreaSeriesPartialOptions,
   type IChartApi,
   type ISeriesApi,
@@ -30,6 +31,12 @@ type LightweightChartProps = {
   variant?: "line" | "area"
   showTimeScale?: boolean
   showGrid?: boolean
+  /** Fixed left price scale minimum (e.g. currency strength 0). */
+  priceMin?: number
+  /** Fixed left price scale maximum (e.g. currency strength 100). */
+  priceMax?: number
+  /** Horizontal reference line (e.g. neutral strength at 50). */
+  referencePrice?: number
 }
 
 function cssVar(name: string, fallback: string): string {
@@ -45,6 +52,9 @@ export function LightweightChart({
   variant = "line",
   showTimeScale = false,
   showGrid = true,
+  priceMin,
+  priceMax,
+  referencePrice,
 }: LightweightChartProps) {
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -68,7 +78,11 @@ export function LightweightChart({
         horzLines: { visible: showGrid, color: border },
       },
       rightPriceScale: { visible: false },
-      leftPriceScale: { visible: variant === "line" && series.length > 1 },
+      leftPriceScale: {
+        visible:
+          variant === "line" &&
+          (series.length > 1 || (priceMin != null && priceMax != null)),
+      },
       timeScale: { visible: showTimeScale, borderColor: border },
       crosshair: { vertLine: { visible: false }, horzLine: { visible: false } },
       handleScroll: false,
@@ -104,6 +118,23 @@ export function LightweightChart({
       }
     }
 
+    if (priceMin != null && priceMax != null) {
+      const priceScale = chart.priceScale("left")
+      priceScale.applyOptions({ autoScale: false })
+      priceScale.setVisibleRange({ from: priceMin, to: priceMax })
+    }
+
+    if (referencePrice != null && apiSeries[0]) {
+      apiSeries[0].createPriceLine({
+        price: referencePrice,
+        color: border,
+        lineWidth: 1,
+        lineStyle: LineStyle.Dashed,
+        axisLabelVisible: false,
+        title: "",
+      })
+    }
+
     chart.timeScale().fitContent()
 
     const ro = new ResizeObserver(() => {
@@ -115,7 +146,7 @@ export function LightweightChart({
       ro.disconnect()
       chart.remove()
     }
-  }, [series, height, variant, showTimeScale, showGrid])
+  }, [series, height, variant, showTimeScale, showGrid, priceMin, priceMax, referencePrice])
 
   return (
     <div

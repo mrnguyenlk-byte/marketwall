@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { clientDebug, features } from "@/lib/config/features"
 import { buildStrengthSeries } from "@/lib/currency-strength/calculate-strength"
+import { buildStrengthChartPoints } from "@/lib/currency-strength/chart-points"
 import type { StrengthCoverage } from "@/lib/currency-strength"
 import { useLang } from "@/lib/i18n"
 import {
@@ -16,9 +17,14 @@ import {
   useCurrencyStrength,
   type CurrencyStrengthResponse,
 } from "@/hooks/useCurrencyStrength"
-import { LightweightChart, pointsFromValues } from "./lightweight-chart"
+import { LightweightChart } from "./lightweight-chart"
 import { SectionHeading } from "./shared"
 import { cn } from "@/lib/utils"
+
+const STRENGTH_CURRENCY_COUNT = 8
+const STRENGTH_SCALE_MIN = 0
+const STRENGTH_SCALE_MAX = 100
+const STRENGTH_NEUTRAL = 50
 
 const RANK_KEYS_BY_POSITION: Record<number, string> = {
   1: "strength.strongest",
@@ -138,7 +144,7 @@ function StrengthChart({ visible, items }: StrengthChartProps) {
         .map((c, ci) => ({ c, ci }))
         .filter(({ c }) => visible.has(c.code))
         .map(({ c, ci }) => ({
-          data: pointsFromValues(c.series),
+          data: buildStrengthChartPoints(c.strength),
           color: LINE_COLORS[ci % LINE_COLORS.length],
           lineWidth: 2,
         })),
@@ -151,6 +157,9 @@ function StrengthChart({ visible, items }: StrengthChartProps) {
       height={228}
       showTimeScale={false}
       showGrid
+      priceMin={STRENGTH_SCALE_MIN}
+      priceMax={STRENGTH_SCALE_MAX}
+      referencePrice={STRENGTH_NEUTRAL}
       className="h-full"
     />
   )
@@ -260,8 +269,13 @@ export function CurrencyStrength() {
     })
   }
 
+  const isLoading = strengthApi.isLoading && !strengthApi.data
+  const hasFullStrengthSet = currencyStrength.length >= STRENGTH_CURRENCY_COUNT
+
   const showUnavailableMessage =
-    currencyStrength.length === 0 && (dataUnavailable || Boolean(strengthApi.error))
+    !isLoading &&
+    currencyStrength.length < STRENGTH_CURRENCY_COUNT &&
+    (dataUnavailable || Boolean(strengthApi.error) || currencyStrength.length > 0)
 
   const coverageBadgeKey =
     coverage === "degraded"
@@ -287,7 +301,7 @@ export function CurrencyStrength() {
               {t("error.currencyStrengthUnavailable")}
             </p>
           )}
-          {currencyStrength.length > 0 && (
+          {hasFullStrengthSet && (
             <>
               <div className="mb-3 grid shrink-0 grid-cols-8 gap-2">
                 {currencyStrength.map((c) => {
