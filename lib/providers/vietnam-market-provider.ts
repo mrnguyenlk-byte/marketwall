@@ -276,10 +276,22 @@ export function getMockData(): VietnamMarketData {
 
 /** Try Vietnam adapters (TCBS public API) then fall back to enriched mock data. */
 async function fetchLiveVietnamMarketData(): Promise<VietnamMarketData | null> {
-  if (process.env.VIETNAM_MARKET_ENABLED === "false") return null
+  if (process.env.VIETNAM_MARKET_ENABLED === "false") {
+    console.warn("[provider:vietnam-markets] VIETNAM_MARKET_ENABLED=false")
+    return null
+  }
 
   const result = await fetchVietnamMarketFromAdapters()
-  if (result.status !== "ok") return null
+  if (result.status !== "ok") {
+    const message =
+      "message" in result
+        ? result.message
+        : "reason" in result
+          ? result.reason
+          : result.status
+    console.warn(`[provider:vietnam-markets] adapters_failed status=${result.status} message=${message}`)
+    return null
+  }
 
   const mock = getMockData()
   const { data } = result

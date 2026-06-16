@@ -66,6 +66,9 @@ export async function fetchLiveCurrencyStrength(): Promise<CurrencyStrengthFetch
     console.log(`[currency-strength] pairs=${pairCount} coverage=${coverage}`)
 
     if (coverage === "unavailable") {
+      console.warn(
+        `[currency-strength] unavailable pairCount=${pairCount} reason=${pairCount === 0 ? "fx_provider_zero_pairs" : "coverage_below_degraded_threshold"}`,
+      )
       return { items: [], source: "live", unavailable: true, pairCount, coverage }
     }
 

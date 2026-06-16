@@ -1,18 +1,22 @@
 import "server-only"
 
+import { logVietnamAdapterResult } from "@/lib/providers/provider-diagnostics"
 import type { AdapterFetchResult, NormalizedVietnamMarket, VietnamAdapterId, VietnamMarketAdapter } from "./types"
 import { fireantAdapter } from "./fireant-adapter"
 import { tcbsAdapter } from "./tcbs-adapter"
+import { vpsAdapter } from "./vps-adapter"
 import { vietstockAdapter } from "./vietstock-adapter"
 
-/** Default adapter priority — TCBS first (free public, no API key). */
+/** Default adapter priority — VPS first (free public datafeed, Sprint 9). */
 export const VIETNAM_ADAPTER_PRIORITY: VietnamAdapterId[] = [
+  "vps",
   "tcbs",
   "vietstock",
   "fireant",
 ]
 
 export const VIETNAM_ADAPTERS: Record<VietnamAdapterId, VietnamMarketAdapter> = {
+  vps: vpsAdapter,
   fireant: fireantAdapter,
   vietstock: vietstockAdapter,
   tcbs: tcbsAdapter,
@@ -39,7 +43,26 @@ export async function fetchVietnamMarketFromAdapters(): Promise<
     if (!adapter.isConfigured()) continue
 
     const result = await adapter.fetchMarketSnapshot()
-    if (result.status === "ok") return result
+    if (result.status === "ok") {
+      logVietnamAdapterResult(id, {
+        status: result.status,
+        indices: result.data.indices.length,
+        stocks:
+          result.data.stocks.hose.length +
+          result.data.stocks.hnx.length +
+          result.data.stocks.upcom.length,
+      })
+      return result
+    }
+    logVietnamAdapterResult(id, {
+      status: result.status,
+      message:
+        "message" in result
+          ? result.message
+          : "reason" in result
+            ? result.reason
+            : undefined,
+    })
     lastError = result
   }
 

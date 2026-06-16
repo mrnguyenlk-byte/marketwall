@@ -27,6 +27,10 @@ import type {
   TwelveDataTimeSeriesResponse,
 } from "./types"
 import { TwelveDataApiError } from "./types"
+import {
+  logTwelveDataBatchResult,
+  logTwelveDataError,
+} from "@/lib/providers/provider-diagnostics"
 
 export { TwelveDataApiError } from "./types"
 export type { FxPairQuote, HeatmapQuoteRow, MarketDetailPayload, NormalizedTimeSeriesPoint }
@@ -72,6 +76,10 @@ async function tdFetch<T>(
 ): Promise<T> {
   const apiKey = getApiKey()
   if (!apiKey) {
+    logTwelveDataError("tdFetch", {
+      code: 401,
+      message: "TWELVE_DATA_API_KEY is not configured",
+    })
     throw new TwelveDataApiError("TWELVE_DATA_API_KEY is not configured", 401, "error")
   }
 
@@ -103,6 +111,7 @@ async function tdFetch<T>(
           await sleep(RETRY_BASE_MS * 2 ** attempt)
           continue
         }
+        logTwelveDataError("tdFetch", { code, message, symbols: String(params.symbol ?? path) })
         throw new TwelveDataApiError(message, code, errBody.status ?? "error")
       }
 
@@ -191,11 +200,22 @@ async function fetchQuoteBatch(
       const quote = normalizeQuoteRow(row, def)
       if (quote) quotes.push(quote)
     }
+    logTwelveDataBatchResult("fetchQuoteBatch", {
+      requested: defs.length,
+      parsed: quotes.length,
+      rateLimited: false,
+    })
     return { quotes, rateLimited: false }
   } catch (error) {
     const rateLimited =
       error instanceof TwelveDataApiError &&
       (error.code === 429 || /credit/i.test(error.message))
+    logTwelveDataError("fetchQuoteBatch", {
+      code: error instanceof TwelveDataApiError ? error.code : undefined,
+      message: error instanceof Error ? error.message : "quote batch failed",
+      symbols: joined,
+      batchSize: defs.length,
+    })
     return { quotes: [], rateLimited }
   }
 }

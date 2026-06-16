@@ -61,6 +61,12 @@ export {
 } from "./tcbs-adapter"
 
 export {
+  VPS_ADAPTER_META,
+  isVpsConfigured,
+  vpsAdapter,
+} from "./vps-adapter"
+
+export {
   VIETNAM_ADAPTER_PRIORITY,
   VIETNAM_ADAPTERS,
   fetchVietnamMarketFromAdapters,

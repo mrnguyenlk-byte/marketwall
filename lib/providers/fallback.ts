@@ -1,5 +1,6 @@
 import "server-only"
 
+import { logProviderFallback } from "@/lib/providers/provider-diagnostics"
 import { cachedProvider } from "@/lib/providers/cache"
 import type { DataSource } from "@/lib/providers/types"
 
@@ -60,6 +61,9 @@ export async function withFallback<T>(
     )
 
     if (cached) {
+      if (cached.source !== "live") {
+        logProviderFallback(provider, "cached_non_live_source", { fromCache: cached.fromCache })
+      }
       return result(cached.data, cached.source, provider, { fromCache: cached.fromCache })
     }
   } else {
@@ -68,10 +72,12 @@ export async function withFallback<T>(
       if (live != null) return result(live, "live", provider)
     } catch (error) {
       const message = error instanceof Error ? error.message : "provider failed"
+      logProviderFallback(provider, message)
       return result(fallback(), "mock", provider, { error: message })
     }
   }
 
+  logProviderFallback(provider, "primary_returned_null")
   return result(fallback(), "mock", provider)
 }
 

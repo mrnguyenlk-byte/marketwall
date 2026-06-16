@@ -1,18 +1,13 @@
 import "server-only"
 
-import {
-  CRYPTO_HEATMAP_SIZE,
-  getUsHeatmapApiSymbols,
-  US_HEATMAP_SEEDS,
-  US_HEATMAP_SIZE,
-} from "@/config/heatmap-symbols"
+import { CRYPTO_HEATMAP_SIZE, US_HEATMAP_SEEDS, US_HEATMAP_SIZE } from "@/config/heatmap-symbols"
 import { toApiJson, toApiJsonFromMock } from "@/lib/api-response"
 import { getMockHeatmapAssets } from "@/lib/mockHeatmapData"
 import { overlayHeatmapQuotes } from "@/lib/market/normalize"
 import { CACHE_KEYS, CACHE_TTL, cachedProvider } from "@/lib/providers/cache"
 import { getData as getCryptoData, getMockData as getCryptoMock } from "@/lib/providers/crypto-provider"
 import { getData as getVietnamData, getMockData as getVietnamMock } from "@/lib/providers/vietnam-market-provider"
-import { getStockQuotes } from "@/lib/twelvedata/client"
+import { fetchYahooStockQuotes } from "@/lib/providers/yahoo-finance"
 import type { HeatmapAsset, MarketType } from "@/types/market"
 
 const HEATMAP_CACHE_TTL_MS = CACHE_TTL.heatmap
@@ -150,10 +145,17 @@ async function fetchVietnamRows(): Promise<HeatmapRowResult> {
     }
 
     const livePriceCount = countLivePrices(items)
-    console.log(`[heatmap:vn] items=${items.length} livePrices=${livePriceCount}`)
-
     const source =
       data.source === "live" && livePriceCount >= US_LIVE_MIN_PRICES ? "live" : "mock"
+    const sourceReason =
+      data.source !== "live"
+        ? "vietnam_provider_mock"
+        : livePriceCount < US_LIVE_MIN_PRICES
+          ? "live_prices_below_threshold"
+          : "live"
+    console.log(
+      `[heatmap:vn] items=${items.length} livePrices=${livePriceCount} upstream=${data.source} source=${source} reason=${sourceReason}`,
+    )
     return buildHeatmapRowResult(items, source, seedCount)
   } catch {
     console.log(`[heatmap:vn] items=${baseItems.length} livePrices=${countLivePrices(baseItems)}`)
@@ -167,7 +169,13 @@ async function fetchUsRows(): Promise<HeatmapRowResult> {
   let items = sortByMarketCap(seedRows)
 
   try {
-    const liveQuotes = await getStockQuotes(getUsHeatmapApiSymbols())
+    const liveQuotes = await fetchYahooStockQuotes(
+      US_HEATMAP_SEEDS.map((seed) => ({
+        symbol: seed.symbol,
+        apiSymbol: seed.apiSymbol,
+        name: seed.name,
+      })),
+    )
     if (liveQuotes.length > 0) {
       items = sortByMarketCap(overlayHeatmapQuotes(seedRows, liveQuotes))
     }
@@ -180,13 +188,14 @@ async function fetchUsRows(): Promise<HeatmapRowResult> {
   }
 
   const livePriceCount = countLivePrices(items)
-  console.log(`[heatmap:us] items=${items.length} livePrices=${livePriceCount}`)
-
-  return buildHeatmapRowResult(
-    items,
-    livePriceCount >= US_LIVE_MIN_PRICES ? "live" : "mock",
-    seedCount,
+  const source = livePriceCount >= US_LIVE_MIN_PRICES ? "live" : "mock"
+  const sourceReason =
+    livePriceCount === 0 ? "yahoo_zero_live_prices" : "live_prices_below_threshold"
+  console.log(
+    `[heatmap:us] items=${items.length} livePrices=${livePriceCount} source=${source} reason=${sourceReason}`,
   )
+
+  return buildHeatmapRowResult(items, source, seedCount)
 }
 
 async function fetchCryptoRows(): Promise<HeatmapRowResult> {
