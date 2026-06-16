@@ -278,6 +278,14 @@ const dict: Dict = {
   "strength.neutral": { vi: "Trung lập", en: "Neutral" },
   "strength.weak": { vi: "Yếu", en: "Weak" },
   "strength.weakest": { vi: "Yếu nhất", en: "Weakest" },
+  "strength.coveragePartial": {
+    vi: "Dữ liệu một phần",
+    en: "Partial data",
+  },
+  "strength.coverageDegraded": {
+    vi: "Độ phủ hạn chế",
+    en: "Limited coverage",
+  },
 
   // Footer
   "footer.about": { vi: "Về chúng tôi", en: "About Us" },

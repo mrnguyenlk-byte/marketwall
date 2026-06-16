@@ -25,6 +25,8 @@ export async function GET() {
         source: result.source,
         items: result.items,
         unavailable: result.unavailable,
+        pairCount: result.pairCount,
+        coverage: result.coverage,
       }),
     )
   } catch {
@@ -34,6 +36,8 @@ export async function GET() {
         source: fallback.source,
         items: fallback.items,
         unavailable: fallback.unavailable,
+        pairCount: fallback.pairCount,
+        coverage: fallback.coverage,
       }),
     )
   }

@@ -42,6 +42,9 @@ export async function GET(_request: Request, context: RouteContext) {
         source: payload.source,
         items: payload.items,
         unavailable: payload.unavailable,
+        itemCount: payload.itemCount,
+        livePriceCount: payload.livePriceCount,
+        seedCount: payload.seedCount,
       }),
     )
   } catch {
@@ -50,6 +53,9 @@ export async function GET(_request: Request, context: RouteContext) {
         source: "mock",
         items: [],
         unavailable: true,
+        itemCount: 0,
+        livePriceCount: 0,
+        seedCount: 0,
       }),
     )
   }

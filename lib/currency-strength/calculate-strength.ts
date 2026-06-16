@@ -7,15 +7,17 @@ import {
 } from "./normalize-pairs"
 import {
   CURRENCY_NAMES,
-  MIN_PAIRS_PER_CURRENCY,
-  MIN_STRENGTH_PAIRS,
+  DEGRADED_STRENGTH_PAIRS,
+  IDEAL_STRENGTH_PAIRS,
   SUPPORTED_CURRENCIES,
+  VALID_STRENGTH_PAIRS,
   type CurrencyCode,
   type CurrencyStrengthScore,
   type CurrencyStrengthSnapshot,
   type FxPairQuote,
   type PairContribution,
   type RawFxPairQuote,
+  type StrengthCoverage,
 } from "./types"
 
 const STRENGTH_BASE = 50
@@ -106,13 +108,17 @@ function assignRanks(scores: CurrencyStrengthScore[]): CurrencyStrengthScore[] {
   })
 }
 
-/** Whether enough pair coverage exists for a trustworthy 8-currency snapshot. */
-export function isStrengthSnapshotAvailable(
-  pairs: FxPairQuote[],
-  acc: Record<CurrencyCode, Accumulator>,
-): boolean {
-  if (pairs.length < MIN_STRENGTH_PAIRS) return false
-  return SUPPORTED_CURRENCIES.every((code) => acc[code].pairCount >= MIN_PAIRS_PER_CURRENCY)
+/** Map raw pair count to soft coverage tier. */
+export function resolveStrengthCoverage(pairCount: number): StrengthCoverage {
+  if (pairCount >= IDEAL_STRENGTH_PAIRS) return "ideal"
+  if (pairCount >= VALID_STRENGTH_PAIRS) return "valid"
+  if (pairCount >= DEGRADED_STRENGTH_PAIRS) return "degraded"
+  return "unavailable"
+}
+
+/** Whether enough pair coverage exists to display a strength snapshot. */
+export function isStrengthSnapshotAvailable(pairs: FxPairQuote[]): boolean {
+  return resolveStrengthCoverage(pairs.length) !== "unavailable"
 }
 
 export function calculateCurrencyStrength(pairs: FxPairQuote[]): CurrencyStrengthScore[] {
@@ -159,25 +165,23 @@ export function buildCurrencyStrengthSnapshot(
   inputs: RawFxPairQuote[],
 ): CurrencyStrengthSnapshot {
   const pairs = normalizePairQuotes(inputs)
-  const acc = accumulateFromPairs(pairs)
   const currencies = calculateCurrencyStrength(pairs)
 
   return {
     currencies,
     pairsUsed: pairs.map((p) => p.symbol),
     calculatedAt: new Date().toISOString(),
-    available: isStrengthSnapshotAvailable(pairs, acc),
+    available: isStrengthSnapshotAvailable(pairs),
   }
 }
 
 /** Convenience entry using bundled reference pair quotes (explicit mock). */
 export function calculateReferenceStrength(): CurrencyStrengthSnapshot {
   const pairs = referencePairQuotes()
-  const acc = accumulateFromPairs(pairs)
   return {
     currencies: calculateCurrencyStrength(pairs),
     pairsUsed: pairs.map((p) => p.symbol),
     calculatedAt: new Date().toISOString(),
-    available: isStrengthSnapshotAvailable(pairs, acc),
+    available: isStrengthSnapshotAvailable(pairs),
   }
 }

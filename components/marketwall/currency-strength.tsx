@@ -1,9 +1,11 @@
 "use client"
 
 import { useMemo, useState } from "react"
+import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { clientDebug, features } from "@/lib/config/features"
 import { buildStrengthSeries } from "@/lib/currency-strength/calculate-strength"
+import type { StrengthCoverage } from "@/lib/currency-strength"
 import { useLang } from "@/lib/i18n"
 import {
   currencyStrengthChartMeta,
@@ -56,29 +58,40 @@ function liveItemsToMockItems(
 function resolveStrengthItems(
   api: CurrencyStrengthResponse | undefined,
   fallback: CurrencyStrengthMockItem[],
-): { items: CurrencyStrengthMockItem[]; unavailable: boolean } {
+): {
+  items: CurrencyStrengthMockItem[]
+  unavailable: boolean
+  coverage?: StrengthCoverage
+} {
   if (!features.liveClientFetch) {
     clientDebug("CurrencyStrength", "live fetch disabled — static mock")
     return { items: fallback, unavailable: false }
   }
 
-  if (api?.unavailable) {
-    return { items: [], unavailable: true }
+  if (api?.items?.length) {
+    if (api.source === "mock") {
+      clientDebug("CurrencyStrength", "explicit mock fallback from API")
+      return {
+        items: liveItemsToMockItems(api.items),
+        unavailable: true,
+        coverage: api.coverage,
+      }
+    }
+    clientDebug("CurrencyStrength", "using live API data")
+    return {
+      items: liveItemsToMockItems(api.items),
+      unavailable: false,
+      coverage: api.coverage,
+    }
   }
 
-  if (api?.source === "live" && api.items?.length) {
-    clientDebug("CurrencyStrength", "using live API data")
-    return { items: liveItemsToMockItems(api.items), unavailable: false }
+  if (api?.unavailable) {
+    return { items: [], unavailable: true, coverage: api.coverage }
   }
 
   if (!api) {
     clientDebug("CurrencyStrength", "loading — no mock placeholder")
     return { items: [], unavailable: false }
-  }
-
-  if (api.source === "mock" && api.items?.length) {
-    clientDebug("CurrencyStrength", "explicit mock fallback from API")
-    return { items: liveItemsToMockItems(api.items), unavailable: true }
   }
 
   if (api.fallback) {
@@ -223,7 +236,11 @@ function StrengthLegend({ visible, onToggle, items }: LegendProps) {
 export function CurrencyStrength() {
   const { t } = useLang()
   const strengthApi = useCurrencyStrength()
-  const { items: currencyStrength, unavailable: dataUnavailable } = useMemo(
+  const {
+    items: currencyStrength,
+    unavailable: dataUnavailable,
+    coverage,
+  } = useMemo(
     () => resolveStrengthItems(strengthApi.data, currencyStrengthFallback),
     [strengthApi.data],
   )
@@ -244,11 +261,25 @@ export function CurrencyStrength() {
   }
 
   const showUnavailableMessage =
-    dataUnavailable || Boolean(strengthApi.error)
+    currencyStrength.length === 0 && (dataUnavailable || Boolean(strengthApi.error))
+
+  const coverageBadgeKey =
+    coverage === "degraded"
+      ? "strength.coverageDegraded"
+      : coverage === "valid"
+        ? "strength.coveragePartial"
+        : null
 
   return (
     <section aria-labelledby="currency-strength-title" className="h-[400px]">
-      <SectionHeading title={t("sec.currencyStrength1D")} />
+      <div className="mb-1 flex items-center gap-2">
+        <SectionHeading title={t("sec.currencyStrength1D")} />
+        {coverageBadgeKey && currencyStrength.length > 0 && (
+          <Badge variant="outline" className="text-[10px]">
+            {t(coverageBadgeKey)}
+          </Badge>
+        )}
+      </div>
       <Card className="h-[calc(100%-1.75rem)] border-border bg-card py-0">
         <CardContent className="flex h-full flex-col px-3 py-3">
           {showUnavailableMessage && (

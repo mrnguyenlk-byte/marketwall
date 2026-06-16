@@ -6,6 +6,7 @@ export type {
   PairContribution,
   PairLeg,
   RawFxPairQuote,
+  StrengthCoverage,
   StrengthPairSymbol,
 } from "./types"
 
@@ -34,4 +35,5 @@ export {
   calculateCurrencyStrength,
   calculateReferenceStrength,
   isStrengthSnapshotAvailable,
+  resolveStrengthCoverage,
 } from "./calculate-strength"

@@ -48,8 +48,19 @@ export const STRENGTH_PAIRS = [
 
 export type StrengthPairSymbol = (typeof STRENGTH_PAIRS)[number]
 
-export const MIN_STRENGTH_PAIRS = 12
+/** Full 28-pair model — ideal coverage. */
+export const IDEAL_STRENGTH_PAIRS = 28
+/** Minimum pair count for valid (partial) coverage. */
+export const VALID_STRENGTH_PAIRS = 12
+/** Minimum pair count for degraded but displayable coverage. */
+export const DEGRADED_STRENGTH_PAIRS = 8
+
+/** @deprecated Use resolveStrengthCoverage() tiers instead. */
+export const MIN_STRENGTH_PAIRS = VALID_STRENGTH_PAIRS
+/** @deprecated Per-currency gate removed — total pair count drives coverage. */
 export const MIN_PAIRS_PER_CURRENCY = 2
+
+export type StrengthCoverage = "ideal" | "valid" | "degraded" | "unavailable"
 
 export type PairLeg = {
   base: CurrencyCode

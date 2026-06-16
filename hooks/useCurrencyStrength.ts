@@ -4,6 +4,7 @@ import { useMemo } from "react"
 import useSWR from "swr"
 
 import { features } from "@/lib/config/features"
+import type { StrengthCoverage } from "@/lib/currency-strength"
 import { useRealtimeStrength, useRealtime } from "@/lib/realtime/realtime-context"
 import { jsonFetcher } from "@/lib/swr/fetcher"
 import { SWR_KEYS } from "@/lib/swr/keys"
@@ -20,6 +21,8 @@ export type CurrencyStrengthResponse = {
   items?: CurrencyStrengthItem[]
   fallback?: boolean
   unavailable?: boolean
+  pairCount?: number
+  coverage?: StrengthCoverage
   updatedAt?: string
   realtime?: boolean
 }

@@ -1,7 +1,10 @@
 import "server-only"
 
-import { CURRENCY_STRENGTH_PAIRS } from "@/config/market-symbols"
-import { buildCurrencyStrengthSnapshot } from "@/lib/currency-strength"
+import {
+  buildCurrencyStrengthSnapshot,
+  resolveStrengthCoverage,
+  type StrengthCoverage,
+} from "@/lib/currency-strength"
 import { getMockStrengths } from "@/lib/providers/currency-provider"
 import { getForexPairsForCurrencyStrength } from "@/lib/forex/pairs-provider"
 import type { CurrencyStrengthQuote } from "@/types/market"
@@ -36,12 +39,16 @@ function mockStrengthRows(): CurrencyStrengthQuote[] {
   }
 }
 
-/** Fetch live FX pairs and calculate currency strength scores. */
-export async function fetchLiveCurrencyStrength(): Promise<{
+export type CurrencyStrengthFetchResult = {
   items: CurrencyStrengthQuote[]
   source: "live" | "mock"
   unavailable: boolean
-}> {
+  pairCount: number
+  coverage: StrengthCoverage
+}
+
+/** Fetch live FX pairs and calculate currency strength scores. */
+export async function fetchLiveCurrencyStrength(): Promise<CurrencyStrengthFetchResult> {
   try {
     const livePairs = await getForexPairsForCurrencyStrength()
 
@@ -53,26 +60,40 @@ export async function fetchLiveCurrencyStrength(): Promise<{
     }))
 
     const snapshot = buildCurrencyStrengthSnapshot(referenceInputs)
+    const pairCount = snapshot.pairsUsed.length
+    const coverage = resolveStrengthCoverage(pairCount)
 
-    if (!snapshot.available) {
-      return { items: [], source: "live", unavailable: true }
+    console.log(`[currency-strength] pairs=${pairCount} coverage=${coverage}`)
+
+    if (coverage === "unavailable") {
+      return { items: [], source: "live", unavailable: true, pairCount, coverage }
     }
 
     const rows = toStrengthRows(snapshot.currencies)
-    return rows.length === LIVE_CURRENCIES.size
-      ? { items: rows, source: "live", unavailable: false }
-      : { items: [], source: "live", unavailable: true }
+    if (rows.length === 0) {
+      return { items: [], source: "live", unavailable: true, pairCount, coverage }
+    }
+
+    return { items: rows, source: "live", unavailable: false, pairCount, coverage }
   } catch {
-    return { items: [], source: "mock", unavailable: true }
+    return {
+      items: [],
+      source: "mock",
+      unavailable: true,
+      pairCount: 0,
+      coverage: "unavailable",
+    }
   }
 }
 
 /** Explicit mock snapshot for API error fallback (marked unavailable). */
-export function fetchMockCurrencyStrength(): {
-  items: CurrencyStrengthQuote[]
-  source: "mock"
-  unavailable: boolean
-} {
+export function fetchMockCurrencyStrength(): CurrencyStrengthFetchResult {
   const rows = mockStrengthRows()
-  return { items: rows, source: "mock", unavailable: true }
+  return {
+    items: rows,
+    source: "mock",
+    unavailable: true,
+    pairCount: rows.length > 0 ? 28 : 0,
+    coverage: rows.length > 0 ? "ideal" : "unavailable",
+  }
 }
