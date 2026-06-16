@@ -33,6 +33,8 @@ const geistMono = Geist_Mono({
 
 const themeInitScript = `(function(){try{var t=localStorage.getItem('theme');var d=t==='dark'||(t!=='light'&&window.matchMedia('(prefers-color-scheme: dark)').matches);if(d)document.documentElement.classList.add('dark');else document.documentElement.classList.remove('dark');document.documentElement.style.colorScheme=d?'dark':'light';}catch(e){}})();`
 
+const langInitScript = `(function(){try{var l=localStorage.getItem('language');document.documentElement.lang=l==='en'?'en':'vi';}catch(e){document.documentElement.lang='vi';}})();`
+
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
@@ -90,11 +92,12 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
+      lang="vi"
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable}`}
     >
       <head>
+        <script dangerouslySetInnerHTML={{ __html: langInitScript }} />
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body className="bg-background font-sans antialiased">

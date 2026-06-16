@@ -5,10 +5,37 @@ import {
   useContext,
   useState,
   useCallback,
+  useEffect,
   type ReactNode,
 } from "react"
 
 export type Lang = "vi" | "en"
+
+/** Default UI language when no saved preference exists. */
+export const defaultLocale: Lang = "vi"
+
+/** localStorage key for persisted language (`language`). */
+export const LANG_STORAGE_KEY = "language"
+
+function readStoredLang(): Lang {
+  if (typeof window === "undefined") return defaultLocale
+  try {
+    const stored = localStorage.getItem(LANG_STORAGE_KEY)
+    if (stored === "en" || stored === "vi") return stored
+  } catch {
+    /* ignore */
+  }
+  return defaultLocale
+}
+
+function persistLang(lang: Lang) {
+  try {
+    localStorage.setItem(LANG_STORAGE_KEY, lang)
+    document.documentElement.lang = lang === "vi" ? "vi" : "en"
+  } catch {
+    /* ignore */
+  }
+}
 
 type Dict = Record<string, { vi: string; en: string }>
 
@@ -128,6 +155,26 @@ const dict: Dict = {
   "vnAnalytics.sourceLive": { vi: "HOSE + HNX + UPCOM", en: "HOSE + HNX + UPCOM" },
   "vnAnalytics.sourceMock": { vi: "Chờ dữ liệu thực", en: "Awaiting live data" },
   "foreignFlow.title": { vi: "Dòng tiền nước ngoài", en: "Foreign Flow" },
+  "proprietaryTrading.title": {
+    vi: "Tự doanh - Giá trị mua bán ròng",
+    en: "Proprietary Trading - Net Buy/Sell Value",
+  },
+  "proprietaryTrading.unavailable": {
+    vi: "Dữ liệu tự doanh chưa khả dụng từ nguồn miễn phí hiện tại.",
+    en: "Proprietary trading data is not yet available from current free sources.",
+  },
+  "proprietaryTrading.rangeToday": { vi: "Hôm nay", en: "Today" },
+  "proprietaryTrading.rangeSessions": { vi: "10 phiên", en: "10 sessions" },
+  "proprietaryTrading.buyValue": { vi: "Tổng mua", en: "Total buy" },
+  "proprietaryTrading.sellValue": { vi: "Tổng bán", en: "Total sell" },
+  "proprietaryTrading.netValue": { vi: "Giá trị ròng", en: "Net value" },
+  "proprietaryTrading.netBuy": { vi: "Mua ròng", en: "Net buy" },
+  "proprietaryTrading.netSell": { vi: "Bán ròng", en: "Net sell" },
+  "proprietaryTrading.topNetBuy": { vi: "Top mua ròng", en: "Top net buy" },
+  "proprietaryTrading.topNetSell": { vi: "Top bán ròng", en: "Top net sell" },
+  "proprietaryTrading.unitBillionVnd": { vi: "Đơn vị: tỷ VND", en: "Unit: billion VND" },
+  "proprietaryTrading.source": { vi: "Nguồn", en: "Source" },
+  "proprietaryTrading.eodLabel": { vi: "Cập nhật sau phiên", en: "Updated after session" },
   "foreignFlow.netSell": { vi: "Bán ròng", en: "Net Sell" },
   "foreignFlow.netBuy": { vi: "Mua ròng", en: "Net Buy" },
   "foreignFlow.modeValue": { vi: "Giá trị (tỷ)", en: "Value (B)" },
@@ -252,12 +299,17 @@ const dict: Dict = {
   "label.marketCap": { vi: "Vốn hóa", en: "Market Cap" },
   "label.weighted": { vi: "Theo vốn hóa", en: "Cap weighted" },
   "heatmap.groupBySector": { vi: "Theo ngành", en: "By Sector" },
+  "heatmap.groupByIndustry": { vi: "Theo ngành con", en: "By Industry" },
+  "heatmap.groupByCategory": { vi: "Theo loại", en: "By Category" },
   "heatmap.groupByMarketCap": { vi: "Theo vốn hóa", en: "By Market Cap" },
   "heatmap.sizeTradingValue": { vi: "GTGD", en: "Trading Value" },
   "heatmap.sizeVolume": { vi: "Khối lượng", en: "Volume" },
   "heatmap.sizeMarketCap": { vi: "Vốn hóa", en: "Market Cap" },
+  "heatmap.sizeDollarVolume": { vi: "Thanh khoản USD", en: "Dollar Volume" },
   "heatmap.tradingValue": { vi: "Giá trị giao dịch", en: "Trading Value" },
   "heatmap.marketCap": { vi: "Vốn hóa", en: "Market Cap" },
+  "heatmap.sector": { vi: "Ngành", en: "Sector" },
+  "heatmap.industry": { vi: "Ngành con", en: "Industry" },
   "sector.banking": { vi: "Ngân hàng", en: "Banking" },
   "sector.realEstate": { vi: "Bất động sản", en: "Real Estate" },
   "sector.securities": { vi: "Chứng khoán", en: "Securities" },
@@ -541,7 +593,18 @@ type Ctx = {
 const LangContext = createContext<Ctx | null>(null)
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [lang, setLang] = useState<Lang>("en")
+  const [lang, setLangState] = useState<Lang>(defaultLocale)
+
+  useEffect(() => {
+    const stored = readStoredLang()
+    setLangState(stored)
+    document.documentElement.lang = stored === "vi" ? "vi" : "en"
+  }, [])
+
+  const setLang = useCallback((next: Lang) => {
+    setLangState(next)
+    persistLang(next)
+  }, [])
 
   const t = useCallback(
     (key: string) => {

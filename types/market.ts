@@ -54,11 +54,24 @@ export type HeatmapAsset = {
   changePercent: number
   volume: number
   sector: string
+  /** Finer grouping when available (US industry; VN optional). */
+  industry?: string
   marketCap: number
-  /** Foreign buy volume in shares (VPS only). */
+  /** VN: VPS lot count (same as volume). */
+  volumeLot?: number
+  /** VN: shares = lot × 10. */
+  volumeShares?: number
+  /** VN: GTGD in VND. */
+  tradingValue?: number
+  volumeUnit?: "lot10"
+  /** Foreign buy volume in shares (VPS fBVol × 10). */
   foreignBuy?: number
-  /** Foreign sell volume in shares (VPS only). */
+  /** Foreign sell volume in shares (VPS fSVolume × 10). */
   foreignSell?: number
+  foreignNet?: number
+  foreignBuyValue?: number
+  foreignSellValue?: number
+  foreignNetValue?: number
 }
 
 export type FinancialSnapshot = {
@@ -82,7 +95,13 @@ export type MarketAsset = {
   marketCap: number
   volume: number
   sector: string
+  /** Finer grouping (US industry; VN when available). */
+  industry?: string
   currency: string
+  /** VN heatmap: GTGD in VND when provided by API overlay. */
+  tradingValue?: number
+  volumeShares?: number
+  volumeLot?: number
   lastUpdated: string
   tradingViewSymbol: string
   open: number

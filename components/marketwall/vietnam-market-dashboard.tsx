@@ -7,6 +7,7 @@ import type { VietnamDashboardRow } from "@/lib/providers/vietnam-market-provide
 
 import { ChangePill, fmt, SectionHeading, signClass } from "./shared"
 import { ForeignFlowChart } from "./foreign-flow-chart"
+import { ProprietaryTradingChart } from "./proprietary-trading-chart"
 
 type LeaderboardProps = {
   title: string
@@ -107,6 +108,7 @@ export function VietnamMarketDashboard() {
           sellRows={dashboard?.topForeignSell ?? []}
           loading={isLoading}
         />
+        <ProprietaryTradingChart proprietary={data?.analytics?.proprietary} loading={isLoading} />
       </div>
     </section>
   )

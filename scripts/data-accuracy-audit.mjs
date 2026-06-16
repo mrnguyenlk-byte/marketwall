@@ -82,10 +82,13 @@ async function fetchMarketWall() {
     map[item.symbol] = {
       price: item.price,
       changePct: item.changePercent,
-      volume: item.volume,
+      volumeLot: item.volumeLot ?? item.volume,
+      volumeShares: item.volumeShares ?? (item.volume ?? 0) * SHARES_PER_LOT,
       tradingValue: tv,
+      volumeUnit: item.volumeUnit ?? hm.volumeUnit ?? null,
       foreignBuy: item.foreignBuy ?? null,
       foreignSell: item.foreignSell ?? null,
+      foreignNetValue: item.foreignNetValue ?? null,
     }
   }
   return { map, source: hm.source, volumeUnit: hm.volumeUnit ?? null }
@@ -126,7 +129,7 @@ async function main() {
   const rows = []
   for (const sym of SYMBOLS) {
     const mw = mwRes.map[sym]
-    const mwShares = (mw?.volume ?? 0) * SHARES_PER_LOT
+    const mwShares = mw?.volumeShares ?? (mw?.volumeLot ?? 0) * SHARES_PER_LOT
     const mwTvCorrected = mw?.price ? mw.price * mwShares : null
 
     const record = {
@@ -141,7 +144,8 @@ async function main() {
         price_vs_ssi: classify(pctDiff(mw?.price, ssi[sym]?.price)),
         changePct_vs_vps: classify(pctDiff(mw?.changePct, vps[sym]?.changePct)),
         changePct_vs_ssi: classify(pctDiff(mw?.changePct, ssi[sym]?.changePct)),
-        volume_vs_vps: classify(pctDiff(mw?.volume, vps[sym]?.volumeLots)),
+        volumeShares_vs_vps: classify(pctDiff(mw?.volumeShares, vps[sym]?.volumeShares)),
+        volumeLot_vs_vps: classify(pctDiff(mw?.volumeLot, vps[sym]?.volumeLots)),
         tradingValue_displayed_vs_ssi: classify(pctDiff(mw?.tradingValue, ssi[sym]?.tradingValue)),
         tradingValue_corrected_vs_ssi: classify(pctDiff(mw?.tradingValue, ssi[sym]?.tradingValue)),
         foreignBuy_mw_vs_vps: classify(pctDiff(mw?.foreignBuy, vps[sym]?.foreignBuy)),

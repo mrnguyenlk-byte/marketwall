@@ -30,11 +30,7 @@ export function sortHeatmapRows(
     )
   }
   if (market === "us") {
-    return [...items].sort((a, b) => {
-      const byDollar = dollarVolume(b.price, b.volume) - dollarVolume(a.price, a.volume)
-      if (byDollar !== 0) return byDollar
-      return b.marketCap - a.marketCap
-    })
+    return [...items].sort((a, b) => b.marketCap - a.marketCap)
   }
   return [...items].sort((a, b) => b.volume - a.volume)
 }
@@ -49,15 +45,21 @@ export function limitHeatmapRows(
 export function sortHeatmapAssets(
   assets: MarketAsset[],
   marketType: MarketType,
-  vnSizing: VnHeatmapSizingMode = "tradingValue",
+  sizing: VnHeatmapSizingMode | "marketCap" | "dollarVolume" | "volume" = "tradingValue",
 ): MarketAsset[] {
-  if (marketType === "vn") return sortBySizeMetric(assets, vnSizing)
+  if (marketType === "vn") return sortBySizeMetric(assets, sizing as VnHeatmapSizingMode)
   if (marketType === "us") {
-    return [...assets].sort((a, b) => {
-      const byDollar = dollarVolume(b.price, b.volume) - dollarVolume(a.price, a.volume)
-      if (byDollar !== 0) return byDollar
-      return b.marketCap - a.marketCap
-    })
+    if (sizing === "dollarVolume") {
+      return [...assets].sort((a, b) => {
+        const byDollar = dollarVolume(b.price, b.volume) - dollarVolume(a.price, a.volume)
+        if (byDollar !== 0) return byDollar
+        return b.marketCap - a.marketCap
+      })
+    }
+    return [...assets].sort((a, b) => b.marketCap - a.marketCap)
+  }
+  if (sizing === "marketCap") {
+    return [...assets].sort((a, b) => b.marketCap - a.marketCap)
   }
   return [...assets].sort((a, b) => b.volume - a.volume)
 }
@@ -65,9 +67,9 @@ export function sortHeatmapAssets(
 export function limitHeatmapAssets(
   assets: MarketAsset[],
   marketType: MarketType,
-  vnSizing: VnHeatmapSizingMode = "tradingValue",
+  sizing: VnHeatmapSizingMode | "marketCap" | "dollarVolume" | "volume" = "tradingValue",
 ): MarketAsset[] {
-  return sortHeatmapAssets(assets, marketType, vnSizing).slice(
+  return sortHeatmapAssets(assets, marketType, sizing).slice(
     0,
     HEATMAP_DISPLAY_LIMIT[marketType],
   )

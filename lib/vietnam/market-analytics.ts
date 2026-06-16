@@ -22,6 +22,21 @@ export type VietnamLiquidityPoint = {
   cumulativeValue: number
 }
 
+export type VietnamProprietaryNetRow = {
+  symbol: string
+  sector: string
+  buyValue: number
+  sellValue: number
+  netValue: number
+}
+
+export type VietnamProprietaryHistoryPoint = {
+  date: string
+  buyValue: number
+  sellValue: number
+  netValue: number
+}
+
 export type VietnamMarketAnalytics = {
   breadth: {
     available: boolean
@@ -46,11 +61,14 @@ export type VietnamMarketAnalytics = {
     topNetSell: VietnamForeignNetRow[]
   }
   proprietary: {
-    available: false
-    buyValue: null
-    sellValue: null
-    netValue: null
-    history: []
+    available: boolean
+    source: string | null
+    buyValue: number | null
+    sellValue: number | null
+    netValue: number | null
+    history: VietnamProprietaryHistoryPoint[]
+    topNetBuy: VietnamProprietaryNetRow[]
+    topNetSell: VietnamProprietaryNetRow[]
   }
   liquidity: {
     available: boolean
@@ -293,10 +311,13 @@ export function computeLiquidityAnalytics(
 export function emptyProprietaryAnalytics(): VietnamMarketAnalytics["proprietary"] {
   return {
     available: false,
+    source: null,
     buyValue: null,
     sellValue: null,
     netValue: null,
     history: [],
+    topNetBuy: [],
+    topNetSell: [],
   }
 }
 

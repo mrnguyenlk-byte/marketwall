@@ -32,7 +32,15 @@ export function heatmapRowsToMarketAssets(
       changePercent: row.changePercent,
       marketCap: row.marketCap,
       volume: row.volume,
+      ...(marketType === "vn"
+        ? {
+            volumeLot: row.volumeLot ?? row.volume,
+            volumeShares: row.volumeShares,
+            tradingValue: row.tradingValue,
+          }
+        : {}),
       sector: row.sector,
+      industry: row.industry,
       currency: marketType === "vn" ? "VND" : "USD",
       lastUpdated: new Date().toISOString(),
       tradingViewSymbol,

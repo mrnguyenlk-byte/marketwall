@@ -42,7 +42,7 @@ function BannerShell({
     <Link
       href={href}
       aria-label={ariaLabel}
-      className="group block w-full max-w-[300px] shrink-0 overflow-hidden rounded-[12px] border border-border shadow-md transition-opacity hover:opacity-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:border-white/10 dark:shadow-[0_4px_18px_rgba(0,0,0,0.35)]"
+      className="group block w-full min-w-0 max-w-full shrink-0 overflow-hidden rounded-[12px] border border-border shadow-md transition-opacity hover:opacity-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:border-white/10 dark:shadow-[0_4px_18px_rgba(0,0,0,0.35)]"
       style={{ height }}
     >
       <div
@@ -120,7 +120,7 @@ export function Sidebar({
   overviewByCategory: Record<OverviewCategory, OverviewListItem[]>
 }) {
   return (
-    <div className="flex w-full max-w-[300px] flex-col gap-3 lg:w-[300px]">
+    <div className="flex w-full min-w-0 max-w-full flex-col gap-3">
       <PromoBanner href="/brokers" />
       <PartnerBanner href="/contact" />
       {features.watchlist && (

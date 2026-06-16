@@ -8,7 +8,8 @@ import {
 } from "@/components/ui/tooltip"
 import { heatStyle, fmt } from "@/components/marketwall/shared"
 import { useLang } from "@/lib/i18n"
-import { tradingValue } from "@/lib/vietnam/heatmap-sizing"
+import { vnTradingValueMetric } from "@/lib/treemap/heatmap-engine"
+import type { TreemapRect } from "@/lib/treemap/squarify"
 import type { MarketAsset } from "@/types/market"
 import { cn } from "@/lib/utils"
 
@@ -47,6 +48,7 @@ const sizeClasses: Record<
 type HeatmapTileProps = {
   asset: MarketAsset
   size: TileSize
+  rect?: TreemapRect
   detailedTooltip?: boolean
   onClick: (asset: MarketAsset) => void
 }
@@ -61,7 +63,7 @@ function TileTooltipContent({
   detailed: boolean
 }) {
   const { lang, t } = useLang()
-  const tv = tradingValue(asset.price, asset.volume)
+  const tv = asset.tradingValue ?? vnTradingValueMetric(asset)
 
   return (
     <>
@@ -80,23 +82,40 @@ function TileTooltipContent({
             {t("heatmap.tradingValue")}: {fmt(tv, { notation: "compact" })}
           </p>
           <p>
-            {t("label.volume")}: {fmt(asset.volume, { notation: "compact" })}
+            {t("label.volume")} (lot): {fmt(asset.volume, { notation: "compact" })}
           </p>
+          {"volumeShares" in asset && asset.volumeShares != null ? (
+            <p>
+              {t("label.volume")} (shares): {fmt(asset.volumeShares, { notation: "compact" })}
+            </p>
+          ) : null}
           <p>
             {t("heatmap.marketCap")}: {fmt(asset.marketCap, { notation: "compact" })}
           </p>
+          {asset.industry ? (
+            <p>
+              {t("heatmap.industry")}: {asset.industry}
+            </p>
+          ) : null}
+          <p>
+            {t("heatmap.sector")}: {asset.sector}
+          </p>
         </>
       ) : (
-        <p>
-          {t("label.volume")}: {fmt(asset.volume, { notation: "compact" })}
-        </p>
+        <>
+          <p>
+            {t("label.volume")}: {fmt(asset.volume, { notation: "compact" })}
+          </p>
+          <p>
+            {t("heatmap.sector")}: {asset.sector}
+          </p>
+        </>
       )}
-      <p>{asset.sector}</p>
     </>
   )
 }
 
-export function HeatmapTile({ asset, size, detailedTooltip = false, onClick }: HeatmapTileProps) {
+export function HeatmapTile({ asset, size, rect, detailedTooltip = false, onClick }: HeatmapTileProps) {
   const up = asset.changePercent >= 0
   const classes = sizeClasses[size]
   const showChange = size === "large" || size === "medium"
@@ -143,12 +162,23 @@ export function HeatmapTile({ asset, size, detailedTooltip = false, onClick }: H
     <button
       type="button"
       onClick={() => onClick(asset)}
-      style={heatStyle(asset.changePercent)}
+      style={{
+        ...heatStyle(asset.changePercent),
+        ...(rect
+          ? {
+              position: "absolute",
+              left: `${rect.x * 100}%`,
+              top: `${rect.y * 100}%`,
+              width: `${rect.w * 100}%`,
+              height: `${rect.h * 100}%`,
+            }
+          : {}),
+      }}
       aria-label={`${asset.symbol} ${up ? "+" : ""}${asset.changePercent.toFixed(2)}%`}
       className={cn(
         "group/tile flex flex-col items-start justify-between rounded-none border border-black/20 text-left transition-[filter,transform] hover:z-10 hover:brightness-110",
-        size === "tiny" ? "min-h-[28px] p-0" : "p-1 sm:p-1.5 lg:p-2",
-        classes.grid,
+        size === "tiny" ? "min-h-0 p-0" : "p-0.5 sm:p-1",
+        !rect && classes.grid,
       )}
     >
       {tileBody}

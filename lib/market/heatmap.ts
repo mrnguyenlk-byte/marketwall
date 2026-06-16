@@ -1,8 +1,11 @@
 import "server-only"
 
 import { CRYPTO_HEATMAP_SIZE, US_HEATMAP_SEEDS, US_HEATMAP_SIZE, VN_HEATMAP_LIMIT } from "@/config/heatmap-symbols"
+import { cryptoCategory } from "@/lib/market/crypto-categories"
+import { usBroadSector } from "@/lib/market/us-sector-groups"
 import { toApiJson, toApiJsonFromMock } from "@/lib/api-response"
 import { VPS_VOLUME_UNIT } from "@/lib/vietnam/volume-units"
+import { vnHeatmapStockToAsset } from "@/lib/vietnam/vn-dashboard-from-vps"
 import { getMockHeatmapAssets } from "@/lib/mockHeatmapData"
 import { overlayHeatmapQuotes } from "@/lib/market/normalize"
 import { limitHeatmapRows, sortHeatmapRows } from "@/lib/market/heatmap-limits"
@@ -39,16 +42,23 @@ function seedsToRows(
     sector: string
     marketCap: number
   }>,
+  market: "us" | "vn" = "us",
 ): HeatmapAsset[] {
-  return seeds.map((seed) => ({
-    symbol: seed.symbol,
-    name: seed.name,
-    price: 0,
-    changePercent: 0,
-    volume: 0,
-    sector: seed.sector,
-    marketCap: seed.marketCap,
-  }))
+  return seeds.map((seed) => {
+    const industry = market === "us" ? seed.sector : undefined
+    const sector =
+      market === "us" ? usBroadSector(seed.sector) : seed.sector
+    return {
+      symbol: seed.symbol,
+      name: seed.name,
+      price: 0,
+      changePercent: 0,
+      volume: 0,
+      sector,
+      industry,
+      marketCap: seed.marketCap,
+    }
+  })
 }
 
 function mockAssetsToRows(market: "us" | "crypto"): HeatmapAsset[] {
@@ -58,24 +68,15 @@ function mockAssetsToRows(market: "us" | "crypto"): HeatmapAsset[] {
     price: asset.price,
     changePercent: asset.changePercent,
     volume: asset.volume,
-    sector: asset.sector,
+    sector: market === "us" ? usBroadSector(asset.sector) : cryptoCategory(asset.symbol),
+    industry: market === "us" ? asset.sector : undefined,
     marketCap: asset.marketCap,
   }))
 }
 
 function vnStocksToRows(data: VietnamMarketData): HeatmapAsset[] {
   const all = [...data.heatmapStocks.hose, ...data.heatmapStocks.hnx, ...data.heatmapStocks.upcom]
-  return all.map((stock) => ({
-    symbol: stock.symbol,
-    name: stock.name.en,
-    price: stock.price,
-    changePercent: stock.changePercent,
-    volume: stock.volume,
-    sector: stock.sector,
-    marketCap: stock.marketCap,
-    foreignBuy: stock.foreignBuy,
-    foreignSell: stock.foreignSell,
-  }))
+  return all.map((stock) => vnHeatmapStockToAsset(stock))
 }
 
 function sortByMarketCap(items: HeatmapAsset[]): HeatmapAsset[] {
@@ -144,8 +145,18 @@ async function fetchVietnamRows(): Promise<HeatmapRowResult> {
         price: live.price,
         changePercent: live.changePercent,
         volume: live.volume || row.volume,
+        volumeLot: live.volumeLot ?? live.volume ?? row.volumeLot,
+        volumeShares: live.volumeShares ?? row.volumeShares,
+        tradingValue: live.tradingValue ?? row.tradingValue,
+        volumeUnit: live.volumeUnit ?? row.volumeUnit,
         sector: live.sector || row.sector,
         marketCap: row.marketCap || live.marketCap,
+        foreignBuy: live.foreignBuy ?? row.foreignBuy,
+        foreignSell: live.foreignSell ?? row.foreignSell,
+        foreignNet: live.foreignNet ?? row.foreignNet,
+        foreignBuyValue: live.foreignBuyValue ?? row.foreignBuyValue,
+        foreignSellValue: live.foreignSellValue ?? row.foreignSellValue,
+        foreignNetValue: live.foreignNetValue ?? row.foreignNetValue,
       }
     })
 
@@ -181,7 +192,7 @@ async function fetchVietnamRows(): Promise<HeatmapRowResult> {
 }
 
 async function fetchUsRows(): Promise<HeatmapRowResult> {
-  const seedRows = seedsToRows(US_HEATMAP_SEEDS)
+  const seedRows = seedsToRows(US_HEATMAP_SEEDS, "us")
   const seedCount = US_HEATMAP_SIZE
   let items = sortByMarketCap(seedRows)
 
@@ -228,7 +239,7 @@ async function fetchCryptoRows(): Promise<HeatmapRowResult> {
         price: asset.price,
         changePercent: asset.change24h,
         volume: asset.volume24h,
-        sector: "Crypto",
+        sector: cryptoCategory(asset.symbol),
         marketCap: asset.marketCap,
       }))
       return buildHeatmapRowResult(finalizeHeatmapRows(items, "crypto"), data.source, seedCount)
@@ -245,7 +256,7 @@ async function fetchCryptoRows(): Promise<HeatmapRowResult> {
       price: asset.price,
       changePercent: asset.change24h,
       volume: asset.volume24h,
-      sector: "Crypto",
+      sector: cryptoCategory(asset.symbol),
       marketCap: asset.marketCap,
     }))
     return buildHeatmapRowResult(finalizeHeatmapRows(items, "crypto"), "mock", seedCount)

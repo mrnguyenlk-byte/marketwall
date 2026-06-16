@@ -27,6 +27,8 @@ import {
   foreignRowsFromHeatmapStocks,
   type VietnamMarketAnalytics,
 } from "@/lib/vietnam/market-analytics"
+import { loadProprietaryAnalyticsFromDb } from "@/lib/proprietary/analytics-from-db"
+import { buildDashboardFromHeatmapStocks } from "@/lib/vietnam/vn-dashboard-from-vps"
 import { VPS_VOLUME_UNIT, vpsTradingValue } from "@/lib/vietnam/volume-units"
 import type {
   HeatmapExchange,
@@ -452,18 +454,42 @@ async function fetchLiveVietnamMarketData(): Promise<VietnamMarketData | null> {
 
   const foreignRows = foreignRowsFromHeatmapStocks(heatmapStocks)
 
+  const baseAnalytics = buildVietnamMarketAnalytics({
+    stocks: heatmapStocks,
+    hasLiveStocks,
+    foreignRows,
+    previousSession,
+    liveSymbols,
+  })
+  const proprietary = await loadProprietaryAnalyticsFromDb()
+
+  const vpsDashboard = hasLiveStocks
+    ? buildDashboardFromHeatmapStocks(heatmapStocks, data.fetchedAt ?? new Date().toISOString())
+    : null
+
+  let dashboard = mock.dashboard
+  if (vpsDashboard) {
+    dashboard = {
+      ...vpsDashboard,
+      topForeignBuy:
+        vpsDashboard.topForeignBuy.length > 0
+          ? vpsDashboard.topForeignBuy
+          : (kbsDashboard?.topForeignBuy ?? []),
+      topForeignSell:
+        vpsDashboard.topForeignSell.length > 0
+          ? vpsDashboard.topForeignSell
+          : (kbsDashboard?.topForeignSell ?? []),
+    }
+  } else if (kbsDashboard) {
+    dashboard = kbsDashboardToProvider(kbsDashboard)
+  }
+
   return {
     indices,
     heatmapStocks,
     heatmapMarket: buildHeatmapMarket(heatmapStocks),
-    dashboard: kbsDashboard ? kbsDashboardToProvider(kbsDashboard) : mock.dashboard,
-    analytics: buildVietnamMarketAnalytics({
-      stocks: heatmapStocks,
-      hasLiveStocks,
-      foreignRows,
-      previousSession,
-      liveSymbols,
-    }),
+    dashboard,
+    analytics: { ...baseAnalytics, proprietary },
     source: "live",
     volumeUnit: VPS_VOLUME_UNIT,
     heatmapProvider: data.provider,

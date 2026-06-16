@@ -307,7 +307,7 @@ function ProprietaryTab({ analytics }: { analytics?: VietnamMarketAnalytics }) {
   const p = analytics?.proprietary
 
   if (!p?.available) {
-    return <EmptyPanel message={t("vnAnalytics.proprietaryUnavailable")} />
+    return <EmptyPanel message={t("proprietaryTrading.unavailable")} />
   }
 
   return null

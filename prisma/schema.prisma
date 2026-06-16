@@ -157,3 +157,22 @@ model BrokerClick {
   @@index([slug])
   @@index([timestamp])
 }
+
+/// Post-market proprietary trading (EOD) — CafeF GH3 sync (Sprint 26).
+model ProprietaryTradingDaily {
+  id         String   @id @default(cuid())
+  date       DateTime @db.Date
+  symbol     String
+  buyValue   Float
+  sellValue  Float
+  netValue   Float
+  buyVolume  Float
+  sellVolume Float
+  source     String   @default("cafef")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([date, symbol, source])
+  @@index([date])
+  @@index([symbol])
+}
