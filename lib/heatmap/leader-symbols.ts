@@ -1,10 +1,15 @@
-/** VN index leaders — subtle tile emphasis in sector-volume heatmap. */
+/** VN index leaders — visual tile emphasis in sector-volume heatmap (top 10 by prominence). */
 export const VN_HEATMAP_LEADER_SYMBOLS = new Set([
   "VCB",
-  "FPT",
   "VHM",
   "VIC",
+  "FPT",
+  "TCB",
   "HPG",
+  "MBB",
+  "ACB",
+  "SSI",
+  "VPB",
 ])
 
 export function isVnHeatmapLeader(symbol: string): boolean {

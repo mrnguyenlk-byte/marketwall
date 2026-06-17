@@ -15,20 +15,20 @@ const DEFAULT_MAX_CAP_ITERATIONS = 50
 /** Max share of parent area for a single flat leaf (US, Crypto). */
 export const MAX_ITEM_AREA_SHARE = 0.18
 /** Max share of parent area for a single flat leaf (VN flat modes 2–4). */
-export const VN_MAX_ITEM_AREA_SHARE = 0.18
+export const VN_MAX_ITEM_AREA_SHARE = 0.25
 /** Max share of heatmap root for a single sector block (VN mode 1). */
 export const MAX_SECTOR_AREA_SHARE = 0.25
 /** Max share of sector inner area for a single stock tile (VN mode 1). */
-export const MAX_STOCK_AREA_SHARE_IN_SECTOR = 0.18
+export const MAX_STOCK_AREA_SHARE_IN_SECTOR = 0.25
 
 /** Power exponents for metric → area-share compression (rawShare ** power). */
 export const TREEMAP_COMPRESSION_POWER = {
-  VN_SECTOR_ROOT: 0.85,
-  VN_STOCK_IN_SECTOR: 0.75,
+  VN_SECTOR_ROOT: 0.9,
+  VN_STOCK_IN_SECTOR: 0.85,
   VN_MARKET_CAP_FLAT: 0.85,
-  VN_FLOW_FLAT: 0.75,
-  US_DOLLAR_VOLUME: 0.75,
-  CRYPTO_VOLUME: 0.75,
+  VN_FLOW_FLAT: 0.85,
+  US_DOLLAR_VOLUME: 1,
+  CRYPTO_VOLUME: 1,
   DEFAULT: 0.75,
 } as const
 

@@ -16,27 +16,35 @@ export type TileSize = "large" | "medium" | "small" | "tiny"
 
 const sizeClasses: Record<
   TileSize,
-  { grid: string; symbol: string; change: string }
+  { grid: string; symbol: string; change: string; leaderSymbol: string; leaderChange: string }
 > = {
   large: {
     grid: "col-span-2 row-span-2",
     symbol: "text-[13px] font-bold",
     change: "text-[12px] font-bold",
+    leaderSymbol: "text-[15px] font-bold",
+    leaderChange: "text-[14px] font-bold",
   },
   medium: {
     grid: "col-span-2 row-span-1",
     symbol: "text-[11px] font-bold",
     change: "text-[10px]",
+    leaderSymbol: "text-[13px] font-bold",
+    leaderChange: "text-[12px]",
   },
   small: {
     grid: "col-span-1 row-span-1",
     symbol: "text-[10px]",
     change: "",
+    leaderSymbol: "text-[12px] font-bold",
+    leaderChange: "",
   },
   tiny: {
     grid: "col-span-1 row-span-1",
     symbol: "",
     change: "",
+    leaderSymbol: "",
+    leaderChange: "",
   },
 }
 
@@ -96,7 +104,7 @@ export function HeatmapTile({
         <span
           className={cn(
             "truncate leading-none tracking-tight text-white drop-shadow-sm",
-            classes.symbol,
+            isLeader ? classes.leaderSymbol : classes.symbol,
           )}
         >
           {asset.symbol}
@@ -106,7 +114,7 @@ export function HeatmapTile({
         <span
           className={cn(
             "mt-auto font-mono tabular-nums text-white drop-shadow-sm",
-            classes.change,
+            isLeader ? classes.leaderChange : classes.change,
           )}
         >
           {up ? "+" : ""}
@@ -129,13 +137,16 @@ export function HeatmapTile({
               top: `${rect.y * 100}%`,
               width: `${rect.w * 100}%`,
               height: `${rect.h * 100}%`,
+              ...(isLeader ? { zIndex: 25 } : {}),
             }
           : {}),
       }}
       aria-label={`${asset.symbol} ${up ? "+" : ""}${asset.changePercent.toFixed(2)}%`}
       className={cn(
         "group/tile flex w-full min-w-0 flex-col items-start justify-between overflow-hidden rounded-none border text-left",
-        isLeader ? "border-white/45 ring-1 ring-inset ring-white/25" : "border-black/20",
+        isLeader
+          ? "z-[25] border-2 border-white ring-2 ring-white/70 ring-offset-0"
+          : "border-black/20",
         size === "tiny" ? "min-h-0 p-0" : "p-0.5 sm:p-1",
         !rect && classes.grid,
       )}

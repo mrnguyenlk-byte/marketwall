@@ -24,6 +24,7 @@ import {
   MAX_STOCK_AREA_SHARE_IN_SECTOR,
   normalizeTreemapWeights,
   TREEMAP_COMPRESSION_POWER,
+  VN_MAX_ITEM_AREA_SHARE,
 } from "@/lib/treemap/treemap-builders"
 import {
   buildFlatVnTreemapLayoutForMode,
@@ -758,7 +759,7 @@ function analyzeProprietaryFlatMode(
     assets,
     dataSource,
     displayMetricFn,
-    MAX_ITEM_AREA_SHARE,
+    VN_MAX_ITEM_AREA_SHARE,
     power,
     layout,
   )
@@ -827,7 +828,7 @@ async function main() {
       assets,
       source,
       (a) => vnHeatmapMetric(a, mode),
-      MAX_ITEM_AREA_SHARE,
+      VN_MAX_ITEM_AREA_SHARE,
       power,
       layout,
     )
@@ -847,7 +848,7 @@ async function main() {
       usAssets,
       usSource,
       usHeatmapSizeMetric,
-      MAX_ITEM_AREA_SHARE,
+      1,
       TREEMAP_COMPRESSION_POWER.US_DOLLAR_VOLUME,
       usLayout,
     ),
@@ -867,7 +868,7 @@ async function main() {
       cryptoAssets,
       cryptoSource,
       cryptoHeatmapSizeMetric,
-      MAX_ITEM_AREA_SHARE,
+      1,
       TREEMAP_COMPRESSION_POWER.CRYPTO_VOLUME,
       cryptoLayout,
     ),
