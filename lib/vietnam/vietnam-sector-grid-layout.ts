@@ -287,7 +287,7 @@ function layoutRootSectors(
 
 /**
  * Mode 1 — sector-grouped two-level treemap (trading-value-weighted).
- * Root: squarify sectors by power-compressed trading value, max 22%. Inner: max 18% per stock.
+ * Root: squarify sectors by power-compressed trading value, max 18%. Inner: max 12% per stock.
  */
 export function buildSectorGroupedTreemap(assets: MarketAsset[]): VnSectorTreemapLayout {
   const buckets = new Map<VnSectorGroupId, MarketAsset[]>()

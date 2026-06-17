@@ -12,12 +12,14 @@ const FLAT_ASPECT_FALLBACK_LIMIT = 10
 const FLAT_LAYOUT_GAP = 0.002
 const DEFAULT_MAX_CAP_ITERATIONS = 50
 
-/** Max share of parent area for a single flat leaf (VN modes 2–4, US, Crypto). */
+/** Max share of parent area for a single flat leaf (US, Crypto). */
 export const MAX_ITEM_AREA_SHARE = 0.18
+/** Max share of parent area for a single flat leaf (VN flat modes 2–4). */
+export const VN_MAX_ITEM_AREA_SHARE = 0.12
 /** Max share of heatmap root for a single sector block (VN mode 1). */
-export const MAX_SECTOR_AREA_SHARE = 0.22
+export const MAX_SECTOR_AREA_SHARE = 0.18
 /** Max share of sector inner area for a single stock tile (VN mode 1). */
-export const MAX_STOCK_AREA_SHARE_IN_SECTOR = 0.18
+export const MAX_STOCK_AREA_SHARE_IN_SECTOR = 0.12
 /** Items below this final weight share are grouped into Khác. */
 export const MIN_VISIBLE_SHARE = 0.0025
 /** Khác bucket must not exceed this share of its parent. */
@@ -25,10 +27,10 @@ export const KHAC_MAX_SHARE = 0.12
 
 /** Power exponents for metric → area-share compression (rawShare ** power). */
 export const TREEMAP_COMPRESSION_POWER = {
-  VN_SECTOR_ROOT: 0.75,
-  VN_STOCK_IN_SECTOR: 0.7,
-  VN_MARKET_CAP_FLAT: 0.85,
-  VN_FLOW_FLAT: 0.75,
+  VN_SECTOR_ROOT: 0.65,
+  VN_STOCK_IN_SECTOR: 0.55,
+  VN_MARKET_CAP_FLAT: 0.65,
+  VN_FLOW_FLAT: 0.55,
   US_DOLLAR_VOLUME: 0.75,
   CRYPTO_VOLUME: 0.75,
   DEFAULT: 0.75,

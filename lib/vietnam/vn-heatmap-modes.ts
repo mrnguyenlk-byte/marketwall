@@ -2,6 +2,7 @@ import { vnTradingValueMetric } from "@/lib/treemap/heatmap-engine"
 import {
   buildFlatMetricTreemap,
   TREEMAP_COMPRESSION_POWER,
+  VN_MAX_ITEM_AREA_SHARE,
 } from "@/lib/treemap/treemap-builders"
 import type { TreemapLayoutNode } from "@/lib/treemap/squarify"
 import { vpsLotToShares } from "@/lib/vietnam/volume-units"
@@ -170,6 +171,7 @@ export function buildFlatVnTreemapLayout(
 ): VnFlatTreemapLayout {
   const leaves = buildFlatMetricTreemap(assets, metricFn, undefined, {
     allowEqualGridFallback: false,
+    maxShare: VN_MAX_ITEM_AREA_SHARE,
     power: options?.power,
   })
   return { leaves }

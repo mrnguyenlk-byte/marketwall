@@ -19,23 +19,23 @@ const sizeClasses: Record<
 > = {
   large: {
     grid: "col-span-2 row-span-2",
-    symbol: "text-base sm:text-lg lg:text-xl",
-    change: "text-xs sm:text-sm lg:text-base",
+    symbol: "text-[13px] font-bold",
+    change: "text-[12px] font-bold",
   },
   medium: {
     grid: "col-span-2 row-span-1",
-    symbol: "text-sm sm:text-base",
-    change: "text-[10px] sm:text-xs",
+    symbol: "text-[11px] font-bold",
+    change: "text-[10px]",
   },
   small: {
     grid: "col-span-1 row-span-1",
-    symbol: "text-[10px] sm:text-xs",
-    change: "text-[10px] sm:text-xs",
+    symbol: "text-[10px]",
+    change: "",
   },
   tiny: {
     grid: "col-span-1 row-span-1",
-    symbol: "text-[9px]",
-    change: "text-[9px]",
+    symbol: "",
+    change: "",
   },
 }
 
@@ -93,7 +93,7 @@ export function HeatmapTile({
       {showSymbol && (
         <span
           className={cn(
-            "truncate font-extrabold leading-none tracking-tight text-white drop-shadow-sm",
+            "truncate leading-none tracking-tight text-white drop-shadow-sm",
             classes.symbol,
           )}
         >
@@ -103,7 +103,7 @@ export function HeatmapTile({
       {showChange && (
         <span
           className={cn(
-            "mt-auto font-mono font-bold tabular-nums text-white drop-shadow-sm",
+            "mt-auto font-mono tabular-nums text-white drop-shadow-sm",
             classes.change,
           )}
         >
