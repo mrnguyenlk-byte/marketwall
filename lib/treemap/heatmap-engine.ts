@@ -10,7 +10,11 @@ import {
 import { tradingValue, type VnHeatmapSizingMode } from "@/lib/vietnam/heatmap-sizing"
 import { vpsLotToShares } from "@/lib/vietnam/volume-units"
 
-import { squarify, squarifyGroups, type TreemapLayoutNode, type TreemapRect } from "./squarify"
+import {
+  buildFlatSquarifiedTreemap,
+  buildGroupedSquarifiedTreemap,
+} from "./treemap-builders"
+import type { TreemapLayoutNode, TreemapRect } from "./squarify"
 
 export type HeatmapGroupingMode = "sector" | "industry" | "category" | "marketCap"
 
@@ -56,26 +60,6 @@ export function capLeafWeights<T>(
   }))
 }
 
-function layoutItemsFromAssets(
-  assets: MarketAsset[],
-  marketType: MarketType,
-  sizing:
-    | VnHeatmapSizingMode
-    | UsHeatmapSizingMode
-    | CryptoHeatmapSizingMode,
-): Array<{ data: MarketAsset; value: number }> {
-  return capLeafWeights(
-    assets.map((asset) => ({
-      data: asset,
-      value: assetSizeMetric(asset, marketType, sizing),
-    })),
-  )
-}
-
-function groupWeight(items: Array<{ value: number }>): number {
-  return Math.max(items.reduce((sum, item) => sum + item.value, 0), MIN_TILE_VALUE)
-}
-
 export function vnTradingValueMetric(asset: MarketAsset): number {
   if (asset.tradingValue != null && asset.tradingValue > 0) return asset.tradingValue
   const shares = asset.volumeShares ?? vpsLotToShares(asset.volume)
@@ -111,10 +95,6 @@ export function assetSizeMetric(
   return mode === "volume" ? asset.volume : asset.marketCap
 }
 
-function leafNodes(items: Array<{ data: MarketAsset; value: number }>, rect: TreemapRect) {
-  return squarify(items, rect)
-}
-
 function groupKey(asset: MarketAsset, mode: HeatmapGroupingMode, marketType: MarketType): string {
   if (mode === "marketCap") return "all"
   if (marketType === "crypto" && mode === "category") {
@@ -146,26 +126,13 @@ export function buildHeatmapTreemapLayout(
     | CryptoHeatmapSizingMode,
 ): HeatmapTreemapLayout {
   const rect: TreemapRect = { x: 0, y: 0, w: 1, h: 1 }
-  const items = layoutItemsFromAssets(assets, marketType, sizing)
+  const metric = (asset: MarketAsset) => assetSizeMetric(asset, marketType, sizing)
 
   if (grouping === "marketCap" || !assets.length) {
-    const leaves = leafNodes(items, rect)
     return {
       groups: [],
-      leaves,
+      leaves: buildFlatSquarifiedTreemap(assets, metric, rect),
     }
-  }
-
-  if (marketType === "us" && grouping === "sector") {
-    return buildSectorIndustryLayout(assets, marketType, sizing, rect)
-  }
-
-  if (
-    marketType === "vn" &&
-    grouping === "sector" &&
-    assets.some((a) => a.industry?.trim())
-  ) {
-    return buildSectorIndustryLayout(assets, marketType, sizing, rect)
   }
 
   const buckets = new Map<string, MarketAsset[]>()
@@ -176,143 +143,28 @@ export function buildHeatmapTreemapLayout(
     buckets.set(key, list)
   }
 
-  const groups = [...buckets.entries()].map(([id, list]) => {
-    const items = layoutItemsFromAssets(list, marketType, sizing)
-    return {
-      id,
-      ...groupLabel(id, marketType),
+  const grouped = buildGroupedSquarifiedTreemap(
+    [...buckets.entries()].map(([id, items]) => ({
+      data: { id, ...groupLabel(id, marketType), items },
       items,
-      value: groupWeight(items),
-    }
-  })
-
-  groups.sort((a, b) => b.value - a.value)
-
-  const packed = squarifyGroups(
-    groups.map((g) => ({ data: g, value: g.value, items: g.items })),
-    rect,
+    })),
+    (group) => group.items.reduce((sum, asset) => sum + metric(asset), 0),
+    metric,
+    { rect, headerRatio: 0.04 },
   )
 
+  grouped.groups.sort((a, b) => b.rect.w * b.rect.h - a.rect.w * a.rect.h)
+
   return {
-    groups: packed.map((node) => ({
+    groups: grouped.groups.map((node) => ({
       id: node.data.id,
       label: node.data.label,
       labelKey: node.data.labelKey,
       rect: node.rect,
       children: node.children,
     })),
-    leaves: packed.flatMap((g) => g.children),
+    leaves: grouped.leaves,
   }
-}
-
-function buildSectorIndustryLayout(
-  assets: MarketAsset[],
-  marketType: MarketType,
-  sizing: UsHeatmapSizingMode | VnHeatmapSizingMode | CryptoHeatmapSizingMode,
-  rect: TreemapRect,
-): HeatmapTreemapLayout {
-  const sectors = new Map<string, MarketAsset[]>()
-  for (const asset of assets) {
-    const sector = asset.sector?.trim() || "Other"
-    const list = sectors.get(sector) ?? []
-    list.push(asset)
-    sectors.set(sector, list)
-  }
-
-  const sectorGroups = [...sectors.entries()].map(([sectorId, list]) => {
-    const industries = new Map<string, MarketAsset[]>()
-    for (const asset of list) {
-      const ind =
-        marketType === "vn"
-          ? asset.industry?.trim() || sectorId
-          : asset.industry?.trim() || asset.sector?.trim() || "Other"
-      const bucket = industries.get(ind) ?? []
-      bucket.push(asset)
-      industries.set(ind, bucket)
-    }
-
-    const industryNodes = [...industries.entries()].map(([industryId, stocks]) => {
-      const items = layoutItemsFromAssets(stocks, marketType, sizing)
-      return {
-        id: `${sectorId}::${industryId}`,
-        label: industryId,
-        value: groupWeight(items),
-        items,
-      }
-    })
-
-    const sectorWeight = industryNodes.reduce((s, n) => s + n.value, 0)
-    const sectorMeta = groupLabel(sectorId, marketType)
-
-    return {
-      id: sectorId,
-      label: sectorMeta.label,
-      labelKey: sectorMeta.labelKey,
-      value: Math.max(sectorWeight, MIN_TILE_VALUE),
-      industries: industryNodes,
-    }
-  })
-
-  sectorGroups.sort((a, b) => b.value - a.value)
-
-  const topPacked = squarify(
-    sectorGroups.map((s) => ({ data: s, value: s.value })),
-    rect,
-  )
-
-  const groups: TreemapGroupLayout[] = []
-  const leaves: TreemapLayoutNode<MarketAsset>[] = []
-
-  for (const sectorNode of topPacked) {
-    const sector = sectorNode.data
-    const headerH = Math.min(sectorNode.rect.h * 0.06, 0.028)
-    const inner: TreemapRect = {
-      x: sectorNode.rect.x,
-      y: sectorNode.rect.y + headerH,
-      w: sectorNode.rect.w,
-      h: Math.max(sectorNode.rect.h - headerH, 0),
-    }
-
-    const collapseIndustry =
-      sector.industries.length === 1 &&
-      sector.industries[0].label === sector.label
-
-    if (collapseIndustry) {
-      const children = squarify(sector.industries[0].items, inner)
-      const sectorMeta = groupLabel(sector.id, marketType)
-      groups.push({
-        id: sector.id,
-        label: sectorMeta.label,
-        labelKey: sectorMeta.labelKey,
-        rect: sectorNode.rect,
-        children,
-      })
-      leaves.push(...children)
-      continue
-    }
-
-    const industryPacked = squarifyGroups(
-      sector.industries.map((ind) => ({
-        data: { id: ind.id, label: ind.label, labelKey: undefined },
-        value: ind.value,
-        items: ind.items,
-      })),
-      inner,
-      0.06,
-    )
-
-    for (const ind of industryPacked) {
-      groups.push({
-        id: ind.data.id,
-        label: ind.data.label,
-        rect: ind.rect,
-        children: ind.children,
-      })
-      leaves.push(...ind.children)
-    }
-  }
-
-  return { groups, leaves }
 }
 
 export function tileSizeFromRect(rect: TreemapRect): "large" | "medium" | "small" | "tiny" {

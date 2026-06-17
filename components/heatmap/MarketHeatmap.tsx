@@ -32,7 +32,7 @@ type MarketHeatmapProps = {
 }
 
 function defaultUsSizing(): UsHeatmapSizingMode {
-  return "marketCap"
+  return "dollarVolume"
 }
 
 function defaultCryptoSizing(): CryptoHeatmapSizingMode {

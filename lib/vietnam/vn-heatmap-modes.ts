@@ -1,5 +1,5 @@
-import { capLeafWeights } from "@/lib/treemap/heatmap-engine"
-import { squarify, type TreemapLayoutNode, type TreemapRect } from "@/lib/treemap/squarify"
+import { buildFlatSquarifiedTreemap } from "@/lib/treemap/treemap-builders"
+import type { TreemapLayoutNode } from "@/lib/treemap/squarify"
 import { vpsLotToShares } from "@/lib/vietnam/volume-units"
 import type { MarketAsset } from "@/types/market"
 
@@ -90,14 +90,7 @@ export function buildFlatVnTreemapLayout(
   assets: MarketAsset[],
   metricFn: (asset: MarketAsset) => number,
 ): VnFlatTreemapLayout {
-  const rect: TreemapRect = { x: 0, y: 0, w: 1, h: 1 }
-  const items = capLeafWeights(
-    assets.map((asset) => ({
-      data: asset,
-      value: metricFn(asset),
-    })),
-  )
-  const leaves = squarify(items, rect)
+  const leaves = buildFlatSquarifiedTreemap(assets, metricFn)
   return { leaves }
 }
 

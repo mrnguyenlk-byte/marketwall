@@ -218,7 +218,7 @@ function HeatmapDetailSection() {
   const [activeMarket, setActiveMarket] = useState<MarketType>("vn")
   const [vnMode, setVnMode] = useState<VnHeatmapMode>(DEFAULT_VN_HEATMAP_MODE)
   const [usGrouping, setUsGrouping] = useState<HeatmapGroupingMode>("sector")
-  const [usSizing, setUsSizing] = useState<UsHeatmapSizingMode>("marketCap")
+  const [usSizing, setUsSizing] = useState<UsHeatmapSizingMode>("dollarVolume")
   const [cryptoGrouping, setCryptoGrouping] = useState<HeatmapGroupingMode>("category")
   const [cryptoSizing, setCryptoSizing] = useState<CryptoHeatmapSizingMode>("volume")
 

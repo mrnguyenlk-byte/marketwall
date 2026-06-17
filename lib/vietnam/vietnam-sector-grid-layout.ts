@@ -1,4 +1,5 @@
-import { squarify, squarifyWithOrientation, type TreemapRect } from "@/lib/treemap/squarify"
+import { packSquarified } from "@/lib/treemap/treemap-builders"
+import type { TreemapRect } from "@/lib/treemap/squarify"
 import { assetSizeMetric } from "@/lib/treemap/heatmap-engine"
 import {
   normalizeVnSectorGroup,
@@ -13,7 +14,6 @@ const MAX_TILE_IN_SECTOR = 0.12
 const MAX_TILE_RETRY = 0.08
 const MIN_TILE_IN_SECTOR = 0.02
 const HARD_ASPECT_LIMIT = 3
-const PREFERRED_ASPECT_MAX = 2.5
 /** Match VietnamSectorGridHeatmap header: min(7%, 22px) with min-h 18px. */
 const SECTOR_HEADER_RATIO = 0.07
 const SECTOR_HEADER_MIN = 18 / 1080
@@ -137,18 +137,6 @@ function prepareStockWeights(
   return { visible, other, weightSum: sum }
 }
 
-function layoutScore(leaves: TreemapRect[]): number {
-  let worst = 0
-  let overPreferred = 0
-  for (const rect of leaves) {
-    const ar = aspectRatio(rect)
-    worst = Math.max(worst, ar)
-    if (ar > PREFERRED_ASPECT_MAX) overPreferred++
-  }
-  if (worst > HARD_ASPECT_LIMIT) return worst * 100 + overPreferred * 10
-  return worst + overPreferred * 0.5
-}
-
 function worstAspect(placements: Array<{ rect: TreemapRect }>): number {
   return Math.max(...placements.map((p) => aspectRatio(p.rect)), 0)
 }
@@ -164,13 +152,10 @@ function capItemWeights(items: SectorSquarifyItem[], maxShare: number): SectorSq
 function squarifyPlacements(
   inner: TreemapRect,
   items: SectorSquarifyItem[],
-  horizontal: boolean,
 ): Array<{ item: SectorSquarifyItem; rect: TreemapRect }> {
-  const nodes = squarifyWithOrientation(
+  const nodes = packSquarified(
     items.map((item) => ({ data: item, value: Math.max(item.weight, MIN_SQRT_VALUE) })),
     inner,
-    horizontal,
-    MIN_SQRT_VALUE,
   )
   return nodes.map((node) => ({ item: node.data, rect: node.rect }))
 }
@@ -226,27 +211,12 @@ function trySquarifyInner(
   baseItems: SectorSquarifyItem[],
   maxShare: number,
 ): Array<{ item: SectorSquarifyItem; rect: TreemapRect }> {
-  const orientations = [inner.w >= inner.h, inner.w < inner.h]
-  let best: {
-    placements: Array<{ item: SectorSquarifyItem; rect: TreemapRect }>
-    score: number
-  } | null = null
+  const items = maxShare < MAX_TILE_IN_SECTOR ? capItemWeights(baseItems, maxShare) : baseItems
+  const placements = squarifyPlacements(inner, items)
+  if (worstAspect(placements) <= HARD_ASPECT_LIMIT) return placements
 
-  for (const horizontal of orientations) {
-    const items = maxShare < MAX_TILE_IN_SECTOR ? capItemWeights(baseItems, maxShare) : baseItems
-    const placements = squarifyPlacements(inner, items, horizontal)
-    const score = layoutScore(placements.map((p) => p.rect))
-    const worst = worstAspect(placements)
-
-    if (worst <= HARD_ASPECT_LIMIT && (!best || score < best.score)) {
-      best = { placements, score }
-    }
-  }
-
-  if (best) return best.placements
-
-  const fallback = squarifyPlacements(inner, baseItems, inner.w >= inner.h)
-  if (worstAspect(fallback) <= HARD_ASPECT_LIMIT) return fallback
+  const uncapped = squarifyPlacements(inner, baseItems)
+  if (worstAspect(uncapped) <= HARD_ASPECT_LIMIT) return uncapped
 
   return balancedGridFallback(inner, baseItems)
 }
@@ -357,7 +327,7 @@ function layoutRootSectors(
     data: id,
     value: Math.max(weights.get(id) ?? MIN_SQRT_VALUE, MIN_SQRT_VALUE),
   }))
-  const nodes = squarify(items, root, MIN_SQRT_VALUE)
+  const nodes = packSquarified(items, root)
   return nodes.map((node) => ({
     id: node.data,
     rect: insetRect(node.rect, SECTOR_GAP),
