@@ -11,6 +11,10 @@ import { overlayHeatmapQuotes } from "@/lib/market/normalize"
 import { limitHeatmapRows, sortHeatmapRows } from "@/lib/market/heatmap-limits"
 import { CACHE_KEYS, CACHE_TTL, cachedProvider } from "@/lib/providers/cache"
 import { getData as getCryptoData, getMockData as getCryptoMock } from "@/lib/providers/crypto-provider"
+import {
+  applyProprietaryOverlay,
+  loadProprietaryHeatmapOverlay,
+} from "@/lib/proprietary/heatmap-overlay"
 import { getData as getVietnamData, getMockData as getVietnamMock, type VietnamMarketData } from "@/lib/providers/vietnam-market-provider"
 import { fetchYahooStockQuotes } from "@/lib/providers/yahoo-finance"
 import type { HeatmapAsset, MarketType } from "@/types/market"
@@ -171,6 +175,11 @@ async function fetchVietnamRows(): Promise<HeatmapRowResult> {
     }
 
     items = finalizeHeatmapRows(items, "vn")
+
+    const proprietaryOverlay = await loadProprietaryHeatmapOverlay()
+    if (proprietaryOverlay.size > 0) {
+      items = items.map((row) => applyProprietaryOverlay(row, proprietaryOverlay))
+    }
 
     const livePriceCount = countLivePrices(items)
     const source =

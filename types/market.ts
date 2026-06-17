@@ -72,6 +72,14 @@ export type HeatmapAsset = {
   foreignBuyValue?: number
   foreignSellValue?: number
   foreignNetValue?: number
+  /** VN: proprietary buy value in VND (CafeF EOD). */
+  proprietaryBuyValue?: number
+  /** VN: proprietary sell value in VND (CafeF EOD). */
+  proprietarySellValue?: number
+  /** VN: proprietary net value in VND (buy − sell). */
+  proprietaryNetValue?: number
+  /** VN: gross proprietary trading value in VND (buy + sell). */
+  proprietaryTradingValue?: number
 }
 
 export type FinancialSnapshot = {
@@ -108,6 +116,10 @@ export type MarketAsset = {
   foreignBuyValue?: number
   foreignSellValue?: number
   foreignNetValue?: number
+  proprietaryBuyValue?: number
+  proprietarySellValue?: number
+  proprietaryNetValue?: number
+  proprietaryTradingValue?: number
   lastUpdated: string
   tradingViewSymbol: string
   open: number

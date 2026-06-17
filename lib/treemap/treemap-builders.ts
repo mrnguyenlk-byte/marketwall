@@ -356,7 +356,7 @@ function layoutWeightBandsVertical<T>(
  * Weight-proportional grid fallback — tile area ∝ value, metric order preserved.
  * Tries horizontal and vertical band counts to minimize worst aspect ratio.
  */
-function weightedBalancedGridFallback<T>(
+export function weightedBalancedGridFallback<T>(
   inner: TreemapRect,
   items: Array<{ data: T; value: number }>,
   gap = FLAT_LAYOUT_GAP,

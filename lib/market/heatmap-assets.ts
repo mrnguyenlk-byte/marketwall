@@ -43,6 +43,10 @@ export function heatmapRowsToMarketAssets(
             foreignBuyValue: row.foreignBuyValue,
             foreignSellValue: row.foreignSellValue,
             foreignNetValue: row.foreignNetValue,
+            proprietaryBuyValue: row.proprietaryBuyValue,
+            proprietarySellValue: row.proprietarySellValue,
+            proprietaryNetValue: row.proprietaryNetValue,
+            proprietaryTradingValue: row.proprietaryTradingValue,
           }
         : {}),
       sector: row.sector,
