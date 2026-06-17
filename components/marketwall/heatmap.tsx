@@ -369,16 +369,6 @@ function HeatmapDetailSection() {
                 </button>
               ))}
             </div>
-            <div className="hidden items-center gap-1 sm:flex">
-              {["-3%", "0%", "+3%"].map((label) => (
-                <span
-                  key={label}
-                  className="rounded px-2 py-0.5 text-[10px] font-medium text-muted-foreground ring-1 ring-border/50"
-                >
-                  {label}
-                </span>
-              ))}
-            </div>
             </div>
           }
         />
@@ -516,16 +506,6 @@ function LegacyHeatmapSection({ markets }: { markets: HeatmapMarket[] }) {
                   >
                     {tf}
                   </button>
-                ))}
-              </div>
-              <div className="hidden items-center gap-1 sm:flex">
-                {["-3%", "0%", "+3%"].map((label) => (
-                  <span
-                    key={label}
-                    className="rounded px-2 py-0.5 type-secondary-label font-medium text-muted-foreground ring-1 ring-border/50"
-                  >
-                    {label}
-                  </span>
                 ))}
               </div>
             </div>
