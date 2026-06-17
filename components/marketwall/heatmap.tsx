@@ -8,11 +8,6 @@ import {
   DEFAULT_VN_HEATMAP_MODE,
   type VnHeatmapMode,
 } from "@/lib/vietnam/vn-heatmap-modes"
-import type {
-  CryptoHeatmapSizingMode,
-  HeatmapGroupingMode,
-  UsHeatmapSizingMode,
-} from "@/lib/treemap/heatmap-engine"
 import { clientDebug, features } from "@/lib/config/features"
 import { useOpenSymbolDetail } from "@/hooks/useOpenSymbolDetail"
 import { useLang } from "@/lib/i18n"
@@ -217,10 +212,6 @@ function HeatmapDetailSection() {
   const { quoteBySymbol } = useRealtime()
   const [activeMarket, setActiveMarket] = useState<MarketType>("vn")
   const [vnMode, setVnMode] = useState<VnHeatmapMode>(DEFAULT_VN_HEATMAP_MODE)
-  const [usGrouping, setUsGrouping] = useState<HeatmapGroupingMode>("sector")
-  const [usSizing, setUsSizing] = useState<UsHeatmapSizingMode>("dollarVolume")
-  const [cryptoGrouping, setCryptoGrouping] = useState<HeatmapGroupingMode>("category")
-  const [cryptoSizing, setCryptoSizing] = useState<CryptoHeatmapSizingMode>("volume")
 
   const vnHeatmap = useHeatmapMarket("vn")
   const usHeatmap = useHeatmapMarket("us")
@@ -246,10 +237,6 @@ function HeatmapDetailSection() {
   }, [activeApi.data, activeMarket, quoteBySymbol])
 
   const activeTab = DETAIL_MARKET_TABS.find((tab) => tab.id === activeMarket) ?? DETAIL_MARKET_TABS[0]
-
-  const activeGrouping =
-    activeMarket === "us" ? usGrouping : activeMarket === "crypto" ? cryptoGrouping : "sector"
-  const activeSizing = activeMarket === "us" ? usSizing : activeMarket === "crypto" ? cryptoSizing : "volume"
 
   return (
     <section aria-labelledby="heatmap-title" className="min-w-0">
@@ -285,70 +272,6 @@ function HeatmapDetailSection() {
                   </ControlPill>
                 ))}
               </ControlGroup>
-            )}
-            {activeMarket === "us" && (
-              <>
-                <ControlGroup>
-                  <ControlPill active={usGrouping === "sector"} onClick={() => setUsGrouping("sector")}>
-                    {t("heatmap.groupBySector")}
-                  </ControlPill>
-                  <ControlPill
-                    active={usGrouping === "industry"}
-                    onClick={() => setUsGrouping("industry")}
-                  >
-                    {t("heatmap.groupByIndustry")}
-                  </ControlPill>
-                  <ControlPill
-                    active={usGrouping === "marketCap"}
-                    onClick={() => setUsGrouping("marketCap")}
-                  >
-                    {t("heatmap.groupByMarketCap")}
-                  </ControlPill>
-                </ControlGroup>
-                <ControlGroup>
-                  <ControlPill
-                    active={usSizing === "marketCap"}
-                    onClick={() => setUsSizing("marketCap")}
-                  >
-                    {t("heatmap.sizeMarketCap")}
-                  </ControlPill>
-                  <ControlPill
-                    active={usSizing === "dollarVolume"}
-                    onClick={() => setUsSizing("dollarVolume")}
-                  >
-                    {t("heatmap.sizeDollarVolume")}
-                  </ControlPill>
-                </ControlGroup>
-              </>
-            )}
-            {activeMarket === "crypto" && (
-              <>
-                <ControlGroup>
-                  <ControlPill
-                    active={cryptoGrouping === "category"}
-                    onClick={() => setCryptoGrouping("category")}
-                  >
-                    {t("heatmap.groupByCategory")}
-                  </ControlPill>
-                  <ControlPill
-                    active={cryptoGrouping === "marketCap"}
-                    onClick={() => setCryptoGrouping("marketCap")}
-                  >
-                    {t("heatmap.groupByMarketCap")}
-                  </ControlPill>
-                </ControlGroup>
-                <ControlGroup>
-                  <ControlPill active={cryptoSizing === "volume"} onClick={() => setCryptoSizing("volume")}>
-                    {t("heatmap.sizeVolume")}
-                  </ControlPill>
-                  <ControlPill
-                    active={cryptoSizing === "marketCap"}
-                    onClick={() => setCryptoSizing("marketCap")}
-                  >
-                    {t("heatmap.sizeMarketCap")}
-                  </ControlPill>
-                </ControlGroup>
-              </>
             )}
             </div>
           }
@@ -386,8 +309,6 @@ function HeatmapDetailSection() {
               assets={assets}
               locale={lang}
               marketType={activeMarket}
-              groupingMode={activeGrouping}
-              sizingMode={activeMarket !== "vn" ? activeSizing : undefined}
               vnMode={activeMarket === "vn" ? vnMode : undefined}
               groupLabel={(key) => t(key)}
               onTileClick={(asset) => openMarketAsset(asset)}

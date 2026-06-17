@@ -1,4 +1,4 @@
-import { buildFlatSquarifiedTreemap } from "@/lib/treemap/treemap-builders"
+import { buildFlatMetricTreemap } from "@/lib/treemap/treemap-builders"
 import type { TreemapLayoutNode } from "@/lib/treemap/squarify"
 import { vpsLotToShares } from "@/lib/vietnam/volume-units"
 import type { MarketAsset } from "@/types/market"
@@ -90,7 +90,7 @@ export function buildFlatVnTreemapLayout(
   assets: MarketAsset[],
   metricFn: (asset: MarketAsset) => number,
 ): VnFlatTreemapLayout {
-  const leaves = buildFlatSquarifiedTreemap(assets, metricFn)
+  const leaves = buildFlatMetricTreemap(assets, metricFn)
   return { leaves }
 }
 

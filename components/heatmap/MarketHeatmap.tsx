@@ -6,11 +6,6 @@ import { FinvizTreemap } from "@/components/heatmap/FinvizTreemap"
 import { VietnamFlatTreemap } from "@/components/heatmap/VietnamFlatTreemap"
 import { VietnamSectorGridHeatmap } from "@/components/heatmap/VietnamSectorGridHeatmap"
 import { limitHeatmapAssets } from "@/lib/market/heatmap-limits"
-import type {
-  CryptoHeatmapSizingMode,
-  HeatmapGroupingMode,
-  UsHeatmapSizingMode,
-} from "@/lib/treemap/heatmap-engine"
 import {
   DEFAULT_VN_HEATMAP_MODE,
   type VnHeatmapMode,
@@ -18,33 +13,21 @@ import {
 import type { Lang } from "@/lib/i18n"
 import type { MarketAsset, MarketType } from "@/types/market"
 
-export type { HeatmapGroupingMode }
+export type { HeatmapGroupingMode } from "@/lib/treemap/heatmap-engine"
 
 type MarketHeatmapProps = {
   assets: MarketAsset[]
   locale: Lang
   marketType: MarketType
-  groupingMode?: HeatmapGroupingMode
-  sizingMode?: UsHeatmapSizingMode | CryptoHeatmapSizingMode
   vnMode?: VnHeatmapMode
   groupLabel?: (key: string) => string
   onTileClick: (asset: MarketAsset) => void
-}
-
-function defaultUsSizing(): UsHeatmapSizingMode {
-  return "dollarVolume"
-}
-
-function defaultCryptoSizing(): CryptoHeatmapSizingMode {
-  return "volume"
 }
 
 export function MarketHeatmap({
   assets,
   locale: _locale,
   marketType,
-  groupingMode = "sector",
-  sizingMode,
   vnMode,
   groupLabel,
   onTileClick,
@@ -55,9 +38,9 @@ export function MarketHeatmap({
     if (marketType === "vn") {
       return limitHeatmapAssets(assets, marketType, mode)
     }
-    const sizing = sizingMode ?? (marketType === "us" ? defaultUsSizing() : defaultCryptoSizing())
+    const sizing = marketType === "us" ? "dollarVolume" : "volume"
     return limitHeatmapAssets(assets, marketType, sizing)
-  }, [assets, marketType, mode, sizingMode])
+  }, [assets, marketType, mode])
 
   if (marketType === "vn") {
     if (mode === "sector-volume") {
@@ -79,15 +62,13 @@ export function MarketHeatmap({
     )
   }
 
-  const sizing = sizingMode ?? (marketType === "us" ? defaultUsSizing() : defaultCryptoSizing())
+  const usCryptoSizing = marketType === "us" ? "dollarVolume" as const : "volume" as const
 
   return (
     <FinvizTreemap
       assets={limitedAssets}
       marketType={marketType}
-      grouping={groupingMode}
-      sizing={sizing}
-      groupLabel={groupLabel}
+      sizing={usCryptoSizing}
       onTileClick={onTileClick}
     />
   )

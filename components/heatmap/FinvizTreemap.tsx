@@ -1,18 +1,15 @@
 "use client"
 
-import { useCallback, useMemo, useRef, useState, type CSSProperties } from "react"
+import { useCallback, useMemo, useRef, useState } from "react"
 import { Minus, Plus, RotateCcw } from "lucide-react"
 
 import {
-  buildHeatmapTreemapLayout,
+  buildFlatMarketHeatmapLayout,
   tileSizeFromRect,
   type CryptoHeatmapSizingMode,
-  type HeatmapGroupingMode,
   type UsHeatmapSizingMode,
 } from "@/lib/treemap/heatmap-engine"
-import type { TreemapRect } from "@/lib/treemap/squarify"
-import type { VnHeatmapSizingMode } from "@/lib/vietnam/heatmap-sizing"
-import type { MarketAsset, MarketType } from "@/types/market"
+import type { MarketAsset } from "@/types/market"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 
@@ -20,35 +17,18 @@ import { HeatmapTile } from "./HeatmapTile"
 
 type FinvizTreemapProps = {
   assets: MarketAsset[]
-  marketType: MarketType
-  grouping: HeatmapGroupingMode
-  sizing: VnHeatmapSizingMode | UsHeatmapSizingMode | CryptoHeatmapSizingMode
-  groupLabel?: (key: string) => string
+  marketType: "us" | "crypto"
+  sizing: UsHeatmapSizingMode | CryptoHeatmapSizingMode
   onTileClick: (asset: MarketAsset) => void
 }
 
 const MIN_ZOOM = 1
 const MAX_ZOOM = 2.5
 
-function pct(n: number) {
-  return `${n * 100}%`
-}
-
-function rectStyle(rect: TreemapRect): CSSProperties {
-  return {
-    left: pct(rect.x),
-    top: pct(rect.y),
-    width: pct(rect.w),
-    height: pct(rect.h),
-  }
-}
-
 export function FinvizTreemap({
   assets,
   marketType,
-  grouping,
   sizing,
-  groupLabel,
   onTileClick,
 }: FinvizTreemapProps) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -57,8 +37,8 @@ export function FinvizTreemap({
   const dragRef = useRef<{ x: number; y: number; panX: number; panY: number } | null>(null)
 
   const layout = useMemo(
-    () => buildHeatmapTreemapLayout(assets, marketType, grouping, sizing),
-    [assets, marketType, grouping, sizing],
+    () => buildFlatMarketHeatmapLayout(assets, marketType, sizing),
+    [assets, marketType, sizing],
   )
 
   const onPointerDown = useCallback(
@@ -87,8 +67,6 @@ export function FinvizTreemap({
     setZoom(1)
     setPan({ x: 0, y: 0 })
   }, [])
-
-  const showGroups = layout.groups.length > 0
 
   return (
     <div className="relative flex h-full w-full flex-col">
@@ -134,7 +112,7 @@ export function FinvizTreemap({
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerUp}
           data-market-type={marketType}
-          data-grouping={grouping}
+          data-grouping="flat-treemap"
           data-sizing={sizing}
         >
           <div
@@ -144,21 +122,6 @@ export function FinvizTreemap({
             }}
           >
             <div className="relative h-full w-full">
-              {showGroups
-                ? layout.groups.map((group) => (
-                    <div
-                      key={group.id}
-                      className="pointer-events-none absolute box-border overflow-hidden border border-black/30"
-                      style={rectStyle(group.rect)}
-                    >
-                      <div className="flex min-h-[14px] items-center truncate bg-black/65 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-[inset_0_-1px_0_rgba(255,255,255,0.12)] sm:text-[11px] min-[1440px]:text-xs">
-                        {group.labelKey && groupLabel
-                          ? groupLabel(group.labelKey)
-                          : group.label}
-                      </div>
-                    </div>
-                  ))
-                : null}
               {layout.leaves.map((leaf) => (
                 <HeatmapTile
                   key={leaf.data.symbol}

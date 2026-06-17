@@ -45,6 +45,13 @@ function sqrtMetric(value: number): number {
   return Math.sqrt(Math.max(value, 0))
 }
 
+/** True when every raw metric is zero or missing — equal grid is allowed only then. */
+export function allMetricsInvalid<T>(
+  items: Array<{ data: T; value: number }>,
+): boolean {
+  return !items.some((item) => item.value > 0)
+}
+
 function balancedGridFallback<T>(
   inner: TreemapRect,
   items: Array<{ data: T; value: number }>,
@@ -90,12 +97,21 @@ function balancedGridFallback<T>(
   })
 }
 
-/** Squarify with orientation retry and balanced-grid fallback — never slice-only bars. */
+export type PackSquarifiedOptions = {
+  /** When false, never fall back to equal-size grid (default). */
+  allowEqualGridFallback?: boolean
+}
+
+/** Squarify with orientation retry; equal grid only when all metrics invalid. */
 export function packSquarified<T>(
   items: Array<{ data: T; value: number }>,
   rect: TreemapRect,
+  options?: PackSquarifiedOptions,
 ): TreemapLayoutNode<T>[] {
   if (!items.length || rect.w <= 0 || rect.h <= 0) return []
+
+  const rawInvalid = allMetricsInvalid(items)
+  const allowEqualGrid = options?.allowEqualGridFallback ?? rawInvalid
 
   const weighted = items.map((item) => ({
     ...item,
@@ -122,27 +138,33 @@ export function packSquarified<T>(
   const worst = worstAspect(best.map((node) => node.rect))
   if (worst <= HARD_ASPECT_LIMIT) return best
 
-  const grid = balancedGridFallback(rect, weighted)
-  const gridWorst = worstAspect(grid.map((node) => node.rect))
-  if (gridWorst < worst) return grid
+  if (allowEqualGrid) {
+    const grid = balancedGridFallback(rect, weighted)
+    const gridWorst = worstAspect(grid.map((node) => node.rect))
+    if (gridWorst < worst) return grid
+  }
 
   return best
 }
 
 /** Flat squarified treemap — tile size from metric (sqrt-weighted), never slice bars. */
-export function buildFlatSquarifiedTreemap<T>(
+export function buildFlatMetricTreemap<T>(
   items: T[],
   metric: (item: T) => number,
   rect: TreemapRect = { x: 0, y: 0, w: 1, h: 1 },
 ): TreemapLayoutNode<T>[] {
-  const weighted = capLeafWeights(
-    items.map((item) => ({
-      data: item,
-      value: metric(item),
-    })),
-  )
-  return packSquarified(weighted, rect)
+  const raw = items.map((item) => ({
+    data: item,
+    value: metric(item),
+  }))
+  const weighted = capLeafWeights(raw)
+  return packSquarified(weighted, rect, {
+    allowEqualGridFallback: allMetricsInvalid(raw),
+  })
 }
+
+/** @deprecated Use buildFlatMetricTreemap */
+export const buildFlatSquarifiedTreemap = buildFlatMetricTreemap
 
 function insetRect(rect: TreemapRect, gap: number): TreemapRect {
   const inset = gap / 2
@@ -154,7 +176,96 @@ function insetRect(rect: TreemapRect, gap: number): TreemapRect {
   }
 }
 
-/** Two-level grouped squarified treemap — group blocks at root, squarified leaves inside. */
+/** Two-level grouped sector treemap — squarified sector blocks, squarified leaves inside. */
+export function buildGroupedSectorTreemap<T>(
+  items: T[],
+  sectorKey: (item: T) => string,
+  metric: (item: T) => number,
+  options?: {
+    rect?: TreemapRect
+    gap?: number
+    headerRatio?: number
+  },
+): GroupedSquarifiedTreemap<T, string> {
+  const rect = options?.rect ?? { x: 0, y: 0, w: 1, h: 1 }
+  const gap = options?.gap ?? 0.002
+  const headerRatio = options?.headerRatio ?? 0.04
+
+  const buckets = new Map<string, T[]>()
+  for (const item of items) {
+    const key = sectorKey(item)
+    const list = buckets.get(key) ?? []
+    list.push(item)
+    buckets.set(key, list)
+  }
+
+  const groups = [...buckets.entries()].map(([id, groupItems]) => ({
+    data: id,
+    items: groupItems,
+  }))
+
+  return buildGroupedSectorTreemapFromGroups(groups, metric, { rect, gap, headerRatio })
+}
+
+function buildGroupedSectorTreemapFromGroups<T, G>(
+  groups: Array<{ data: G; items: T[] }>,
+  itemMetric: (item: T) => number,
+  options: {
+    rect: TreemapRect
+    gap: number
+    headerRatio: number
+  },
+): GroupedSquarifiedTreemap<T, G> {
+  const { rect, gap, headerRatio } = options
+
+  const nonEmpty = groups.filter((group) => group.items.length > 0)
+  if (!nonEmpty.length) {
+    return { groups: [], leaves: [] }
+  }
+
+  const rootRaw = nonEmpty.map((group) => ({
+    data: group,
+    value: group.items.reduce((sum, item) => sum + itemMetric(item), 0),
+  }))
+
+  const rootWeighted = rootRaw.map((item) => ({
+    ...item,
+    value: Math.max(sqrtMetric(item.value), MIN_VALUE),
+  }))
+
+  const rootPacked = packSquarified(rootWeighted, rect, {
+    allowEqualGridFallback: allMetricsInvalid(rootRaw),
+  })
+  const result: GroupedSquarifiedTreemap<T, G> = { groups: [], leaves: [] }
+
+  for (const node of rootPacked) {
+    const group = node.data
+    const groupRect = insetRect(node.rect, gap)
+    const headerH = Math.min(groupRect.h * headerRatio, 0.028)
+    const inner: TreemapRect = {
+      x: groupRect.x,
+      y: groupRect.y + headerH,
+      w: groupRect.w,
+      h: Math.max(groupRect.h - headerH, 0),
+    }
+
+    const children =
+      inner.w > 0 && inner.h > 0
+        ? buildFlatMetricTreemap(group.items, itemMetric, inner)
+        : []
+
+    result.groups.push({
+      data: group.data,
+      rect: groupRect,
+      children,
+    })
+    result.leaves.push(...children)
+  }
+
+  return result
+}
+
+/** @deprecated Use buildGroupedSectorTreemap */
 export function buildGroupedSquarifiedTreemap<T, G>(
   groups: Array<{ data: G; items: T[] }>,
   groupMetric: (group: { data: G; items: T[] }) => number,
@@ -174,12 +285,19 @@ export function buildGroupedSquarifiedTreemap<T, G>(
     return { groups: [], leaves: [] }
   }
 
-  const rootWeighted = nonEmpty.map((group) => ({
+  const rootRaw = nonEmpty.map((group) => ({
     data: group,
-    value: Math.max(sqrtMetric(groupMetric(group)), MIN_VALUE),
+    value: groupMetric(group),
   }))
 
-  const rootPacked = packSquarified(rootWeighted, rect)
+  const rootWeighted = rootRaw.map((item) => ({
+    ...item,
+    value: Math.max(sqrtMetric(item.value), MIN_VALUE),
+  }))
+
+  const rootPacked = packSquarified(rootWeighted, rect, {
+    allowEqualGridFallback: allMetricsInvalid(rootRaw),
+  })
   const result: GroupedSquarifiedTreemap<T, G> = { groups: [], leaves: [] }
 
   for (const node of rootPacked) {
@@ -195,7 +313,7 @@ export function buildGroupedSquarifiedTreemap<T, G>(
 
     const children =
       inner.w > 0 && inner.h > 0
-        ? buildFlatSquarifiedTreemap(group.items, itemMetric, inner)
+        ? buildFlatMetricTreemap(group.items, itemMetric, inner)
         : []
 
     result.groups.push({

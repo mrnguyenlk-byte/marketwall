@@ -1,4 +1,4 @@
-import { packSquarified } from "@/lib/treemap/treemap-builders"
+import { allMetricsInvalid, packSquarified } from "@/lib/treemap/treemap-builders"
 import type { TreemapRect } from "@/lib/treemap/squarify"
 import { assetSizeMetric } from "@/lib/treemap/heatmap-engine"
 import {
@@ -218,7 +218,10 @@ function trySquarifyInner(
   const uncapped = squarifyPlacements(inner, baseItems)
   if (worstAspect(uncapped) <= HARD_ASPECT_LIMIT) return uncapped
 
-  return balancedGridFallback(inner, baseItems)
+  const rawWeights = baseItems.map((item) => ({ data: item, value: item.weight }))
+  if (allMetricsInvalid(rawWeights)) return balancedGridFallback(inner, baseItems)
+
+  return uncapped
 }
 
 function layoutSectorTreemap(
@@ -248,7 +251,10 @@ function layoutSectorTreemap(
   if (worstAspect(chosen) > HARD_ASPECT_LIMIT) {
     chosen = trySquarifyInner(inner, baseItems, MAX_TILE_RETRY)
   }
-  if (worstAspect(chosen) > HARD_ASPECT_LIMIT) {
+  if (
+    worstAspect(chosen) > HARD_ASPECT_LIMIT &&
+    allMetricsInvalid(baseItems.map((item) => ({ data: item, value: item.weight })))
+  ) {
     chosen = balancedGridFallback(inner, baseItems)
   }
 
