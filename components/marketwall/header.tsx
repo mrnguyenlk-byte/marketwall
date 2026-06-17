@@ -1,8 +1,7 @@
 "use client"
 
-import { Search } from "lucide-react"
 import { usePathname } from "next/navigation"
-import { Input } from "@/components/ui/input"
+import { HeaderSearch } from "./header-search"
 import { BrandLogo } from "./brand-logo"
 import { LanguageSwitcher } from "./language-switcher"
 import { ThemeToggle } from "./theme-toggle"
@@ -90,15 +89,7 @@ export function Header({ tickerItems }: HeaderProps) {
         </nav>
 
         <div className="flex min-w-0 items-center justify-end gap-1.5 sm:gap-2">
-          <div className="relative hidden w-44 min-w-0 sm:block md:w-48 lg:w-56">
-            <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder={t("action.searchFull")}
-              aria-label={t("action.searchFull")}
-              className="h-8 w-full rounded-md border-border bg-surface-muted pl-8 text-xs"
-            />
-          </div>
+          <HeaderSearch />
           <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
             <LanguageSwitcher />
             <ThemeToggle />

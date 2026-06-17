@@ -54,6 +54,7 @@ const dict: Dict = {
   // Header actions
   "action.search": { vi: "Tìm kiếm thị trường, mã...", en: "Search markets, symbols..." },
   "action.searchFull": { vi: "Tìm kiếm thị trường, mã, tin tức...", en: "Search markets, symbols, news..." },
+  "search.noResults": { vi: "Không tìm thấy mã cổ phiếu", en: "No symbols found" },
   "action.theme": { vi: "Giao diện", en: "Theme" },
   "action.theme.light": { vi: "Chuyển sang giao diện sáng", en: "Switch to light mode" },
   "action.theme.dark": { vi: "Chuyển sang giao diện tối", en: "Switch to dark mode" },
