@@ -16,7 +16,6 @@ import { VietnamMarketAnalyticsPanel } from "@/components/marketwall/vietnam-mar
 import { CurrencyStrength } from "@/components/marketwall/currency-strength"
 import { EconomicCalendar } from "@/components/marketwall/economic-calendar"
 import { MarketNews } from "@/components/marketwall/market-news"
-import { BrokerHighlights } from "@/components/marketwall/broker-highlights"
 import { RiskWarning } from "@/components/marketwall/risk-warning"
 import { Footer } from "@/components/marketwall/footer"
 import { SectionErrorBoundary } from "@/components/marketwall/section-error-boundary"
@@ -67,9 +66,6 @@ export default async function Page() {
             </SectionErrorBoundary>
             <SectionErrorBoundary name="vn-analytics">
               <VietnamMarketAnalyticsPanel />
-            </SectionErrorBoundary>
-            <SectionErrorBoundary name="brokers">
-              <BrokerHighlights />
             </SectionErrorBoundary>
             <RiskWarning />
           </section>
