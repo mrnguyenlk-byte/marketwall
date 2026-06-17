@@ -15,31 +15,27 @@ export type TileSize = "large" | "medium" | "small" | "tiny"
 
 const sizeClasses: Record<
   TileSize,
-  { grid: string; symbol: string; change: string; price: string }
+  { grid: string; symbol: string; change: string }
 > = {
   large: {
     grid: "col-span-2 row-span-2",
     symbol: "text-base sm:text-lg lg:text-xl",
     change: "text-xs sm:text-sm lg:text-base",
-    price: "text-[10px] sm:text-xs",
   },
   medium: {
     grid: "col-span-2 row-span-1",
     symbol: "text-sm sm:text-base",
     change: "text-[10px] sm:text-xs",
-    price: "text-[10px] sm:text-xs",
   },
   small: {
     grid: "col-span-1 row-span-1",
     symbol: "text-[10px] sm:text-xs",
     change: "text-[10px] sm:text-xs",
-    price: "text-[9px] sm:text-[10px]",
   },
   tiny: {
     grid: "col-span-1 row-span-1",
     symbol: "text-[9px]",
     change: "text-[9px]",
-    price: "text-[9px]",
   },
 }
 
@@ -72,7 +68,6 @@ export function HeatmapTile({ asset, size, rect, onClick }: HeatmapTileProps) {
   const up = asset.changePercent >= 0
   const classes = sizeClasses[size]
   const showChange = size === "large" || size === "medium"
-  const showPrice = size === "large"
   const showSymbol = size !== "tiny"
 
   const tileBody = (
@@ -96,16 +91,6 @@ export function HeatmapTile({ asset, size, rect, onClick }: HeatmapTileProps) {
         >
           {up ? "+" : ""}
           {asset.changePercent.toFixed(2)}%
-        </span>
-      )}
-      {showPrice && (
-        <span
-          className={cn(
-            "font-mono tabular-nums text-white/85 drop-shadow-sm",
-            classes.price,
-          )}
-        >
-          {fmt(asset.price)}
         </span>
       )}
     </>

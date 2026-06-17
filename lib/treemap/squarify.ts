@@ -27,12 +27,9 @@ function worst(row: number[], length: number): number {
   return Math.max((l2 * max) / s2, s2 / (l2 * min))
 }
 
-/** Prefer vertical slices on wide rects to avoid long horizontal strips. */
-function chooseOrientation(rect: TreemapRect): boolean {
-  const ratio = rect.w / Math.max(rect.h, 1e-9)
-  if (ratio > 1.6) return false
-  if (ratio < 1 / 1.6) return true
-  return rect.w >= rect.h
+/** Lay out rows along the shorter side of the remaining rectangle (classic Bruls). */
+function rowIsHorizontal(remaining: TreemapRect): boolean {
+  return remaining.w >= remaining.h
 }
 
 function layoutRow<T>(
@@ -93,24 +90,34 @@ function advanceRemaining<T>(
   return { x: remaining.x, y: remaining.y + used, w: remaining.w, h: remaining.h - used }
 }
 
-function squarifyCore<T>(
+/**
+ * Classic squarified treemap — weights map to area within `rect`.
+ * Rows are built greedily; each row is placed along the shorter side of the remainder.
+ */
+export function squarify<T>(
   items: Array<{ data: T; value: number }>,
   rect: TreemapRect,
-  minValue: number,
-  orientationFor: (remaining: TreemapRect) => boolean,
+  minValue = 0.0001,
 ): TreemapLayoutNode<T>[] {
   if (!items.length || rect.w <= 0 || rect.h <= 0) return []
 
+  const total = sumValues(items)
+  if (total <= 0) return []
+
+  const containerArea = rect.w * rect.h
   const normalized = items
-    .map((item) => ({ ...item, value: Math.max(item.value, minValue) }))
+    .map((item) => ({
+      ...item,
+      value: Math.max(item.value, minValue) * (containerArea / total),
+    }))
     .sort((a, b) => b.value - a.value)
 
-  const total = sumValues(normalized)
+  const normalizedTotal = sumValues(normalized)
   const out: TreemapLayoutNode<T>[] = []
   let row: Array<{ data: T; value: number }> = []
   let remaining = { ...rect }
-  let remainingTotal = total
-  let horizontal = orientationFor(remaining)
+  let remainingTotal = normalizedTotal
+  let horizontal = rowIsHorizontal(remaining)
 
   const flushRow = () => {
     if (!row.length) return
@@ -118,7 +125,7 @@ function squarifyCore<T>(
     layoutRow(row, band, horizontal, out)
     remaining = advanceRemaining(row, remaining, horizontal, remainingTotal)
     remainingTotal -= sumValues(row)
-    horizontal = orientationFor(remaining)
+    horizontal = rowIsHorizontal(remaining)
     row = []
   }
 
@@ -141,22 +148,14 @@ function squarifyCore<T>(
   return out
 }
 
-export function squarify<T>(
-  items: Array<{ data: T; value: number }>,
-  rect: TreemapRect,
-  minValue = 0.0001,
-): TreemapLayoutNode<T>[] {
-  return squarifyCore(items, rect, minValue, chooseOrientation)
-}
-
-/** Squarify with a fixed slice orientation (horizontal = side-by-side columns sharing height). */
+/** @deprecated Use squarify — orientation is chosen per remaining rect (Bruls). */
 export function squarifyWithOrientation<T>(
   items: Array<{ data: T; value: number }>,
   rect: TreemapRect,
-  initialHorizontal: boolean,
+  _initialHorizontal: boolean,
   minValue = 0.0001,
 ): TreemapLayoutNode<T>[] {
-  return squarifyCore(items, rect, minValue, () => initialHorizontal)
+  return squarify(items, rect, minValue)
 }
 
 /** Partition container among weighted groups, then squarify leaves in each cell. */

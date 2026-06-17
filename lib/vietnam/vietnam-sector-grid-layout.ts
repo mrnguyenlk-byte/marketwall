@@ -9,7 +9,7 @@ import {
   splitKhacBucket,
 } from "@/lib/treemap/treemap-builders"
 import type { TreemapRect } from "@/lib/treemap/squarify"
-import { assetSizeMetric } from "@/lib/treemap/heatmap-engine"
+import { vnTradingValueMetric } from "@/lib/treemap/heatmap-engine"
 import {
   normalizeVnSectorGroup,
   VN_SECTOR_GROUP_LABEL_KEYS,
@@ -63,8 +63,8 @@ type SectorSquarifyItem =
   | { kind: "stock"; asset: MarketAsset; weight: number }
   | { kind: "other"; symbols: string[]; weight: number }
 
-function volumeMetric(asset: MarketAsset): number {
-  return Math.max(assetSizeMetric(asset, "vn", "volume"), 0)
+function tradingValueMetric(asset: MarketAsset): number {
+  return Math.max(vnTradingValueMetric(asset), 0)
 }
 
 function aspectRatio(rect: TreemapRect): number {
@@ -175,7 +175,7 @@ function layoutSectorTreemap(
 
   const rawMetrics = assets.map((asset) => ({
     data: asset,
-    metric: volumeMetric(asset),
+    metric: tradingValueMetric(asset),
   }))
   const metricsInvalid = allMetricsInvalid(
     rawMetrics.map((item) => ({ data: item.data, value: item.metric })),
@@ -262,7 +262,7 @@ function layoutRootSectors(
   const root: TreemapRect = { x: 0, y: 0, w: 1, h: 1 }
   const rootRaw = present.map((id) => ({
     data: id,
-    metric: (buckets.get(id) ?? []).reduce((sum, asset) => sum + volumeMetric(asset), 0),
+    metric: (buckets.get(id) ?? []).reduce((sum, asset) => sum + tradingValueMetric(asset), 0),
   }))
   const metricsInvalid = allMetricsInvalid(
     rootRaw.map((item) => ({ data: item.data, value: item.metric })),
@@ -286,8 +286,8 @@ function layoutRootSectors(
 }
 
 /**
- * Mode 1 — sector-grouped two-level treemap (volume-weighted).
- * Root: squarify sectors by normalized sqrt(sum volume), max 22%. Inner: max 18% per stock.
+ * Mode 1 — sector-grouped two-level treemap (trading-value-weighted).
+ * Root: squarify sectors by normalized sqrt(sum tradingValue), max 22%. Inner: max 18% per stock.
  */
 export function buildSectorGroupedTreemap(assets: MarketAsset[]): VnSectorTreemapLayout {
   const buckets = new Map<VnSectorGroupId, MarketAsset[]>()

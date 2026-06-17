@@ -33,6 +33,28 @@ export type HeatmapTreemapLayout = {
 /** @deprecated Use MAX_ITEM_AREA_SHARE from treemap-builders */
 export const MAX_LEAF_AREA_FRACTION = MAX_ITEM_AREA_SHARE
 
+type ExtendedMarketAsset = MarketAsset & {
+  quoteVolume?: number
+  volume24h?: number
+  proprietaryNetValue?: number
+  proprietaryTradingValue?: number
+  proprietaryBuyValue?: number
+  proprietarySellValue?: number
+  foreignTradingValue?: number
+}
+
+/** Default tile sizing mode per market — liquidity-first, not market cap. */
+export function defaultSizing(market: "us"): UsHeatmapSizingMode
+export function defaultSizing(market: "crypto"): CryptoHeatmapSizingMode
+export function defaultSizing(market: "vn"): VnHeatmapSizingMode
+export function defaultSizing(
+  market: "us" | "crypto" | "vn",
+): UsHeatmapSizingMode | CryptoHeatmapSizingMode | VnHeatmapSizingMode {
+  if (market === "us") return "dollarVolume"
+  if (market === "crypto") return "volume"
+  return "tradingValue"
+}
+
 /** @deprecated Use normalizeTreemapWeights via buildFlatMetricTreemap */
 export function capLeafWeights<T>(
   items: Array<{ data: T; value: number }>,
@@ -51,6 +73,29 @@ export function vnTradingValueMetric(asset: MarketAsset): number {
   if (asset.tradingValue != null && asset.tradingValue > 0) return asset.tradingValue
   const shares = asset.volumeShares ?? vpsLotToShares(asset.volume)
   return Math.round(asset.price * shares)
+}
+
+/** US tile size: tradingValue → dollarVolume → price×volume → marketCap (volume absent only). */
+export function usHeatmapSizeMetric(asset: MarketAsset): number {
+  const ext = asset as ExtendedMarketAsset
+  if (ext.tradingValue != null && ext.tradingValue > 0) return ext.tradingValue
+  const dv = dollarVolume(asset.price, asset.volume)
+  if (dv > 0) return dv
+  if (asset.volume > 0 && asset.price > 0) return asset.price * asset.volume
+  if (asset.volume <= 0 && asset.marketCap > 0) return asset.marketCap
+  return 0
+}
+
+/** Crypto tile size: quoteVolume → volume24h → price×volume → tradingValue → marketCap. */
+export function cryptoHeatmapSizeMetric(asset: MarketAsset): number {
+  const ext = asset as ExtendedMarketAsset
+  if (ext.quoteVolume != null && ext.quoteVolume > 0) return ext.quoteVolume
+  if (ext.volume24h != null && ext.volume24h > 0) return ext.volume24h
+  const vol = asset.volume
+  if (vol > 0 && asset.price > 0) return asset.price * vol
+  if (vol > 0) return vol
+  if (ext.tradingValue != null && ext.tradingValue > 0) return ext.tradingValue
+  return asset.marketCap > 0 ? asset.marketCap : 0
 }
 
 export function assetSizeMetric(
@@ -73,13 +118,17 @@ export function assetSizeMetric(
     }
   }
   if (marketType === "us") {
-    const mode = sizing as UsHeatmapSizingMode
-    return mode === "dollarVolume"
-      ? dollarVolume(asset.price, asset.volume)
-      : asset.marketCap
+    return sizing === "dollarVolume" ? usHeatmapSizeMetric(asset) : asset.marketCap
   }
-  const mode = sizing as CryptoHeatmapSizingMode
-  return mode === "volume" ? asset.volume : asset.marketCap
+  return sizing === "volume" ? cryptoHeatmapSizeMetric(asset) : asset.marketCap
+}
+
+export function hasUsHeatmapMetrics(assets: MarketAsset[]): boolean {
+  return assets.some((asset) => usHeatmapSizeMetric(asset) > 0)
+}
+
+export function hasCryptoHeatmapMetrics(assets: MarketAsset[]): boolean {
+  return assets.some((asset) => cryptoHeatmapSizeMetric(asset) > 0)
 }
 
 /** Flat metric treemap for US (dollar volume) and Crypto (24h volume) — single mode each. */
@@ -89,10 +138,17 @@ export function buildFlatMarketHeatmapLayout(
   sizing: UsHeatmapSizingMode | CryptoHeatmapSizingMode,
 ): HeatmapTreemapLayout {
   const rect: TreemapRect = { x: 0, y: 0, w: 1, h: 1 }
-  const metric = (asset: MarketAsset) => assetSizeMetric(asset, marketType, sizing)
+  const metric =
+    marketType === "us"
+      ? sizing === "dollarVolume"
+        ? usHeatmapSizeMetric
+        : (asset: MarketAsset) => asset.marketCap
+      : sizing === "volume"
+        ? cryptoHeatmapSizeMetric
+        : (asset: MarketAsset) => asset.marketCap
   return {
     groups: [],
-    leaves: buildFlatMetricTreemap(assets, metric, rect),
+    leaves: buildFlatMetricTreemap(assets, metric, rect, { allowEqualGridFallback: false }),
   }
 }
 
@@ -136,4 +192,29 @@ export function tileSizeFromRect(rect: TreemapRect): "large" | "medium" | "small
   if (area >= 0.012) return "medium"
   if (area >= 0.0035) return "small"
   return "tiny"
+}
+
+export type HeatmapEmptyReason = "no-assets" | "no-metrics"
+
+export function heatmapEmptyMessage(
+  marketType: MarketType,
+  vnMode?: string,
+  reason: HeatmapEmptyReason = "no-metrics",
+): string {
+  if (reason === "no-assets") {
+    return marketType === "vn" ? "Không có mã cổ phiếu" : "No symbols available"
+  }
+  if (marketType === "vn" && vnMode === "proprietary-flow") {
+    return "Chưa có dữ liệu tự doanh"
+  }
+  if (marketType === "vn" && vnMode === "foreign-flow") {
+    return "Chưa có dữ liệu khối ngoại"
+  }
+  if (marketType === "us") {
+    return "Chưa có dữ liệu thanh khoản"
+  }
+  if (marketType === "crypto") {
+    return "Chưa có dữ liệu khối lượng 24h"
+  }
+  return "Chưa có dữ liệu hiển thị"
 }

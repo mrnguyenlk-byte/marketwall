@@ -1,12 +1,10 @@
 import {
   squarify,
-  squarifyWithOrientation,
   type TreemapLayoutNode,
   type TreemapRect,
 } from "@/lib/treemap/squarify"
 
 const MIN_VALUE = 0.0001
-const PREFERRED_ASPECT_MAX = 3
 const HARD_ASPECT_LIMIT = 6
 const DEFAULT_MAX_CAP_ITERATIONS = 50
 
@@ -62,18 +60,6 @@ function aspectRatio(rect: TreemapRect): number {
 function worstAspect(rects: TreemapRect[]): number {
   if (!rects.length) return 0
   return Math.max(...rects.map(aspectRatio))
-}
-
-function layoutScore(rects: TreemapRect[]): number {
-  let worst = 0
-  let overPreferred = 0
-  for (const rect of rects) {
-    const ar = aspectRatio(rect)
-    worst = Math.max(worst, ar)
-    if (ar > PREFERRED_ASPECT_MAX) overPreferred++
-  }
-  if (worst > HARD_ASPECT_LIMIT) return worst * 100 + overPreferred * 10
-  return worst + overPreferred * 0.5
 }
 
 /** True when every raw metric is zero or missing — equal grid is allowed only then. */
@@ -244,7 +230,7 @@ export type PackSquarifiedOptions = {
   allowEqualGridFallback?: boolean
 }
 
-/** Squarify with orientation retry; equal grid only when all metrics invalid. */
+/** Squarified pack — equal grid only when all metrics invalid and explicitly allowed. */
 export function packSquarified<T>(
   items: Array<{ data: T; value: number }>,
   rect: TreemapRect,
@@ -260,33 +246,18 @@ export function packSquarified<T>(
     value: Math.max(item.value, MIN_VALUE),
   }))
 
-  const candidates: TreemapLayoutNode<T>[][] = [
-    squarify(weighted, rect, MIN_VALUE),
-    squarifyWithOrientation(weighted, rect, true, MIN_VALUE),
-    squarifyWithOrientation(weighted, rect, false, MIN_VALUE),
-  ]
+  const packed = squarify(weighted, rect, MIN_VALUE)
 
-  let best = candidates[0]
-  let bestScore = layoutScore(best.map((node) => node.rect))
+  if (!allowEqualGrid) return packed
 
-  for (const candidate of candidates.slice(1)) {
-    const score = layoutScore(candidate.map((node) => node.rect))
-    if (score < bestScore) {
-      best = candidate
-      bestScore = score
-    }
-  }
+  const worst = worstAspect(packed.map((node) => node.rect))
+  if (worst <= HARD_ASPECT_LIMIT) return packed
 
-  const worst = worstAspect(best.map((node) => node.rect))
-  if (worst <= HARD_ASPECT_LIMIT) return best
+  const grid = balancedGridFallback(rect, weighted)
+  const gridWorst = worstAspect(grid.map((node) => node.rect))
+  if (gridWorst < worst) return grid
 
-  if (allowEqualGrid) {
-    const grid = balancedGridFallback(rect, weighted)
-    const gridWorst = worstAspect(grid.map((node) => node.rect))
-    if (gridWorst < worst) return grid
-  }
-
-  return best
+  return packed
 }
 
 export type FlatMetricTreemapOptions = {

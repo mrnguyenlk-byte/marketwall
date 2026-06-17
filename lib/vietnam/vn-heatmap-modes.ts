@@ -1,3 +1,4 @@
+import { vnTradingValueMetric } from "@/lib/treemap/heatmap-engine"
 import { buildFlatMetricTreemap } from "@/lib/treemap/treemap-builders"
 import type { TreemapLayoutNode } from "@/lib/treemap/squarify"
 import { vpsLotToShares } from "@/lib/vietnam/volume-units"
@@ -22,6 +23,18 @@ export function isVnHeatmapMode(value: string): value is VnHeatmapMode {
   return (VN_HEATMAP_MODES as string[]).includes(value)
 }
 
+type ExtendedMarketAsset = MarketAsset & {
+  proprietaryNetValue?: number
+  proprietaryTradingValue?: number
+  proprietaryBuyValue?: number
+  proprietarySellValue?: number
+  foreignTradingValue?: number
+}
+
+export function vnTradingValueModeMetric(asset: MarketAsset): number {
+  return Math.max(vnTradingValueMetric(asset), 0)
+}
+
 export function vnVolumeMetric(asset: MarketAsset): number {
   return asset.volumeShares ?? vpsLotToShares(asset.volume)
 }
@@ -30,10 +43,14 @@ export function vnMarketCapMetric(asset: MarketAsset): number {
   return Math.max(asset.marketCap, 0)
 }
 
-/** Net foreign value in VND; falls back to share-volume × price when value fields are absent. */
+/** Net foreign value in VND; falls back to gross foreign trading value or shares × price. */
 export function vnForeignFlowMetric(asset: MarketAsset): number {
-  if (asset.foreignNetValue != null && asset.foreignNetValue !== 0) {
-    return Math.abs(asset.foreignNetValue)
+  const ext = asset as ExtendedMarketAsset
+  if (ext.foreignNetValue != null && ext.foreignNetValue !== 0) {
+    return Math.abs(ext.foreignNetValue)
+  }
+  if (ext.foreignTradingValue != null && ext.foreignTradingValue > 0) {
+    return ext.foreignTradingValue
   }
   const buyVal = asset.foreignBuyValue
   const sellVal = asset.foreignSellValue
@@ -57,18 +74,28 @@ export function vnForeignFlowMetric(asset: MarketAsset): number {
   return 0
 }
 
-/**
- * Proprietary net value — no per-symbol fields on MarketAsset / HeatmapAsset today.
- * Returns 0 until proprietary overlay is wired into heatmap rows.
- */
-export function vnProprietaryFlowMetric(_asset: MarketAsset): number {
+export function vnProprietaryFlowMetric(asset: MarketAsset): number {
+  const ext = asset as ExtendedMarketAsset
+  if (ext.proprietaryNetValue != null && ext.proprietaryNetValue !== 0) {
+    return Math.abs(ext.proprietaryNetValue)
+  }
+  if (ext.proprietaryTradingValue != null && ext.proprietaryTradingValue > 0) {
+    return ext.proprietaryTradingValue
+  }
+  const buyVal = ext.proprietaryBuyValue
+  const sellVal = ext.proprietarySellValue
+  if (buyVal != null || sellVal != null) {
+    const net = (buyVal ?? 0) - (sellVal ?? 0)
+    if (net !== 0) return Math.abs(net)
+    return Math.max(buyVal ?? 0, sellVal ?? 0, 0)
+  }
   return 0
 }
 
 export function vnHeatmapMetric(asset: MarketAsset, mode: VnHeatmapMode): number {
   switch (mode) {
     case "sector-volume":
-      return vnVolumeMetric(asset)
+      return vnTradingValueModeMetric(asset)
     case "market-cap":
       return vnMarketCapMetric(asset)
     case "foreign-flow":
@@ -76,6 +103,10 @@ export function vnHeatmapMetric(asset: MarketAsset, mode: VnHeatmapMode): number
     case "proprietary-flow":
       return vnProprietaryFlowMetric(asset)
   }
+}
+
+export function vnModeHasValidMetrics(assets: MarketAsset[], mode: VnHeatmapMode): boolean {
+  return assets.some((asset) => vnHeatmapMetric(asset, mode) > 0)
 }
 
 export function sortByVnHeatmapMode(assets: MarketAsset[], mode: VnHeatmapMode): MarketAsset[] {
@@ -90,7 +121,9 @@ export function buildFlatVnTreemapLayout(
   assets: MarketAsset[],
   metricFn: (asset: MarketAsset) => number,
 ): VnFlatTreemapLayout {
-  const leaves = buildFlatMetricTreemap(assets, metricFn)
+  const leaves = buildFlatMetricTreemap(assets, metricFn, undefined, {
+    allowEqualGridFallback: false,
+  })
   return { leaves }
 }
 
