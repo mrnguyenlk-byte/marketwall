@@ -75,6 +75,17 @@ type FlatModeReport = {
   layoutTileCount: number
 }
 
+type SectorDiagnostic = {
+  id: string
+  label: string
+  areaShare: number
+  w: number
+  h: number
+  aspect: number
+  maxInnerTileAspect: number
+  worstInnerSymbol: string
+}
+
 type SectorModeReport = {
   kind: "sector"
   mode: string
@@ -91,6 +102,11 @@ type SectorModeReport = {
   sampleSector: { id: string; label: string; topRaw: WeightRow[]; topShares: WeightRow[] }
   layoutMaxAspectRatio: number
   layoutTileCount: number
+  maxSectorAspect: number
+  maxStockAspect: number
+  worstSector: { id: string; label: string; aspect: number }
+  worstStock: { symbol: string; aspect: number; sectorId: string }
+  sectorDiagnostics: SectorDiagnostic[]
 }
 
 function aspectRatio(rect: TreemapRect): number {
@@ -293,6 +309,68 @@ function analyzeSectorMode(
     0,
   )
 
+  let maxSectorAspect = 0
+  let maxStockAspect = 0
+  let worstSector = { id: "", label: "", aspect: 0 }
+  let worstStock = { symbol: "", aspect: 0, sectorId: "" }
+  const sectorDiagnostics: SectorDiagnostic[] = []
+
+  for (const sector of layout.sectors) {
+    const sectorAspect = aspectRatio(sector.rect)
+    const areaShare = sector.rect.w * sector.rect.h
+    let maxInnerTileAspect = 0
+    let worstInnerSymbol = ""
+
+    for (const tile of sector.tiles) {
+      const tileAspect = aspectRatio(tile.rect)
+      maxStockAspect = Math.max(maxStockAspect, tileAspect)
+      if (tileAspect > maxInnerTileAspect) {
+        maxInnerTileAspect = tileAspect
+        worstInnerSymbol = tile.asset.symbol
+      }
+      if (tileAspect > worstStock.aspect) {
+        worstStock = { symbol: tile.asset.symbol, aspect: tileAspect, sectorId: sector.id }
+      }
+    }
+    if (sector.other) {
+      const otherAspect = aspectRatio(sector.other.rect)
+      maxStockAspect = Math.max(maxStockAspect, otherAspect)
+      if (otherAspect > maxInnerTileAspect) {
+        maxInnerTileAspect = otherAspect
+        worstInnerSymbol = `Khác (${sector.other.symbols.length})`
+      }
+      if (otherAspect > worstStock.aspect) {
+        worstStock = {
+          symbol: `Khác (${sector.other.symbols.length})`,
+          aspect: otherAspect,
+          sectorId: sector.id,
+        }
+      }
+    }
+
+    maxSectorAspect = Math.max(maxSectorAspect, sectorAspect)
+    if (sectorAspect > worstSector.aspect) {
+      worstSector = {
+        id: sector.id,
+        label: VN_SECTOR_GROUP_LABEL_KEYS[sector.id],
+        aspect: sectorAspect,
+      }
+    }
+
+    sectorDiagnostics.push({
+      id: sector.id,
+      label: VN_SECTOR_GROUP_LABEL_KEYS[sector.id],
+      areaShare,
+      w: sector.rect.w,
+      h: sector.rect.h,
+      aspect: sectorAspect,
+      maxInnerTileAspect,
+      worstInnerSymbol,
+    })
+  }
+
+  sectorDiagnostics.sort((a, b) => b.aspect - a.aspect)
+
   return {
     kind: "sector",
     mode: "VN sector (sector-volume grouped)",
@@ -322,6 +400,11 @@ function analyzeSectorMode(
     },
     layoutMaxAspectRatio: maxAspectFromRects(collectSectorRects(layout)),
     layoutTileCount,
+    maxSectorAspect,
+    maxStockAspect,
+    worstSector,
+    worstStock,
+    sectorDiagnostics,
   }
 }
 
@@ -382,7 +465,23 @@ function printSectorReport(r: SectorModeReport) {
   console.log(`maxRootSectorShare: ${fmtPct(r.maxRootShare)}`)
   console.log(`maxInnerTileShare: ${fmtPct(r.maxInnerShare)} (layout rect / sector inner area)`)
   console.log(`layoutTileCount: ${r.layoutTileCount}`)
+  console.log(`maxSectorAspect: ${r.maxSectorAspect.toFixed(3)}`)
+  console.log(`maxStockAspect: ${r.maxStockAspect.toFixed(3)}`)
+  console.log(
+    `worstSector: ${r.worstSector.id} (${r.worstSector.label}) aspect=${r.worstSector.aspect.toFixed(3)}`,
+  )
+  console.log(
+    `worstStock: ${r.worstStock.symbol} in ${r.worstStock.sectorId} aspect=${r.worstStock.aspect.toFixed(3)}`,
+  )
   console.log(`layoutMaxAspectRatio: ${r.layoutMaxAspectRatio.toFixed(3)}`)
+  console.log("")
+  console.log("--- Per-sector diagnostics (sorted by sector aspect desc) ---")
+  for (const d of r.sectorDiagnostics) {
+    const flag = d.aspect > 20 || d.maxInnerTileAspect > 20 ? " ***" : ""
+    console.log(
+      `  ${d.id.padEnd(12)} share=${fmtPct(d.areaShare)} w=${d.w.toFixed(4)} h=${d.h.toFixed(4)} sectorAspect=${d.aspect.toFixed(3)} maxInner=${d.maxInnerTileAspect.toFixed(3)} (${d.worstInnerSymbol})${flag}`,
+    )
+  }
 }
 
 async function fetchHeatmapRows(

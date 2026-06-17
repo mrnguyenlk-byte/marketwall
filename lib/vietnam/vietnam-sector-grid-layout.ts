@@ -19,7 +19,7 @@ import {
 } from "@/lib/vietnam/sector-groups"
 import type { MarketAsset } from "@/types/market"
 
-const HARD_ASPECT_LIMIT = 3
+const INNER_ASPECT_LIMIT = 6
 /** Match VietnamSectorGridHeatmap header: min(7%, 22px) with min-h 18px. */
 const SECTOR_HEADER_RATIO = 0.07
 const SECTOR_HEADER_MIN = 18 / 1080
@@ -178,9 +178,6 @@ function layoutSectorTreemap(
     data: asset,
     metric: tradingValueMetric(asset),
   }))
-  const metricsInvalid = allMetricsInvalid(
-    rawMetrics.map((item) => ({ data: item.data, value: item.metric })),
-  )
 
   const normalized = normalizeTreemapWeights(rawMetrics, {
     maxShare: MAX_STOCK_AREA_SHARE_IN_SECTOR,
@@ -206,8 +203,8 @@ function layoutSectorTreemap(
 
   if (!baseItems.length) return { tiles: [] }
 
-  let chosen = squarifyPlacements(inner, baseItems, metricsInvalid)
-  if (worstAspect(chosen) > HARD_ASPECT_LIMIT && metricsInvalid) {
+  let chosen = squarifyPlacements(inner, baseItems, true)
+  if (worstAspect(chosen) > INNER_ASPECT_LIMIT) {
     chosen = balancedGridFallback(inner, baseItems)
   }
 
