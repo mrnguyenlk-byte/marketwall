@@ -32,7 +32,7 @@ import {
 import { HeatmapGridSkeleton } from "./data-skeletons"
 import { cn } from "@/lib/utils"
 
-const timeframes = ["1D", "7D", "1M"] as const
+const timeframes = ["1D", "1M"] as const
 const VN_EXCHANGE_IDS: VnExchangeId[] = ["hose", "hnx", "upcom"]
 
 const DETAIL_MARKET_TABS: { id: MarketType; labelKey: string; flag: string }[] = [
