@@ -47,11 +47,11 @@ export function VietnamSectorGridHeatmap({
         {layout.sectors.map((sector) => (
           <div
             key={`bg-${sector.id}`}
-            className="pointer-events-none absolute box-border overflow-hidden border border-black/25 bg-chart-bg"
+            className="pointer-events-none absolute z-10 box-border overflow-hidden border border-black/25 bg-chart-bg"
             style={rectStyle(sector.rect)}
           >
             {!sector.hideLabel && (
-              <header className="flex h-[min(7%,22px)] min-h-[18px] shrink-0 items-center truncate border-b border-black/30 bg-black/65 px-1.5 text-[10px] font-bold tracking-wide text-white sm:text-[11px]">
+              <header className="relative z-20 flex h-[22px] min-h-[22px] shrink-0 items-center truncate border-b border-black/30 bg-black/75 px-1.5 text-[10px] font-bold tracking-wide text-white sm:text-[11px]">
                 {groupLabel ? groupLabel(sector.labelKey) : sector.labelKey}
               </header>
             )}

@@ -16,10 +16,10 @@ import { vnSectorGroupForAsset } from "@/lib/vietnam/vn-sector-map"
 import type { MarketAsset } from "@/types/market"
 
 const INNER_ASPECT_LIMIT = 6
-/** Match VietnamSectorGridHeatmap header: min(7%, 22px) with min-h 18px. */
-const SECTOR_HEADER_RATIO = 0.07
-const SECTOR_HEADER_MIN = 18 / 1080
-const SECTOR_HEADER_MAX = 22 / 1080
+/** Fixed sector title band — must match VietnamSectorGridHeatmap `h-[22px]`. */
+export const SECTOR_HEADER_HEIGHT_PX = 22
+/** Default heatmap viewport height (see useResizableHeight). */
+export const LAYOUT_VIEWPORT_HEIGHT_PX = 650
 const SECTOR_GAP = 0.002
 /** Max root share for a single sector block (VN mode 1). */
 export const VN_SECTOR_ROOT_MAX_SHARE = 0.25
@@ -99,8 +99,8 @@ function insetRect(rect: TreemapRect, gap: number): TreemapRect {
   }
 }
 
-function sectorHeaderHeight(sectorH: number): number {
-  return Math.min(Math.max(sectorH * SECTOR_HEADER_RATIO, SECTOR_HEADER_MIN), SECTOR_HEADER_MAX)
+function sectorHeaderHeight(_sectorH: number): number {
+  return SECTOR_HEADER_HEIGHT_PX / LAYOUT_VIEWPORT_HEIGHT_PX
 }
 
 function shouldHideSectorLabel(rect: TreemapRect): boolean {

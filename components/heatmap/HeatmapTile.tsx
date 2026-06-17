@@ -6,6 +6,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { heatStyle, fmt } from "@/components/marketwall/shared"
+import { isVnHeatmapLeader } from "@/lib/heatmap/leader-symbols"
 import { useLang } from "@/lib/i18n"
 import type { TreemapRect } from "@/lib/treemap/squarify"
 import type { MarketAsset } from "@/types/market"
@@ -84,6 +85,7 @@ export function HeatmapTile({
   onClick,
 }: HeatmapTileProps) {
   const up = asset.changePercent >= 0
+  const isLeader = asset.marketType === "vn" && isVnHeatmapLeader(asset.symbol)
   const classes = sizeClasses[size]
   const showChange = size === "large" || size === "medium"
   const showSymbol = size !== "tiny"
@@ -132,7 +134,8 @@ export function HeatmapTile({
       }}
       aria-label={`${asset.symbol} ${up ? "+" : ""}${asset.changePercent.toFixed(2)}%`}
       className={cn(
-        "group/tile flex w-full min-w-0 flex-col items-start justify-between overflow-hidden rounded-none border border-black/20 text-left",
+        "group/tile flex w-full min-w-0 flex-col items-start justify-between overflow-hidden rounded-none border text-left",
+        isLeader ? "border-white/45 ring-1 ring-inset ring-white/25" : "border-black/20",
         size === "tiny" ? "min-h-0 p-0" : "p-0.5 sm:p-1",
         !rect && classes.grid,
       )}

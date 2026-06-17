@@ -2,6 +2,8 @@
 
 import { useMemo, useRef, useState, type ReactNode } from "react"
 import {
+  HEATMAP_HEIGHT_DEFAULT,
+  HEATMAP_HEIGHT_MAX,
   HEATMAP_HEIGHT_MIN,
   useResizableHeight,
 } from "@/hooks/useResizableHeight"
@@ -71,11 +73,12 @@ function ControlGroup({ children }: { children: React.ReactNode }) {
 }
 
 const HEATMAP_VIEWPORT_CLASS =
-  "h-[clamp(480px,50vh,560px)] max-h-[560px] min-h-[480px] min-w-0"
+  "h-[650px] min-h-[500px] max-h-[1500px] min-w-0"
 
 function HeatmapViewport({ children }: { children: ReactNode }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const { height, startResize } = useResizableHeight()
+  const viewportHeight = height ?? HEATMAP_HEIGHT_DEFAULT
 
   return (
     <div ref={containerRef} className="relative min-w-0">
@@ -84,11 +87,11 @@ function HeatmapViewport({ children }: { children: ReactNode }) {
           "min-w-0 overflow-hidden bg-chart-bg p-px",
           height == null && HEATMAP_VIEWPORT_CLASS,
         )}
-        style={
-          height != null
-            ? { height: `${height}px`, minHeight: HEATMAP_HEIGHT_MIN }
-            : undefined
-        }
+        style={{
+          height: `${viewportHeight}px`,
+          minHeight: HEATMAP_HEIGHT_MIN,
+          maxHeight: HEATMAP_HEIGHT_MAX,
+        }}
       >
         <div className="h-full min-w-0 w-full">{children}</div>
       </div>
@@ -101,7 +104,7 @@ function HeatmapViewport({ children }: { children: ReactNode }) {
           e.preventDefault()
           const el = containerRef.current?.firstElementChild as HTMLElement | null
           const startHeight =
-            height ?? el?.getBoundingClientRect().height ?? HEATMAP_HEIGHT_MIN
+            height ?? el?.getBoundingClientRect().height ?? HEATMAP_HEIGHT_DEFAULT
           startResize(e.clientY, startHeight)
         }}
       >

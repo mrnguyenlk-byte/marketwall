@@ -2,31 +2,31 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 
-export const HEATMAP_PANEL_HEIGHT_KEY = "heatmap-panel-height"
+export const HEATMAP_PANEL_HEIGHT_KEY = "heatmap-height"
+const LEGACY_HEATMAP_PANEL_HEIGHT_KEY = "heatmap-panel-height"
 
-export const HEATMAP_HEIGHT_MIN = 480
-export const HEATMAP_HEIGHT_MAX = 900
-export const HEATMAP_HEIGHT_MAX_VH = 80
-
-function getMaxHeight(): number {
-  if (typeof window === "undefined") return HEATMAP_HEIGHT_MAX
-  return Math.min(
-    HEATMAP_HEIGHT_MAX,
-    window.innerHeight * (HEATMAP_HEIGHT_MAX_VH / 100),
-  )
-}
+export const HEATMAP_HEIGHT_DEFAULT = 650
+export const HEATMAP_HEIGHT_MIN = 500
+export const HEATMAP_HEIGHT_MAX = 1500
 
 function clampHeight(height: number): number {
-  return Math.min(getMaxHeight(), Math.max(HEATMAP_HEIGHT_MIN, Math.round(height)))
+  return Math.min(HEATMAP_HEIGHT_MAX, Math.max(HEATMAP_HEIGHT_MIN, Math.round(height)))
 }
 
 function readStoredHeight(): number | null {
   try {
-    const raw = localStorage.getItem(HEATMAP_PANEL_HEIGHT_KEY)
+    const raw =
+      localStorage.getItem(HEATMAP_PANEL_HEIGHT_KEY) ??
+      localStorage.getItem(LEGACY_HEATMAP_PANEL_HEIGHT_KEY)
     if (raw == null) return null
     const n = Number(raw)
     if (!Number.isFinite(n)) return null
-    return clampHeight(n)
+    const clamped = clampHeight(n)
+    if (localStorage.getItem(LEGACY_HEATMAP_PANEL_HEIGHT_KEY) != null) {
+      localStorage.setItem(HEATMAP_PANEL_HEIGHT_KEY, String(clamped))
+      localStorage.removeItem(LEGACY_HEATMAP_PANEL_HEIGHT_KEY)
+    }
+    return clamped
   } catch {
     return null
   }
@@ -35,6 +35,7 @@ function readStoredHeight(): number | null {
 function persistHeight(height: number) {
   try {
     localStorage.setItem(HEATMAP_PANEL_HEIGHT_KEY, String(height))
+    localStorage.removeItem(LEGACY_HEATMAP_PANEL_HEIGHT_KEY)
   } catch {
     // ignore quota / private mode
   }
@@ -92,5 +93,5 @@ export function useResizableHeight() {
     document.addEventListener("pointerup", onUp)
   }, [])
 
-  return { height, startResize }
+  return { height, startResize, defaultHeight: HEATMAP_HEIGHT_DEFAULT }
 }
