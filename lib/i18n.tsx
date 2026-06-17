@@ -410,6 +410,8 @@ const dict: Dict = {
   "contact.subject": { vi: "Chủ đề", en: "Subject" },
   "contact.message": { vi: "Nội dung", en: "Message" },
   "contact.send": { vi: "Gửi", en: "Send" },
+  "contact.sendEmail": { vi: "Gửi email", en: "Send email" },
+  "contact.chatZalo": { vi: "Chat Zalo", en: "Chat on Zalo" },
 
   // Contact FAB (floating popup)
   "contactFab.title": { vi: "Liên hệ nhanh", en: "Quick Contact" },

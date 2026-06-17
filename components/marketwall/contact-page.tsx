@@ -33,9 +33,10 @@ function TelegramIcon({ className }: { className?: string }) {
 type ContactCard = {
   icon: React.ComponentType<{ className?: string }>
   label: string
-  value: string
+  displayText: string
   href?: string
   external?: boolean
+  fullCardLink?: boolean
 }
 
 export function ContactPageContent() {
@@ -45,33 +46,35 @@ export function ContactPageContent() {
     {
       icon: Mail,
       label: t("contact.email"),
-      value: SITE_EMAIL,
+      displayText: t("contact.sendEmail"),
       href: `mailto:${SITE_EMAIL}`,
+      fullCardLink: true,
     },
     {
       icon: Phone,
       label: t("contact.phone"),
-      value: SITE_PHONE,
+      displayText: SITE_PHONE,
       href: `tel:${SITE_PHONE_TEL}`,
     },
     {
       icon: TelegramIcon,
       label: t("contactFab.telegram"),
-      value: TELEGRAM_LINK.replace(/^https?:\/\//, ""),
+      displayText: t("contactFab.telegram"),
       href: TELEGRAM_LINK,
       external: true,
     },
     {
       icon: ZaloIcon,
       label: t("contactFab.zalo"),
-      value: ZALO_LINK.replace(/^https?:\/\//, ""),
+      displayText: t("contact.chatZalo"),
       href: ZALO_LINK,
       external: true,
+      fullCardLink: true,
     },
     {
       icon: MapPin,
       label: t("contact.address"),
-      value: t("contact.addressValue"),
+      displayText: t("contact.addressValue"),
     },
   ]
 
@@ -85,31 +88,58 @@ export function ContactPageContent() {
       </header>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        {contactCards.map((item) => (
-          <Card key={item.label} className="gap-0 border-border/80 py-0">
+        {contactCards.map((item) => {
+          const cardBody = (
             <CardContent className="flex items-start gap-3 p-4">
               <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
                 <item.icon className="size-4" aria-hidden />
               </span>
               <div className="min-w-0">
                 <p className="text-[11px] font-medium text-muted-foreground">{item.label}</p>
-                {item.href ? (
-                  <a
-                    href={item.href}
-                    {...(item.external
-                      ? { target: "_blank", rel: "noopener noreferrer" }
-                      : {})}
-                    className="mt-0.5 block truncate text-sm font-semibold text-foreground transition-colors hover:text-primary"
-                  >
-                    {item.value}
-                  </a>
-                ) : (
-                  <p className="mt-0.5 text-sm font-semibold text-foreground">{item.value}</p>
-                )}
+                <p className="mt-0.5 truncate text-sm font-semibold text-foreground">
+                  {item.displayText}
+                </p>
               </div>
             </CardContent>
-          </Card>
-        ))}
+          )
+
+          if (item.fullCardLink && item.href) {
+            return (
+              <a
+                key={item.label}
+                href={item.href}
+                {...(item.external
+                  ? { target: "_blank", rel: "noopener noreferrer" }
+                  : {})}
+                aria-label={item.displayText}
+                className="block rounded-xl transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+              >
+                <Card className="gap-0 border-border/80 py-0 transition-colors hover:border-primary/40">
+                  {cardBody}
+                </Card>
+              </a>
+            )
+          }
+
+          return (
+            <Card key={item.label} className="gap-0 border-border/80 py-0">
+              {item.href ? (
+                <a
+                  href={item.href}
+                  aria-label={item.displayText}
+                  {...(item.external
+                    ? { target: "_blank", rel: "noopener noreferrer" }
+                    : {})}
+                  className="block rounded-xl transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                >
+                  {cardBody}
+                </a>
+              ) : (
+                cardBody
+              )}
+            </Card>
+          )
+        })}
       </div>
 
       <Card className="gap-0 border-border/80 py-0">
