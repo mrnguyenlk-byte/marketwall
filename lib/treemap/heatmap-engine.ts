@@ -147,16 +147,21 @@ export function buildFlatMarketHeatmapLayout(
       : sizing === "volume"
         ? cryptoHeatmapSizeMetric
         : (asset: MarketAsset) => asset.marketCap
-  const linearVolume =
-    (marketType === "us" && sizing === "dollarVolume") ||
-    (marketType === "crypto" && sizing === "volume")
-  const power = linearVolume ? 1 : TREEMAP_COMPRESSION_POWER.DEFAULT
+  const usLinearVolume = marketType === "us" && sizing === "dollarVolume"
+  const power =
+    marketType === "us"
+      ? sizing === "dollarVolume"
+        ? TREEMAP_COMPRESSION_POWER.US_DOLLAR_VOLUME
+        : TREEMAP_COMPRESSION_POWER.DEFAULT
+      : sizing === "volume"
+        ? TREEMAP_COMPRESSION_POWER.CRYPTO_VOLUME
+        : TREEMAP_COMPRESSION_POWER.DEFAULT
   const sorted = [...assets].sort((a, b) => metric(b) - metric(a))
   return {
     groups: [],
     leaves: buildFlatMetricTreemap(sorted, metric, rect, {
       allowEqualGridFallback: false,
-      maxShare: linearVolume ? 1 : undefined,
+      maxShare: usLinearVolume ? 1 : undefined,
       power,
       forceWeightedFallback: marketType === "crypto",
     }),
