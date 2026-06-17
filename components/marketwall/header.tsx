@@ -11,6 +11,12 @@ import { TickerBar } from "./ticker-bar"
 import { useLang } from "@/lib/i18n"
 import type { TickerBarItem } from "@/lib/market-types"
 import { cn } from "@/lib/utils"
+import {
+  isLiveStreamActive,
+  PRIMARY_LIVE_STREAM_URL,
+} from "@/lib/config/live-streams"
+
+const LIVE_ACTIVE = isLiveStreamActive()
 
 const NAV_ITEMS: { key: string; href: string; match?: string }[] = [
   { key: "nav.dashboard", href: "/" },
@@ -20,6 +26,27 @@ const NAV_ITEMS: { key: string; href: string; match?: string }[] = [
 
 type HeaderProps = {
   tickerItems?: TickerBarItem[]
+}
+
+function LiveNavLink({ compact = false }: { compact?: boolean }) {
+  return (
+    <a
+      href={PRIMARY_LIVE_STREAM_URL}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={cn(
+        "pointer-events-auto relative font-extrabold uppercase tracking-wider transition-colors",
+        compact
+          ? "px-3 text-sm leading-none"
+          : "px-3 py-1 text-sm leading-none sm:text-base",
+        LIVE_ACTIVE
+          ? "animate-live-pulse text-red-500 hover:text-red-400"
+          : "text-muted-foreground hover:text-foreground",
+      )}
+    >
+      LIVE
+    </a>
+  )
 }
 
 export function Header({ tickerItems }: HeaderProps) {
@@ -38,6 +65,7 @@ export function Header({ tickerItems }: HeaderProps) {
           aria-label="Main navigation"
           className="pointer-events-none absolute left-1/2 hidden -translate-x-1/2 items-center gap-0 md:flex"
         >
+          <LiveNavLink />
           {NAV_ITEMS.map((item) => {
             const active = item.match
               ? pathname === item.match
@@ -83,6 +111,7 @@ export function Header({ tickerItems }: HeaderProps) {
         aria-label="Main navigation"
         className="flex h-[26px] items-center justify-center gap-0 border-t border-border/80 px-3 md:hidden"
       >
+        <LiveNavLink compact />
         {NAV_ITEMS.map((item) => {
           const active = item.match
             ? pathname === item.match
