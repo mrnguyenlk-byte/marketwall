@@ -1,6 +1,6 @@
 import {
   analyzeVnSectorTreemapLayout,
-  buildVietnamSectorTreemapLayout,
+  buildSectorGroupedTreemap,
   countVnSectorTreemapTiles,
 } from "../lib/vietnam/vietnam-sector-grid-layout"
 import { heatmapRowsToMarketAssets } from "../lib/market/heatmap-assets"
@@ -16,7 +16,7 @@ async function main() {
     "vn",
     "tradingValue",
   )
-  const layout = buildVietnamSectorTreemapLayout(assets, "volume")
+  const layout = buildSectorGroupedTreemap(assets)
   const counts = countVnSectorTreemapTiles(layout)
   const analysis = analyzeVnSectorTreemapLayout(layout)
 
@@ -29,6 +29,7 @@ async function main() {
         maxTileAspectRatio: Number(analysis.maxTileAspect.toFixed(2)),
         maxSectorAspectRatio: Number(analysis.maxSectorAspect.toFixed(2)),
         maxTileSectorAreaShare: Number((analysis.maxTileSectorAreaShare * 100).toFixed(1)) + "%",
+        rootCoverage: Number((analysis.rootCoverage * 100).toFixed(1)) + "%",
       },
       null,
       2,

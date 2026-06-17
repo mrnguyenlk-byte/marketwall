@@ -14,9 +14,9 @@ Sprint heatmap-rewrite: four Vietnam heatmap display modes with sector treemap (
 | `lib/i18n.tsx` | Labels for four mode pills |
 | `docs/VN_HEATMAP_FOUR_MODES.md` | This report |
 
-Unchanged (reused as-is):
+Unchanged (reused with Mode 1 rebuild):
 
-- `lib/vietnam/vietnam-sector-grid-layout.ts` — Sprint 36B two-level squarify for mode 1
+- `lib/vietnam/vietnam-sector-grid-layout.ts` — **`buildSectorGroupedTreemap`** (Mode 1 two-level squarify)
 - `components/heatmap/VietnamSectorGridHeatmap.tsx` — sector treemap UI
 - `components/heatmap/HeatmapTile.tsx` — color tiers unchanged
 - `lib/treemap/heatmap-engine.ts` — `capLeafWeights`, `tileSizeFromRect`
@@ -34,7 +34,7 @@ Unchanged (reused as-is):
 
 | Mode | Tile size metric | Notes |
 |------|------------------|-------|
-| `sector-volume` | `volumeShares ?? lot×10` | sqrt weighting inside sectors; sector blocks blended by sector volume + importance |
+| `sector-volume` | `volumeShares ?? lot×10` | sqrt(volume) per stock; sector blocks sized by sqrt(sum volume) |
 | `market-cap` | `marketCap` | sqrt via `capLeafWeights` |
 | `foreign-flow` | \|net foreign value\| VND | `foreignNetValue` → `foreignBuyValue − foreignSellValue` → shares × price |
 | `proprietary-flow` | \|net proprietary value\| | **No per-symbol fields on `MarketAsset` / `HeatmapAsset`** — metric returns 0 |
@@ -43,11 +43,30 @@ Tile **color** remains `heatStyle(changePercent)` on all modes.
 
 ## Sprint 36B reuse
 
-**Reused** for mode 1 (`sector-volume`):
+**Replaced for mode 1 (`sector-volume`)** — root band/grid fallbacks and double-sqrt sector weights removed.
 
-- `buildVietnamSectorTreemapLayout` in `lib/vietnam/vietnam-sector-grid-layout.ts`
-- Root sector squarify + per-sector inner squarify with sqrt(volume) caps
-- Metric switched from default GTGD (`tradingValue`) to **volume** by passing `sizing="volume"` into the sector builder (uses `assetSizeMetric` volume branch)
+**Retained from Sprint 36B**:
+
+- Per-sector inner squarify with sqrt(volume), 12% tile cap, Khác bucket for tiny stocks
+- Per-sector balanced grid fallback when inner aspect ratio exceeds 3:1 (sector-local only)
+- `HeatmapTile` text tiers from tile area share
+
+**Mode 1 root layout (`buildSectorGroupedTreemap`)**:
+
+1. Group stocks by `normalizeVnSectorGroup`
+2. `sectorMetric = sum(volume)` per sector
+3. `sectorWeight = sqrt(sectorMetric)` — single sqrt, no 70/30 importance blend
+4. Root `squarify` on `{0,0,1,1}` with gap `0.002` — no root grid fallback
+5. Sector header `min(7%, 22px)`; label hidden when sector block is too small (tiles use full block height)
+
+### Layout metrics (200 VN assets, `scripts/sprint36-layout-count.ts`)
+
+| Metric | Value |
+|--------|-------|
+| Root coverage (after gap inset) | ~98.7% |
+| Max sector aspect ratio | ~3.4 |
+| Max tile aspect ratio | ~1.5 |
+| Max tile area share in sector | ~24% |
 
 **New** for modes 2–4:
 

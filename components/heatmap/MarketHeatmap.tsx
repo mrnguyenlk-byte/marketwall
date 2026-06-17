@@ -64,7 +64,6 @@ export function MarketHeatmap({
       return (
         <VietnamSectorGridHeatmap
           assets={limitedAssets}
-          sizing="volume"
           groupLabel={groupLabel}
           onTileClick={onTileClick}
         />

@@ -6,28 +6,8 @@ import {
   VN_SECTOR_GROUP_ORDER,
   type VnSectorGroupId,
 } from "@/lib/vietnam/sector-groups"
-import type { VnHeatmapSizingMode } from "@/lib/vietnam/heatmap-sizing"
 import type { MarketAsset } from "@/types/market"
 
-/** Fixed sector importance (30% of blended root weight). */
-const SECTOR_IMPORTANCE: Record<VnSectorGroupId, number> = {
-  banking: 1.25,
-  securities: 1.1,
-  realEstate: 1.05,
-  steel: 1.0,
-  oilGas: 0.95,
-  technology: 0.95,
-  retail: 0.9,
-  industrial: 0.85,
-  utilities: 0.8,
-  other: 0.7,
-}
-
-/** Volume mode: cap dominant sectors (e.g. Khác bucket) for readable 2D blocks. */
-const VOLUME_MAX_SECTOR_SHARE = 0.32
-const VOLUME_MIN_SECTOR_SHARE = 0.018
-const METRIC_BLEND = 0.7
-const IMPORTANCE_BLEND = 0.3
 /** Soft cap: largest tile ≤ 12% of sector inner area (weight share). */
 const MAX_TILE_IN_SECTOR = 0.12
 const MAX_TILE_RETRY = 0.08
@@ -40,6 +20,9 @@ const SECTOR_HEADER_MIN = 18 / 1080
 const SECTOR_HEADER_MAX = 22 / 1080
 const SECTOR_GAP = 0.002
 const MIN_SQRT_VALUE = 0.0001
+const MIN_LABEL_SECTOR_H = 0.035
+const MIN_LABEL_SECTOR_W = 0.06
+const MIN_LABEL_SECTOR_AREA = 0.003
 
 export type VnTileTextTier = "large" | "medium" | "small" | "tiny"
 
@@ -59,6 +42,7 @@ export type VnSectorBlockLayout = {
   id: VnSectorGroupId
   labelKey: string
   rect: TreemapRect
+  hideLabel: boolean
   tiles: VnSectorTileLayout[]
   other?: VnSectorOtherBucket
 }
@@ -79,8 +63,8 @@ type SectorSquarifyItem =
   | { kind: "stock"; asset: MarketAsset; weight: number }
   | { kind: "other"; symbols: string[]; weight: number }
 
-function metricFor(asset: MarketAsset, sizing: VnHeatmapSizingMode): number {
-  return Math.max(assetSizeMetric(asset, "vn", sizing), 0)
+function volumeMetric(asset: MarketAsset): number {
+  return Math.max(assetSizeMetric(asset, "vn", "volume"), 0)
 }
 
 function aspectRatio(rect: TreemapRect): number {
@@ -96,11 +80,12 @@ function textTierForSectorShare(share: number): VnTileTextTier {
 }
 
 function insetRect(rect: TreemapRect, gap: number): TreemapRect {
+  const inset = gap / 2
   return {
-    x: rect.x + gap,
-    y: rect.y + gap,
-    w: Math.max(rect.w - gap * 2, 0),
-    h: Math.max(rect.h - gap * 2, 0),
+    x: rect.x + inset,
+    y: rect.y + inset,
+    w: Math.max(rect.w - gap, 0),
+    h: Math.max(rect.h - gap, 0),
   }
 }
 
@@ -108,15 +93,22 @@ function sectorHeaderHeight(sectorH: number): number {
   return Math.min(Math.max(sectorH * SECTOR_HEADER_RATIO, SECTOR_HEADER_MIN), SECTOR_HEADER_MAX)
 }
 
+function shouldHideSectorLabel(rect: TreemapRect): boolean {
+  return (
+    rect.h < MIN_LABEL_SECTOR_H ||
+    rect.w < MIN_LABEL_SECTOR_W ||
+    rect.w * rect.h < MIN_LABEL_SECTOR_AREA
+  )
+}
+
 function prepareStockWeights(
   assets: MarketAsset[],
-  sizing: VnHeatmapSizingMode,
   maxTileShare = MAX_TILE_IN_SECTOR,
 ): { visible: WeightedStock[]; other: MarketAsset[]; weightSum: number } {
   if (!assets.length) return { visible: [], other: [], weightSum: 1 }
 
   const sqrtItems = assets.map((asset) => {
-    const raw = metricFor(asset, sizing)
+    const raw = volumeMetric(asset)
     return { asset, sqrt: Math.sqrt(raw) }
   })
 
@@ -143,16 +135,6 @@ function prepareStockWeights(
   }
 
   return { visible, other, weightSum: sum }
-}
-
-function flattenWeights(items: SectorSquarifyItem[], power: number): SectorSquarifyItem[] {
-  if (power <= 0) return items
-  const n = items.length || 1
-  const uniform = 1 / n
-  return items.map((item) => ({
-    ...item,
-    weight: item.weight * (1 - power) + uniform * power,
-  }))
 }
 
 function layoutScore(leaves: TreemapRect[]): number {
@@ -243,43 +225,22 @@ function trySquarifyInner(
   inner: TreemapRect,
   baseItems: SectorSquarifyItem[],
   maxShare: number,
-  volumeMode = false,
 ): Array<{ item: SectorSquarifyItem; rect: TreemapRect }> {
-  const attempts: Array<{ flatten: number; horizontal: boolean }> = volumeMode
-    ? [
-        { flatten: 0, horizontal: inner.w >= inner.h },
-        { flatten: 0, horizontal: inner.w < inner.h },
-        { flatten: 0.15, horizontal: inner.w >= inner.h },
-        { flatten: 0.15, horizontal: inner.w < inner.h },
-      ]
-    : [
-        { flatten: 0, horizontal: inner.w >= inner.h },
-        { flatten: 0, horizontal: inner.w < inner.h },
-        { flatten: 0.25, horizontal: inner.w >= inner.h },
-        { flatten: 0.25, horizontal: inner.w < inner.h },
-        { flatten: 0.5, horizontal: inner.w >= inner.h },
-        { flatten: 0.65, horizontal: inner.w < inner.h },
-      ]
-
+  const orientations = [inner.w >= inner.h, inner.w < inner.h]
   let best: {
     placements: Array<{ item: SectorSquarifyItem; rect: TreemapRect }>
     score: number
   } | null = null
 
-  for (const attempt of attempts) {
-    let items = maxShare < MAX_TILE_IN_SECTOR ? capItemWeights(baseItems, maxShare) : baseItems
-    if (attempt.flatten > 0) {
-      items = flattenWeights(items, attempt.flatten)
-    }
-
-    const placements = squarifyPlacements(inner, items, attempt.horizontal)
+  for (const horizontal of orientations) {
+    const items = maxShare < MAX_TILE_IN_SECTOR ? capItemWeights(baseItems, maxShare) : baseItems
+    const placements = squarifyPlacements(inner, items, horizontal)
     const score = layoutScore(placements.map((p) => p.rect))
     const worst = worstAspect(placements)
 
     if (worst <= HARD_ASPECT_LIMIT && (!best || score < best.score)) {
       best = { placements, score }
     }
-    if (best && best.score <= PREFERRED_ASPECT_MAX) break
   }
 
   if (best) return best.placements
@@ -295,7 +256,6 @@ function layoutSectorTreemap(
   stocks: WeightedStock[],
   otherSymbols: string[],
   otherWeight: number,
-  volumeMode = false,
 ): { tiles: VnSectorTileLayout[]; other?: VnSectorOtherBucket } {
   if ((!stocks.length && !otherSymbols.length) || inner.w <= 0 || inner.h <= 0) {
     return { tiles: [] }
@@ -314,11 +274,11 @@ function layoutSectorTreemap(
     })
   }
 
-  let chosen = trySquarifyInner(inner, baseItems, MAX_TILE_IN_SECTOR, volumeMode)
+  let chosen = trySquarifyInner(inner, baseItems, MAX_TILE_IN_SECTOR)
   if (worstAspect(chosen) > HARD_ASPECT_LIMIT) {
-    chosen = trySquarifyInner(inner, baseItems, MAX_TILE_RETRY, volumeMode)
+    chosen = trySquarifyInner(inner, baseItems, MAX_TILE_RETRY)
   }
-  if (worstAspect(chosen) > HARD_ASPECT_LIMIT || aspectRatio(inner) > HARD_ASPECT_LIMIT) {
+  if (worstAspect(chosen) > HARD_ASPECT_LIMIT) {
     chosen = balancedGridFallback(inner, baseItems)
   }
 
@@ -346,9 +306,9 @@ function layoutSectorBlock(
   rect: TreemapRect,
   id: VnSectorGroupId,
   assets: MarketAsset[],
-  sizing: VnHeatmapSizingMode,
 ): VnSectorBlockLayout {
-  const headerH = sectorHeaderHeight(rect.h)
+  const hideLabel = shouldHideSectorLabel(rect)
+  const headerH = hideLabel ? 0 : sectorHeaderHeight(rect.h)
   const inner: TreemapRect = {
     x: rect.x,
     y: rect.y + headerH,
@@ -356,191 +316,59 @@ function layoutSectorBlock(
     h: Math.max(rect.h - headerH, 0),
   }
 
-  const { visible, other, weightSum } = prepareStockWeights(assets, sizing)
+  const { visible, other, weightSum } = prepareStockWeights(assets)
   const otherWeight = Math.max(
     weightSum * MIN_TILE_IN_SECTOR,
-    other.reduce((s, asset) => s + Math.sqrt(Math.max(metricFor(asset, sizing), 0)), 0) * 0.5,
+    other.reduce((s, asset) => s + Math.sqrt(volumeMetric(asset)), 0) * 0.5,
   )
   const { tiles, other: otherBucket } = layoutSectorTreemap(
     inner,
     visible,
     other.map((a) => a.symbol),
     otherWeight,
-    sizing === "volume",
   )
 
   return {
     id,
     labelKey: VN_SECTOR_GROUP_LABEL_KEYS[id],
     rect,
+    hideLabel,
     tiles,
     other: otherBucket,
   }
 }
 
-function clampNormalizedShares(values: number[], minShare: number, maxShare: number): number[] {
-  if (!values.length) return values
-  let clamped = values.map((v) => Math.min(Math.max(v, minShare), maxShare))
-  let sum = clamped.reduce((s, v) => s + v, 0) || 1
-  clamped = clamped.map((v) => v / sum)
-
-  for (let pass = 0; pass < 4; pass++) {
-    const capped = clamped.map((v) => Math.min(Math.max(v, minShare), maxShare))
-    sum = capped.reduce((s, v) => s + v, 0) || 1
-    clamped = capped.map((v) => v / sum)
+function sectorRootWeights(buckets: Map<VnSectorGroupId, MarketAsset[]>): Map<VnSectorGroupId, number> {
+  const weights = new Map<VnSectorGroupId, number>()
+  for (const [id, list] of buckets.entries()) {
+    if (!list.length) continue
+    const sectorMetric = list.reduce((s, asset) => s + volumeMetric(asset), 0)
+    weights.set(id, Math.sqrt(Math.max(sectorMetric, MIN_SQRT_VALUE)))
   }
-  return clamped
+  return weights
 }
-
-function rootSectorValues(
-  present: VnSectorGroupId[],
-  weights: Map<VnSectorGroupId, number>,
-  flatten: number,
-  useLinearSquarifyValues: boolean,
-): number[] {
-  const raw = present.map((id) => Math.max(weights.get(id) ?? MIN_SQRT_VALUE, MIN_SQRT_VALUE))
-  const sum = raw.reduce((s, w) => s + w, 0) || 1
-  let normalized = raw.map((w) => w / sum)
-  if (useLinearSquarifyValues) {
-    normalized = clampNormalizedShares(
-      normalized,
-      VOLUME_MIN_SECTOR_SHARE,
-      VOLUME_MAX_SECTOR_SHARE,
-    )
-  }
-  if (flatten > 0) {
-    const uniform = 1 / present.length
-    normalized = normalized.map((w) => w * (1 - flatten) + uniform * flatten)
-  }
-  return normalized.map((w) => Math.sqrt(w))
-}
-
-function balancedRootSectors(
-  present: VnSectorGroupId[],
-): Array<{ id: VnSectorGroupId; rect: TreemapRect }> {
-  const n = present.length
-  if (!n) return []
-  const cols = Math.ceil(Math.sqrt(n))
-  const rows = Math.ceil(n / cols)
-  const gap = SECTOR_GAP
-  const cellW = Math.max((1 - gap * (cols - 1)) / cols, 0)
-  const cellH = Math.max((1 - gap * (rows - 1)) / rows, 0)
-  return present.map((id, i) => {
-    const row = Math.floor(i / cols)
-    const col = i % cols
-    return {
-      id,
-      rect: {
-        x: col * (cellW + gap),
-        y: row * (cellH + gap),
-        w: cellW,
-        h: cellH,
-      },
-    }
-  })
-}
-
-const ROOT_GRID_FALLBACK_ASPECT = 10
 
 function layoutRootSectors(
   present: VnSectorGroupId[],
   weights: Map<VnSectorGroupId, number>,
-  sizing: VnHeatmapSizingMode,
 ): Array<{ id: VnSectorGroupId; rect: TreemapRect }> {
   const root: TreemapRect = { x: 0, y: 0, w: 1, h: 1 }
-  const volumeMode = sizing === "volume"
-  const flatAttempts = volumeMode ? [0, 0.12] : [0, 0.15, 0.3, 0.45]
-
-  let best: Array<{ id: VnSectorGroupId; rect: TreemapRect }> | null = null
-  let bestMaxAspect = Infinity
-
-  const tryLayout = (values: number[], horizontal?: boolean) => {
-    const items = present.map((id, index) => ({
-      data: id,
-      value: values[index],
-    }))
-    const nodes =
-      horizontal === undefined
-        ? squarify(items, root, MIN_SQRT_VALUE)
-        : squarifyWithOrientation(items, root, horizontal, MIN_SQRT_VALUE)
-    return nodes.map((node) => ({
-      id: node.data,
-      rect: insetRect(node.rect, SECTOR_GAP),
-    }))
-  }
-
-  for (const flatten of flatAttempts) {
-    const values = rootSectorValues(present, weights, flatten, volumeMode)
-    const orientations: Array<boolean | undefined> = volumeMode
-      ? [undefined, true, false]
-      : [undefined]
-
-    for (const horizontal of orientations) {
-      const placements = tryLayout(values, horizontal)
-      const maxAr = Math.max(...placements.map((p) => aspectRatio(p.rect)), 0)
-
-      if (maxAr < bestMaxAspect) {
-        best = placements
-        bestMaxAspect = maxAr
-      }
-    }
-  }
-
-  if (best && (volumeMode || bestMaxAspect <= ROOT_GRID_FALLBACK_ASPECT)) {
-    return best
-  }
-  if (volumeMode && best) return best
-  return balancedRootSectors(present)
+  const items = present.map((id) => ({
+    data: id,
+    value: Math.max(weights.get(id) ?? MIN_SQRT_VALUE, MIN_SQRT_VALUE),
+  }))
+  const nodes = squarify(items, root, MIN_SQRT_VALUE)
+  return nodes.map((node) => ({
+    id: node.data,
+    rect: insetRect(node.rect, SECTOR_GAP),
+  }))
 }
 
-function sectorRootWeights(
-  buckets: Map<VnSectorGroupId, MarketAsset[]>,
-  sizing: VnHeatmapSizingMode,
-): Map<VnSectorGroupId, number> {
-  const present = [...buckets.entries()].filter(([, list]) => list.length > 0)
-  const weights = new Map<VnSectorGroupId, number>()
-
-  if (sizing === "volume") {
-    let grandSqrt = 0
-    const sqrtTotals = new Map<VnSectorGroupId, number>()
-    for (const [id, list] of present) {
-      const sum = list.reduce((s, asset) => s + Math.sqrt(metricFor(asset, sizing)), 0)
-      sqrtTotals.set(id, sum)
-      grandSqrt += sum
-    }
-    for (const [id] of present) {
-      const linear = grandSqrt > 0 ? (sqrtTotals.get(id) ?? 0) / grandSqrt : 1 / present.length
-      weights.set(id, linear)
-    }
-    return weights
-  }
-
-  const sqrtTotals = new Map<VnSectorGroupId, number>()
-  let grandSqrt = 0
-  for (const [id, list] of present) {
-    const sum = list.reduce((s, asset) => s + Math.sqrt(metricFor(asset, sizing)), 0)
-    sqrtTotals.set(id, sum)
-    grandSqrt += sum
-  }
-
-  const importanceSum = present.reduce((s, [id]) => s + SECTOR_IMPORTANCE[id], 0) || 1
-
-  for (const [id] of present) {
-    const normalizedMetric = grandSqrt > 0 ? (sqrtTotals.get(id) ?? 0) / grandSqrt : 0
-    const normalizedImportance = SECTOR_IMPORTANCE[id] / importanceSum
-    weights.set(
-      id,
-      METRIC_BLEND * normalizedMetric + IMPORTANCE_BLEND * normalizedImportance,
-    )
-  }
-
-  return weights
-}
-
-export function buildVietnamSectorTreemapLayout(
-  assets: MarketAsset[],
-  sizing: VnHeatmapSizingMode = "tradingValue",
-): VnSectorTreemapLayout {
+/**
+ * Mode 1 — sector-grouped two-level treemap (volume-weighted).
+ * Root: squarify sectors by sqrt(sum volume). Inner: squarify stocks by sqrt(volume).
+ */
+export function buildSectorGroupedTreemap(assets: MarketAsset[]): VnSectorTreemapLayout {
   const buckets = new Map<VnSectorGroupId, MarketAsset[]>()
   for (const id of VN_SECTOR_GROUP_ORDER) {
     buckets.set(id, [])
@@ -550,20 +378,28 @@ export function buildVietnamSectorTreemapLayout(
     buckets.get(id)?.push(asset)
   }
 
-  const weights = sectorRootWeights(buckets, sizing)
+  const weights = sectorRootWeights(buckets)
   const present = VN_SECTOR_GROUP_ORDER.filter((id) => (buckets.get(id)?.length ?? 0) > 0)
-  const rootPlacements = layoutRootSectors(present, weights, sizing)
+  const rootPlacements = layoutRootSectors(present, weights)
 
   const sectors: VnSectorBlockLayout[] = rootPlacements.map(({ id, rect }) => {
     const list = buckets.get(id) ?? []
-    return layoutSectorBlock(rect, id, list, sizing)
+    return layoutSectorBlock(rect, id, list)
   })
 
   return { sectors }
 }
 
-/** @deprecated Use buildVietnamSectorTreemapLayout */
-export const buildVietnamSectorGridLayout = buildVietnamSectorTreemapLayout
+/** @deprecated Use buildSectorGroupedTreemap — volume sizing only */
+export function buildVietnamSectorTreemapLayout(
+  assets: MarketAsset[],
+  _sizing: "volume" = "volume",
+): VnSectorTreemapLayout {
+  return buildSectorGroupedTreemap(assets)
+}
+
+/** @deprecated Use buildSectorGroupedTreemap */
+export const buildVietnamSectorGridLayout = buildSectorGroupedTreemap
 
 /** Sector tile counts for verification / docs. */
 export function countVnSectorTreemapTiles(layout: VnSectorTreemapLayout): Record<string, number> {
@@ -582,12 +418,15 @@ export function analyzeVnSectorTreemapLayout(layout: VnSectorTreemapLayout): {
   maxTileAspect: number
   maxSectorAspect: number
   maxTileSectorAreaShare: number
+  rootCoverage: number
 } {
   let maxTileAspect = 0
   let maxSectorAspect = 0
   let maxTileSectorAreaShare = 0
+  let rootCoverage = 0
 
   for (const sector of layout.sectors) {
+    rootCoverage += sector.rect.w * sector.rect.h
     maxSectorAspect = Math.max(maxSectorAspect, aspectRatio(sector.rect))
     const headerH = sectorHeaderHeight(sector.rect.h)
     const innerArea = sector.rect.w * Math.max(sector.rect.h - headerH, 0)
@@ -600,9 +439,15 @@ export function analyzeVnSectorTreemapLayout(layout: VnSectorTreemapLayout): {
         )
       }
     }
+    if (sector.other && innerArea > 0) {
+      maxTileSectorAreaShare = Math.max(
+        maxTileSectorAreaShare,
+        (sector.other.rect.w * sector.other.rect.h) / innerArea,
+      )
+    }
   }
 
-  return { maxTileAspect, maxSectorAspect, maxTileSectorAreaShare }
+  return { maxTileAspect, maxSectorAspect, maxTileSectorAreaShare, rootCoverage }
 }
 
 export function tierToTileSize(tier: VnTileTextTier): "large" | "medium" | "small" | "tiny" {

@@ -65,15 +65,15 @@ function rowBandRect<T>(
   row: Array<{ data: T; value: number }>,
   remaining: TreemapRect,
   horizontal: boolean,
-  total: number,
-  container: TreemapRect,
+  remainingTotal: number,
 ): TreemapRect {
   const rowSum = sumValues(row)
+  if (rowSum <= 0 || remainingTotal <= 0) return remaining
   if (horizontal) {
-    const bandW = (rowSum / total) * container.w
+    const bandW = (rowSum / remainingTotal) * remaining.w
     return { x: remaining.x, y: remaining.y, w: bandW, h: remaining.h }
   }
-  const bandH = (rowSum / total) * container.h
+  const bandH = (rowSum / remainingTotal) * remaining.h
   return { x: remaining.x, y: remaining.y, w: remaining.w, h: bandH }
 }
 
@@ -81,15 +81,15 @@ function advanceRemaining<T>(
   row: Array<{ data: T; value: number }>,
   remaining: TreemapRect,
   horizontal: boolean,
-  total: number,
-  container: TreemapRect,
+  remainingTotal: number,
 ): TreemapRect {
   const rowSum = sumValues(row)
+  if (rowSum <= 0 || remainingTotal <= 0) return remaining
   if (horizontal) {
-    const used = (rowSum / total) * container.w
+    const used = (rowSum / remainingTotal) * remaining.w
     return { x: remaining.x + used, y: remaining.y, w: remaining.w - used, h: remaining.h }
   }
-  const used = (rowSum / total) * container.h
+  const used = (rowSum / remainingTotal) * remaining.h
   return { x: remaining.x, y: remaining.y + used, w: remaining.w, h: remaining.h - used }
 }
 
@@ -109,13 +109,15 @@ function squarifyCore<T>(
   const out: TreemapLayoutNode<T>[] = []
   let row: Array<{ data: T; value: number }> = []
   let remaining = { ...rect }
+  let remainingTotal = total
   let horizontal = orientationFor(remaining)
 
   const flushRow = () => {
     if (!row.length) return
-    const band = rowBandRect(row, remaining, horizontal, total, rect)
+    const band = rowBandRect(row, remaining, horizontal, remainingTotal)
     layoutRow(row, band, horizontal, out)
-    remaining = advanceRemaining(row, remaining, horizontal, total, rect)
+    remaining = advanceRemaining(row, remaining, horizontal, remainingTotal)
+    remainingTotal -= sumValues(row)
     horizontal = orientationFor(remaining)
     row = []
   }
@@ -132,7 +134,7 @@ function squarifyCore<T>(
   }
 
   if (row.length) {
-    const band = rowBandRect(row, remaining, horizontal, total, rect)
+    const band = rowBandRect(row, remaining, horizontal, remainingTotal)
     layoutRow(row, band, horizontal, out)
   }
 

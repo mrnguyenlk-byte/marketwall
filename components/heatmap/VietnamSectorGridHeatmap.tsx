@@ -5,16 +5,14 @@ import { useMemo } from "react"
 import { HeatmapTile } from "@/components/heatmap/HeatmapTile"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import {
-  buildVietnamSectorTreemapLayout,
+  buildSectorGroupedTreemap,
   tierToTileSize,
 } from "@/lib/vietnam/vietnam-sector-grid-layout"
-import type { VnHeatmapSizingMode } from "@/lib/vietnam/heatmap-sizing"
 import type { MarketAsset } from "@/types/market"
 import { cn } from "@/lib/utils"
 
 type VietnamSectorGridHeatmapProps = {
   assets: MarketAsset[]
-  sizing: VnHeatmapSizingMode
   groupLabel?: (key: string) => string
   onTileClick: (asset: MarketAsset) => void
 }
@@ -34,14 +32,10 @@ function rectStyle(rect: { x: number; y: number; w: number; h: number }) {
 
 export function VietnamSectorGridHeatmap({
   assets,
-  sizing,
   groupLabel,
   onTileClick,
 }: VietnamSectorGridHeatmapProps) {
-  const layout = useMemo(
-    () => buildVietnamSectorTreemapLayout(assets, sizing),
-    [assets, sizing],
-  )
+  const layout = useMemo(() => buildSectorGroupedTreemap(assets), [assets])
 
   return (
     <TooltipProvider delay={175}>
@@ -49,7 +43,7 @@ export function VietnamSectorGridHeatmap({
         className="relative h-full w-full overflow-hidden bg-heatmap-gap"
         data-market-type="vn"
         data-grouping="sector-treemap"
-        data-sizing={sizing}
+        data-sizing="volume"
       >
         {layout.sectors.map((sector) => (
           <div
@@ -57,9 +51,11 @@ export function VietnamSectorGridHeatmap({
             className="pointer-events-none absolute box-border overflow-hidden border border-black/25 bg-chart-bg"
             style={rectStyle(sector.rect)}
           >
-            <header className="flex h-[min(7%,22px)] min-h-[18px] shrink-0 items-center truncate border-b border-black/30 bg-black/65 px-1.5 text-[10px] font-bold uppercase tracking-wide text-white sm:text-[11px]">
-              {groupLabel ? groupLabel(sector.labelKey) : sector.labelKey}
-            </header>
+            {!sector.hideLabel && (
+              <header className="flex h-[min(7%,22px)] min-h-[18px] shrink-0 items-center truncate border-b border-black/30 bg-black/65 px-1.5 text-[10px] font-bold uppercase tracking-wide text-white sm:text-[11px]">
+                {groupLabel ? groupLabel(sector.labelKey) : sector.labelKey}
+              </header>
+            )}
           </div>
         ))}
 
