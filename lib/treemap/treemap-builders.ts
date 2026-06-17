@@ -6,6 +6,9 @@ import {
 
 const MIN_VALUE = 0.0001
 const HARD_ASPECT_LIMIT = 6
+/** Squarify → weighted grid when worst tile aspect exceeds this (flat VN modes). */
+const FLAT_ASPECT_FALLBACK_LIMIT = 10
+const FLAT_LAYOUT_GAP = 0.002
 const DEFAULT_MAX_CAP_ITERATIONS = 50
 
 /** Max share of parent area for a single flat leaf (VN modes 2–4, US, Crypto). */
@@ -197,7 +200,7 @@ export function splitKhacBucket<T>(
 function balancedGridFallback<T>(
   inner: TreemapRect,
   items: Array<{ data: T; value: number }>,
-  gap = 0.002,
+  gap = FLAT_LAYOUT_GAP,
 ): TreemapLayoutNode<T>[] {
   const n = items.length
   if (!n || inner.w <= 0 || inner.h <= 0) return []
@@ -239,12 +242,179 @@ function balancedGridFallback<T>(
   })
 }
 
+/** Split sorted items into bands with roughly equal total weight (preserves order). */
+function partitionByWeight<T>(
+  items: Array<{ data: T; value: number }>,
+  numBands: number,
+): Array<Array<{ data: T; value: number }>> {
+  if (numBands <= 1 || items.length <= 1) return [items]
+
+  const total = items.reduce((sum, item) => sum + item.value, 0)
+  if (total <= 0) {
+    const bands: Array<Array<{ data: T; value: number }>> = []
+    const base = Math.floor(items.length / numBands)
+    const extra = items.length % numBands
+    let idx = 0
+    for (let b = 0; b < numBands; b++) {
+      const count = base + (b < extra ? 1 : 0)
+      if (count > 0) {
+        bands.push(items.slice(idx, idx + count))
+        idx += count
+      }
+    }
+    return bands.length ? bands : [items]
+  }
+
+  const target = total / numBands
+  const bands: Array<Array<{ data: T; value: number }>> = []
+  let current: Array<{ data: T; value: number }> = []
+  let currentSum = 0
+
+  for (const item of items) {
+    if (bands.length < numBands - 1 && current.length > 0 && currentSum >= target) {
+      bands.push(current)
+      current = [item]
+      currentSum = item.value
+    } else {
+      current.push(item)
+      currentSum += item.value
+    }
+  }
+  if (current.length) bands.push(current)
+  return bands.length ? bands : [items]
+}
+
+function layoutWeightBandsHorizontal<T>(
+  inner: TreemapRect,
+  bands: Array<Array<{ data: T; value: number }>>,
+  gap: number,
+): TreemapLayoutNode<T>[] {
+  const totalWeight = bands.reduce(
+    (sum, band) => sum + band.reduce((bandSum, item) => bandSum + item.value, 0),
+    0,
+  )
+  if (totalWeight <= 0) return []
+
+  const availH = inner.h - gap * Math.max(bands.length - 1, 0)
+  const nodes: TreemapLayoutNode<T>[] = []
+  let curY = inner.y
+
+  for (const band of bands) {
+    const bandWeight = band.reduce((sum, item) => sum + item.value, 0)
+    const bandH = (bandWeight / totalWeight) * availH
+    let curX = inner.x
+    for (const item of band) {
+      const tileW = bandWeight > 0 ? (item.value / bandWeight) * inner.w : inner.w / band.length
+      nodes.push({
+        data: item.data,
+        value: item.value,
+        rect: { x: curX, y: curY, w: tileW, h: bandH },
+      })
+      curX += tileW
+    }
+    curY += bandH + gap
+  }
+
+  return nodes
+}
+
+function layoutWeightBandsVertical<T>(
+  inner: TreemapRect,
+  bands: Array<Array<{ data: T; value: number }>>,
+  gap: number,
+): TreemapLayoutNode<T>[] {
+  const totalWeight = bands.reduce(
+    (sum, band) => sum + band.reduce((bandSum, item) => bandSum + item.value, 0),
+    0,
+  )
+  if (totalWeight <= 0) return []
+
+  const availW = inner.w - gap * Math.max(bands.length - 1, 0)
+  const nodes: TreemapLayoutNode<T>[] = []
+  let curX = inner.x
+
+  for (const band of bands) {
+    const bandWeight = band.reduce((sum, item) => sum + item.value, 0)
+    const bandW = (bandWeight / totalWeight) * availW
+    let curY = inner.y
+    for (const item of band) {
+      const tileH = bandWeight > 0 ? (item.value / bandWeight) * inner.h : inner.h / band.length
+      nodes.push({
+        data: item.data,
+        value: item.value,
+        rect: { x: curX, y: curY, w: bandW, h: tileH },
+      })
+      curY += tileH
+    }
+    curX += bandW + gap
+  }
+
+  return nodes
+}
+
+/**
+ * Weight-proportional grid fallback — tile area ∝ value, metric order preserved.
+ * Tries horizontal and vertical band counts to minimize worst aspect ratio.
+ */
+function weightedBalancedGridFallback<T>(
+  inner: TreemapRect,
+  items: Array<{ data: T; value: number }>,
+  gap = FLAT_LAYOUT_GAP,
+): TreemapLayoutNode<T>[] {
+  const n = items.length
+  if (!n || inner.w <= 0 || inner.h <= 0) return []
+
+  const sorted = [...items].sort((a, b) => b.value - a.value)
+  const idealBands = Math.max(1, Math.round(Math.sqrt(n)))
+  const minBands = Math.max(1, Math.floor(idealBands * 0.5))
+  const maxBands = Math.min(n, Math.ceil(idealBands * 2.5))
+
+  let bestNodes: TreemapLayoutNode<T>[] = []
+  let bestWorst = Infinity
+
+  for (let bands = minBands; bands <= maxBands; bands++) {
+    const partitioned = partitionByWeight(sorted, bands)
+
+    for (const layout of [
+      layoutWeightBandsHorizontal(inner, partitioned, gap),
+      layoutWeightBandsVertical(inner, partitioned, gap),
+    ]) {
+      const score = worstAspect(layout.map((node) => node.rect))
+      if (score < bestWorst) {
+        bestWorst = score
+        bestNodes = layout
+      }
+    }
+  }
+
+  if (bestWorst > FLAT_ASPECT_FALLBACK_LIMIT) {
+    for (let bands = 1; bands <= n; bands++) {
+      const partitioned = partitionByWeight(sorted, bands)
+      for (const layout of [
+        layoutWeightBandsHorizontal(inner, partitioned, gap),
+        layoutWeightBandsVertical(inner, partitioned, gap),
+      ]) {
+        const score = worstAspect(layout.map((node) => node.rect))
+        if (score < bestWorst) {
+          bestWorst = score
+          bestNodes = layout
+        }
+        if (bestWorst <= FLAT_ASPECT_FALLBACK_LIMIT) return bestNodes
+      }
+    }
+  }
+
+  return bestNodes
+}
+
 export type PackSquarifiedOptions = {
   /** When false, never fall back to equal-size grid (default). */
   allowEqualGridFallback?: boolean
+  /** Squarify → weighted grid when worst aspect exceeds this (default 10). Set 0 to disable. */
+  aspectFallbackLimit?: number
 }
 
-/** Squarified pack — equal grid only when all metrics invalid and explicitly allowed. */
+/** Squarified pack — weighted grid when aspect too high; equal grid only for invalid metrics. */
 export function packSquarified<T>(
   items: Array<{ data: T; value: number }>,
   rect: TreemapRect,
@@ -254,6 +424,7 @@ export function packSquarified<T>(
 
   const rawInvalid = allMetricsInvalid(items)
   const allowEqualGrid = options?.allowEqualGridFallback ?? rawInvalid
+  const aspectLimit = options?.aspectFallbackLimit ?? FLAT_ASPECT_FALLBACK_LIMIT
 
   const weighted = items.map((item) => ({
     ...item,
@@ -261,10 +432,16 @@ export function packSquarified<T>(
   }))
 
   const packed = squarify(weighted, rect, MIN_VALUE)
+  const worst = worstAspect(packed.map((node) => node.rect))
+
+  if (aspectLimit > 0 && worst > aspectLimit) {
+    const weightedGrid = weightedBalancedGridFallback(rect, weighted)
+    const gridWorst = worstAspect(weightedGrid.map((node) => node.rect))
+    if (gridWorst < worst) return weightedGrid
+  }
 
   if (!allowEqualGrid) return packed
 
-  const worst = worstAspect(packed.map((node) => node.rect))
   if (worst <= HARD_ASPECT_LIMIT) return packed
 
   const grid = balancedGridFallback(rect, weighted)
@@ -278,6 +455,7 @@ export type FlatMetricTreemapOptions = {
   maxShare?: number
   power?: number
   allowEqualGridFallback?: boolean
+  aspectFallbackLimit?: number
 }
 
 /** Flat squarified treemap — tile size from normalized/capped weights, never slice bars. */
@@ -304,6 +482,7 @@ export function buildFlatMetricTreemap<T>(
   return packSquarified(weighted, rect, {
     allowEqualGridFallback:
       options?.allowEqualGridFallback ?? allMetricsInvalid(rawForInvalid),
+    aspectFallbackLimit: options?.aspectFallbackLimit,
   })
 }
 

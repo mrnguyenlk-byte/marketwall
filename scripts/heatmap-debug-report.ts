@@ -60,6 +60,15 @@ const MARKET_API_PATH: Record<MarketType, string> = {
 
 type WeightRow = { symbol: string; metric: number; share: number }
 
+type FlatTileDiagnostic = {
+  symbol: string
+  metric: number
+  finalShare: number
+  width: number
+  height: number
+  aspect: number
+}
+
 type FlatModeReport = {
   kind: "flat"
   mode: string
@@ -73,6 +82,8 @@ type FlatModeReport = {
   maxTileShare: number
   layoutMaxAspectRatio: number
   layoutTileCount: number
+  worstTile: FlatTileDiagnostic | null
+  tileDiagnostics: FlatTileDiagnostic[]
 }
 
 type SectorDiagnostic = {
@@ -184,6 +195,24 @@ function collectSectorRects(layout: VnSectorTreemapLayout): TreemapRect[] {
   return rects
 }
 
+function collectFlatTileDiagnostics(
+  layout: { leaves: TreemapLayoutNode<MarketAsset>[] },
+  metricFn: (asset: MarketAsset) => number,
+): FlatTileDiagnostic[] {
+  const totalArea =
+    layout.leaves.reduce((sum, leaf) => sum + leaf.rect.w * leaf.rect.h, 0) || 1
+  return layout.leaves
+    .map((leaf) => ({
+      symbol: leaf.data.symbol,
+      metric: metricFn(leaf.data),
+      finalShare: (leaf.rect.w * leaf.rect.h) / totalArea,
+      width: leaf.rect.w,
+      height: leaf.rect.h,
+      aspect: aspectRatio(leaf.rect),
+    }))
+    .sort((a, b) => b.aspect - a.aspect)
+}
+
 function analyzeFlatMode(
   mode: string,
   metricField: string,
@@ -204,6 +233,7 @@ function analyzeFlatMode(
   )
   const topShares = topNByShare(rows)
   const maxTileShare = rows.reduce((max, r) => Math.max(max, r.share), 0)
+  const tileDiagnostics = collectFlatTileDiagnostics(layout, metricFn)
 
   return {
     kind: "flat",
@@ -218,6 +248,8 @@ function analyzeFlatMode(
     maxTileShare,
     layoutMaxAspectRatio: maxAspectFromRects(collectLeafRects(layout)),
     layoutTileCount: layout.leaves.length,
+    worstTile: tileDiagnostics[0] ?? null,
+    tileDiagnostics,
   }
 }
 
@@ -408,7 +440,7 @@ function analyzeSectorMode(
   }
 }
 
-function printFlatReport(r: FlatModeReport) {
+function printFlatReport(r: FlatModeReport, includeTileDiagnostics = false) {
   console.log(`MODE: ${r.mode}`)
   console.log(`dataSource: ${r.dataSource}`)
   console.log(`itemCount: ${r.itemCount}`)
@@ -428,7 +460,23 @@ function printFlatReport(r: FlatModeReport) {
   console.log("")
   console.log(`maxTileShare: ${fmtPct(r.maxTileShare)}`)
   console.log(`layoutTileCount: ${r.layoutTileCount}`)
+  if (r.worstTile) {
+    console.log(
+      `worstTile: ${r.worstTile.symbol} aspect=${r.worstTile.aspect.toFixed(3)} share=${fmtPct(r.worstTile.finalShare)} w=${r.worstTile.width.toFixed(4)} h=${r.worstTile.height.toFixed(4)}`,
+    )
+  }
   console.log(`layoutMaxAspectRatio: ${r.layoutMaxAspectRatio.toFixed(3)}`)
+
+  if (includeTileDiagnostics && r.tileDiagnostics.length) {
+    console.log("")
+    console.log("--- Per-tile diagnostics (sorted by aspect desc) ---")
+    for (const d of r.tileDiagnostics) {
+      const flag = d.aspect > 20 ? " ***" : ""
+      console.log(
+        `  ${d.symbol.padEnd(8)} metric=${fmtNum(d.metric).padEnd(10)} share=${fmtPct(d.finalShare).padEnd(7)} w=${d.width.toFixed(4)} h=${d.height.toFixed(4)} aspect=${d.aspect.toFixed(3)}${flag}`,
+      )
+    }
+  }
 }
 
 function printSectorReport(r: SectorModeReport) {
@@ -606,17 +654,19 @@ async function main() {
       mode === "market-cap"
         ? TREEMAP_COMPRESSION_POWER.VN_MARKET_CAP_FLAT
         : TREEMAP_COMPRESSION_POWER.VN_FLOW_FLAT
+    const report = analyzeFlatMode(
+      label,
+      metricField,
+      assets,
+      source,
+      (a) => vnHeatmapMetric(a, mode),
+      MAX_ITEM_AREA_SHARE,
+      power,
+      layout,
+    )
     printFlatReport(
-      analyzeFlatMode(
-        label,
-        metricField,
-        assets,
-        source,
-        (a) => vnHeatmapMetric(a, mode),
-        MAX_ITEM_AREA_SHARE,
-        power,
-        layout,
-      ),
+      report,
+      mode === "market-cap" || mode === "foreign-flow",
     )
   }
 
