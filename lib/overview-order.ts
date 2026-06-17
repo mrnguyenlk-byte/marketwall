@@ -4,7 +4,7 @@ import type { OverviewListItem } from "@/lib/market-types"
 export const INDICES_TAB_SYMBOL_ORDER = [
   "VN-INDEX",
   "VN30",
-  "VN10",
+  "VN100",
   "HNX-INDEX",
   "UPCOM-INDEX",
   "S&P 500",

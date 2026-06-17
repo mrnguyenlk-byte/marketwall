@@ -103,7 +103,7 @@ function mergeWithFallback(live: MarketQuote[], mock: MarketQuote[]): MarketQuot
   for (const quote of live) bySymbol.set(quote.symbol, quote)
 
   const orderedSymbols = OVERVIEW_SYMBOLS.map((d) => d.displaySymbol)
-  const extraSymbols = ["VN10", "HNX-INDEX", "UPCOM-INDEX", "DOW JONES", "WTI OIL"]
+  const extraSymbols = ["VN100", "HNX-INDEX", "UPCOM-INDEX", "DOW JONES", "WTI OIL"]
   return [...orderedSymbols, ...extraSymbols]
     .map((symbol) => bySymbol.get(symbol))
     .filter((q): q is MarketQuote => q != null)

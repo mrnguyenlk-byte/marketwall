@@ -206,8 +206,8 @@ function buildIndices(source: "mock" | "live"): VietnamMarketIndex[] {
       value: 14280000,
     },
     {
-      symbol: "VN10",
-      name: { vi: "VN10", en: "VN10" },
+      symbol: "VN100",
+      name: { vi: "VN100", en: "VN100" },
       exchange: "HOSE",
       price: 1184.2,
       change: 2.4,

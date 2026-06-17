@@ -21,6 +21,7 @@ export type SymbolDetailRecord = {
 export const MARKET_PAGE_SLUGS = [
   "vnindex",
   "vn30",
+  "vn100",
   "hnx",
   "upcom",
   "btcusd",
@@ -56,6 +57,17 @@ const CORE_SYMBOLS: SymbolDetailRecord[] = [
     mockChangePercent: 0.56,
     watchlistSymbol: "VN30",
     marketPageSlug: "vn30",
+  },
+  {
+    slug: "vn100",
+    symbol: "VN100",
+    name: { vi: "VN100", en: "VN100" },
+    category: "index",
+    exchange: "HOSE",
+    region: { vi: "Việt Nam", en: "Vietnam" },
+    mockPrice: 1184.2,
+    mockChangePercent: 0.2,
+    marketPageSlug: "vn100",
   },
   {
     slug: "hnx",
@@ -152,6 +164,7 @@ const INPUT_ALIASES: Record<string, string> = {
   VNINDEX: "vnindex",
   "VN-INDEX": "vnindex",
   VN30: "vn30",
+  VN100: "vn100",
   HNX: "hnx",
   "HNX-INDEX": "hnx",
   UPCOM: "upcom",

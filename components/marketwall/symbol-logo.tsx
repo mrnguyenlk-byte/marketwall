@@ -9,7 +9,7 @@ export type SymbolLogoMeta = {
 const SYMBOL_LOGOS: Record<string, SymbolLogoMeta> = {
   "VN-INDEX": { abbr: "VN", bg: "#c41e3a", fg: "#ffffff" },
   VN30: { abbr: "V30", bg: "#c41e3a", fg: "#ffffff" },
-  VN10: { abbr: "V10", bg: "#c41e3a", fg: "#ffffff" },
+  VN100: { abbr: "V100", bg: "#c41e3a", fg: "#ffffff" },
   "HNX-INDEX": { abbr: "HNX", bg: "#1e4d8c", fg: "#ffffff" },
   "UPCOM-INDEX": { abbr: "UP", bg: "#2d6a4f", fg: "#ffffff" },
   VNINDEX: { abbr: "VN", bg: "#c41e3a", fg: "#ffffff" },

@@ -176,7 +176,7 @@ export function getMockData(): MarketData {
     dashboardTickerBarItems: [
       tickerItem("VN-INDEX", 1281.4, 0.53, 1),
       tickerItem("VN30", 1302.7, 0.56, 2),
-      tickerItem("VN10", 1184.2, 0.20, 3),
+      tickerItem("VN100", 1184.2, 0.20, 3),
       tickerItem("HNX-INDEX", 248.6, -0.48, 4),
       tickerItem("UPCOM-INDEX", 92.8, 0.65, 5),
       tickerItem("S&P 500", 5431.6, 0.34, 6),
@@ -196,7 +196,7 @@ export function getMockData(): MarketData {
       indices: [
         overviewItem("VN-INDEX", "🇻🇳", 1281.4, 0.53, 1),
         overviewItem("VN30", "🇻🇳", 1302.7, 0.56, 2),
-        overviewItem("VN10", "🇻🇳", 1184.2, 0.20, 3),
+        overviewItem("VN100", "🇻🇳", 1184.2, 0.20, 3),
         overviewItem("HNX-INDEX", "🇻🇳", 248.6, -0.48, 4),
         overviewItem("UPCOM-INDEX", "🇻🇳", 92.8, 0.65, 5),
         overviewItem("S&P 500", "🇺🇸", 5431.6, 0.34, 6),
@@ -258,7 +258,7 @@ export const marketTickers: MarketTicker[] = [
 export const sidebarOverview: SidebarOverviewItem[] = [
   sidebarOverviewItem("VN-INDEX", "🇻🇳", { vi: "Việt Nam", en: "Vietnam" }, 1281.4, 0.53, 1),
   sidebarOverviewItem("VN30", "🇻🇳", { vi: "Việt Nam", en: "Vietnam" }, 1302.7, 0.56, 2),
-  sidebarOverviewItem("VN10", "🇻🇳", { vi: "Việt Nam", en: "Vietnam" }, 1184.2, 0.20, 3),
+  sidebarOverviewItem("VN100", "🇻🇳", { vi: "Việt Nam", en: "Vietnam" }, 1184.2, 0.20, 3),
   sidebarOverviewItem("HNX-INDEX", "🇻🇳", { vi: "Việt Nam", en: "Vietnam" }, 248.6, -0.48, 4),
   sidebarOverviewItem("UPCOM-INDEX", "🇻🇳", { vi: "Việt Nam", en: "Vietnam" }, 92.8, 0.65, 5),
   sidebarOverviewItem("S&P 500", "🇺🇸", { vi: "Hoa Kỳ", en: "United States" }, 5431.6, 0.34, 6),
@@ -278,7 +278,7 @@ export const sidebarOverview: SidebarOverviewItem[] = [
 export const marketOverview: MarketAsset[] = [
   { symbol: "VN-INDEX", name: { vi: "VN-Index", en: "VN-Index" }, region: { vi: "Việt Nam", en: "Vietnam" }, price: 1281.4, change: -6.8, changePercent: -0.53, trend: "down", seed: 1 },
   { symbol: "VN30", name: { vi: "VN30", en: "VN30" }, region: { vi: "Việt Nam", en: "Vietnam" }, price: 1302.7, change: -4.1, changePercent: -0.31, trend: "down", seed: 2 },
-  { symbol: "VN10", name: { vi: "VN10", en: "VN10" }, region: { vi: "Việt Nam", en: "Vietnam" }, price: 1184.2, change: 2.4, changePercent: 0.20, trend: "up", seed: 3 },
+  { symbol: "VN100", name: { vi: "VN100", en: "VN100" }, region: { vi: "Việt Nam", en: "Vietnam" }, price: 1184.2, change: 2.4, changePercent: 0.20, trend: "up", seed: 3 },
   { symbol: "HNX-INDEX", name: { vi: "HNX-Index", en: "HNX-Index" }, region: { vi: "Việt Nam", en: "Vietnam" }, price: 248.6, change: -1.2, changePercent: -0.48, trend: "down", seed: 4 },
   { symbol: "UPCOM-INDEX", name: { vi: "UPCoM-Index", en: "UPCoM-Index" }, region: { vi: "Việt Nam", en: "Vietnam" }, price: 92.8, change: 0.6, changePercent: 0.65, trend: "up", seed: 5 },
   { symbol: "S&P 500", name: { vi: "S&P 500", en: "S&P 500" }, region: { vi: "Hoa Kỳ", en: "United States" }, price: 5431.6, change: 18.2, changePercent: 0.34, trend: "up", seed: 6 },
