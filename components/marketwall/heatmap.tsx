@@ -76,7 +76,7 @@ function ControlGroup({ children }: { children: React.ReactNode }) {
 }
 
 const HEATMAP_VIEWPORT_CLASS =
-  "h-[clamp(420px,42vh,480px)] max-h-[480px] min-h-[420px] min-w-0"
+  "h-[clamp(480px,50vh,560px)] max-h-[560px] min-h-[480px] min-w-0"
 
 function HeatmapViewport({ children }: { children: ReactNode }) {
   return (
