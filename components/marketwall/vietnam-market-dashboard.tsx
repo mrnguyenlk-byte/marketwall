@@ -17,6 +17,9 @@ import { fmt, SectionHeading, signClass, DashboardCard, WidgetHeader, DashboardC
 import { ForeignFlowChart } from "./foreign-flow-chart"
 import { ProprietaryTradingChart } from "./proprietary-trading-chart"
 
+/** Display-only row cap for VN price leaderboards (Top KL / Top GTGD). */
+const VN_LEADERBOARD_DISPLAY_ROWS = 10
+
 type LeaderboardProps = {
   title: string
   rows: VietnamDashboardRow[]
@@ -228,13 +231,13 @@ export function VietnamMarketDashboard() {
       <div className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-2">
         <LeaderboardCard
           title={t("vnDashboard.topVolume")}
-          rows={dashboard?.topVolume ?? []}
+          rows={(dashboard?.topVolume ?? []).slice(0, VN_LEADERBOARD_DISPLAY_ROWS)}
           metric="volume"
           loading={isLoading}
         />
         <LeaderboardCard
           title={t("vnDashboard.topValue")}
-          rows={dashboard?.topValue ?? []}
+          rows={(dashboard?.topValue ?? []).slice(0, VN_LEADERBOARD_DISPLAY_ROWS)}
           metric="value"
           loading={isLoading}
         />

@@ -57,10 +57,18 @@ function buildProprietaryDivergingRows(
   topSell: VietnamProprietaryNetRow[],
   limit = 10,
 ): ProprietaryFlowRow[] {
+  const sortedBuy = [...topBuy]
+    .filter((row) => row.buyValue > 0)
+    .sort((a, b) => b.buyValue - a.buyValue)
+    .slice(0, limit)
+  const sortedSell = [...topSell]
+    .filter((row) => row.sellValue > 0)
+    .sort((a, b) => b.sellValue - a.sellValue)
+    .slice(0, limit)
   const rows: ProprietaryFlowRow[] = []
   for (let i = 0; i < limit; i++) {
-    const buyRow = topBuy[i]
-    const sellRow = topSell[i]
+    const buyRow = sortedBuy[i]
+    const sellRow = sortedSell[i]
     if (!buyRow && !sellRow) continue
     rows.push({
       rank: i + 1,

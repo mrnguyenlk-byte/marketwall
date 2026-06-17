@@ -41,6 +41,34 @@ export function valueToBillionVnd(valueVnd: number): number {
   return valueVnd / 1_000_000_000
 }
 
+export function foreignDisplayValue(
+  row: VietnamDashboardRow,
+  side: "buy" | "sell",
+  period: ForeignFlowPeriod,
+  mode: ForeignFlowDisplayMode,
+): number {
+  const rawShares = side === "buy" ? row.foreignBuy : row.foreignSell
+  if (rawShares == null || rawShares <= 0) return 0
+  const shares = scaledShares(rawShares, period)
+  return mode === "value"
+    ? valueToBillionVnd(sharesToValueVnd(shares, row.price ?? 0))
+    : shares
+}
+
+function sortForeignRowsDesc(
+  rows: VietnamDashboardRow[],
+  side: "buy" | "sell",
+  period: ForeignFlowPeriod,
+  mode: ForeignFlowDisplayMode,
+): VietnamDashboardRow[] {
+  return [...rows]
+    .filter((row) => foreignDisplayValue(row, side, period, mode) > 0)
+    .sort(
+      (a, b) =>
+        foreignDisplayValue(b, side, period, mode) - foreignDisplayValue(a, side, period, mode),
+    )
+}
+
 export function rowToForeignSide(
   row: VietnamDashboardRow,
   side: "buy" | "sell",
@@ -73,11 +101,13 @@ export function buildDivergingRows(
   sectorLookup: (symbol: string) => string,
 ): ForeignFlowBarRow[] {
   const limit = 10
+  const sortedBuy = sortForeignRowsDesc(buyRows, "buy", period, mode).slice(0, limit)
+  const sortedSell = sortForeignRowsDesc(sellRows, "sell", period, mode).slice(0, limit)
   const rows: ForeignFlowBarRow[] = []
 
   for (let i = 0; i < limit; i++) {
-    const buyRow = buyRows[i]
-    const sellRow = sellRows[i]
+    const buyRow = sortedBuy[i]
+    const sellRow = sortedSell[i]
     rows.push({
       rank: i + 1,
       buy: buyRow
