@@ -47,7 +47,7 @@ export function VietnamSectorGridHeatmap({
         {layout.sectors.map((sector) => (
           <div
             key={`bg-${sector.id}`}
-            className="pointer-events-none absolute z-10 box-border overflow-hidden border border-black/25 bg-chart-bg"
+            className="pointer-events-none absolute box-border overflow-hidden border border-black/25 bg-chart-bg"
             style={rectStyle(sector.rect)}
           >
             {!sector.hideLabel && (
