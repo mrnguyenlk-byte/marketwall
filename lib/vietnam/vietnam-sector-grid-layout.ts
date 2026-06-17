@@ -7,6 +7,7 @@ import {
   normalizeTreemapWeights,
   packSquarified,
   splitKhacBucket,
+  TREEMAP_COMPRESSION_POWER,
 } from "@/lib/treemap/treemap-builders"
 import type { TreemapRect } from "@/lib/treemap/squarify"
 import { vnTradingValueMetric } from "@/lib/treemap/heatmap-engine"
@@ -183,6 +184,7 @@ function layoutSectorTreemap(
 
   const normalized = normalizeTreemapWeights(rawMetrics, {
     maxShare: MAX_STOCK_AREA_SHARE_IN_SECTOR,
+    power: TREEMAP_COMPRESSION_POWER.VN_STOCK_IN_SECTOR,
   })
   const { items: visible, khac } = splitKhacBucket(normalized, {
     minVisibleShare: MIN_VISIBLE_SHARE,
@@ -270,6 +272,7 @@ function layoutRootSectors(
 
   const normalized = normalizeTreemapWeights(rootRaw, {
     maxShare: MAX_SECTOR_AREA_SHARE,
+    power: TREEMAP_COMPRESSION_POWER.VN_SECTOR_ROOT,
   })
   const weighted = normalized.map((item) => ({
     data: item.data,
@@ -287,7 +290,7 @@ function layoutRootSectors(
 
 /**
  * Mode 1 — sector-grouped two-level treemap (trading-value-weighted).
- * Root: squarify sectors by normalized sqrt(sum tradingValue), max 22%. Inner: max 18% per stock.
+ * Root: squarify sectors by power-compressed trading value, max 22%. Inner: max 18% per stock.
  */
 export function buildSectorGroupedTreemap(assets: MarketAsset[]): VnSectorTreemapLayout {
   const buckets = new Map<VnSectorGroupId, MarketAsset[]>()

@@ -9,6 +9,7 @@ import {
   buildFlatMetricTreemap,
   MAX_ITEM_AREA_SHARE,
   normalizeTreemapWeights,
+  TREEMAP_COMPRESSION_POWER,
 } from "./treemap-builders"
 import type { TreemapLayoutNode, TreemapRect } from "./squarify"
 
@@ -61,7 +62,7 @@ export function capLeafWeights<T>(
 ): Array<{ data: T; value: number }> {
   const normalized = normalizeTreemapWeights(
     items.map((item) => ({ data: item.data, metric: item.value })),
-    { maxShare: MAX_ITEM_AREA_SHARE },
+    { maxShare: MAX_ITEM_AREA_SHARE, power: TREEMAP_COMPRESSION_POWER.DEFAULT },
   )
   return normalized.map((item) => ({
     data: item.data,
@@ -146,9 +147,20 @@ export function buildFlatMarketHeatmapLayout(
       : sizing === "volume"
         ? cryptoHeatmapSizeMetric
         : (asset: MarketAsset) => asset.marketCap
+  const power =
+    marketType === "us"
+      ? sizing === "dollarVolume"
+        ? TREEMAP_COMPRESSION_POWER.US_DOLLAR_VOLUME
+        : TREEMAP_COMPRESSION_POWER.DEFAULT
+      : sizing === "volume"
+        ? TREEMAP_COMPRESSION_POWER.CRYPTO_VOLUME
+        : TREEMAP_COMPRESSION_POWER.DEFAULT
   return {
     groups: [],
-    leaves: buildFlatMetricTreemap(assets, metric, rect, { allowEqualGridFallback: false }),
+    leaves: buildFlatMetricTreemap(assets, metric, rect, {
+      allowEqualGridFallback: false,
+      power,
+    }),
   }
 }
 
@@ -178,11 +190,15 @@ export function buildHeatmapTreemapLayout(
   }
 
   const rect: TreemapRect = { x: 0, y: 0, w: 1, h: 1 }
-  const metric = (asset: MarketAsset) =>
-    assetSizeMetric(asset, marketType, sizing as VnHeatmapSizingMode)
+  const vnSizing = sizing as VnHeatmapSizingMode
+  const metric = (asset: MarketAsset) => assetSizeMetric(asset, marketType, vnSizing)
+  const power =
+    vnSizing === "marketCap"
+      ? TREEMAP_COMPRESSION_POWER.VN_MARKET_CAP_FLAT
+      : TREEMAP_COMPRESSION_POWER.VN_FLOW_FLAT
   return {
     groups: [],
-    leaves: buildFlatMetricTreemap(assets, metric, rect),
+    leaves: buildFlatMetricTreemap(assets, metric, rect, { power }),
   }
 }
 
