@@ -55,10 +55,10 @@ export function Header({ tickerItems }: HeaderProps) {
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur">
-      <div className="relative flex h-11 w-full items-center justify-between gap-2 px-3 sm:px-4 md:h-14 lg:px-6">
+      <div className="relative flex h-11 w-full items-center justify-between gap-2 px-3 sm:px-4 md:h-16 lg:px-6">
         <div className="ml-1 flex shrink-0 items-center">
-          <BrandLogo height={40} priority className="md:hidden" />
-          <BrandLogo height={64} priority className="hidden md:inline-flex" />
+          <BrandLogo height={44} priority className="md:hidden" />
+          <BrandLogo height={72} priority className="hidden md:inline-flex" />
         </div>
 
         <nav
