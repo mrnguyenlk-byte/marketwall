@@ -5,7 +5,11 @@ import { dollarVolume } from "@/lib/market/heatmap-limits"
 import { type VnHeatmapSizingMode } from "@/lib/vietnam/heatmap-sizing"
 import { vpsLotToShares } from "@/lib/vietnam/volume-units"
 
-import { buildFlatMetricTreemap } from "./treemap-builders"
+import {
+  buildFlatMetricTreemap,
+  MAX_ITEM_AREA_SHARE,
+  normalizeTreemapWeights,
+} from "./treemap-builders"
 import type { TreemapLayoutNode, TreemapRect } from "./squarify"
 
 export type HeatmapGroupingMode = "sector" | "industry" | "category" | "marketCap"
@@ -26,29 +30,20 @@ export type HeatmapTreemapLayout = {
   leaves: TreemapLayoutNode<MarketAsset>[]
 }
 
-const MIN_TILE_VALUE = 0.0001
+/** @deprecated Use MAX_ITEM_AREA_SHARE from treemap-builders */
+export const MAX_LEAF_AREA_FRACTION = MAX_ITEM_AREA_SHARE
 
-/** Max share of unit-square area any single leaf may occupy after squarify. */
-export const MAX_LEAF_AREA_FRACTION = 0.08
-
-function applySqrtSizing(value: number): number {
-  return Math.sqrt(Math.max(value, 0))
-}
-
-/** sqrt(metric) with per-leaf weight cap so max/total ≤ MAX_LEAF_AREA_FRACTION. */
+/** @deprecated Use normalizeTreemapWeights via buildFlatMetricTreemap */
 export function capLeafWeights<T>(
   items: Array<{ data: T; value: number }>,
 ): Array<{ data: T; value: number }> {
-  const sized = items.map((item) => ({
-    ...item,
-    value: Math.max(applySqrtSizing(item.value), MIN_TILE_VALUE),
-  }))
-  const total = sized.reduce((sum, item) => sum + item.value, 0)
-  if (total <= 0) return sized
-  const cap = total * MAX_LEAF_AREA_FRACTION
-  return sized.map((item) => ({
-    ...item,
-    value: Math.max(Math.min(item.value, cap), MIN_TILE_VALUE),
+  const normalized = normalizeTreemapWeights(
+    items.map((item) => ({ data: item.data, metric: item.value })),
+    { maxShare: MAX_ITEM_AREA_SHARE },
+  )
+  return normalized.map((item) => ({
+    data: item.data,
+    value: item.weight,
   }))
 }
 

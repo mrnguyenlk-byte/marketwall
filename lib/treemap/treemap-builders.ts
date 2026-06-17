@@ -1,4 +1,3 @@
-import { capLeafWeights } from "@/lib/treemap/heatmap-engine"
 import {
   squarify,
   squarifyWithOrientation,
@@ -9,6 +8,18 @@ import {
 const MIN_VALUE = 0.0001
 const PREFERRED_ASPECT_MAX = 3
 const HARD_ASPECT_LIMIT = 6
+const DEFAULT_MAX_CAP_ITERATIONS = 50
+
+/** Max share of parent area for a single flat leaf (VN modes 2–4, US, Crypto). */
+export const MAX_ITEM_AREA_SHARE = 0.18
+/** Max share of heatmap root for a single sector block (VN mode 1). */
+export const MAX_SECTOR_AREA_SHARE = 0.22
+/** Max share of sector inner area for a single stock tile (VN mode 1). */
+export const MAX_STOCK_AREA_SHARE_IN_SECTOR = 0.18
+/** Items below this final weight share are grouped into Khác. */
+export const MIN_VISIBLE_SHARE = 0.0025
+/** Khác bucket must not exceed this share of its parent. */
+export const KHAC_MAX_SHARE = 0.12
 
 export type GroupedSquarifiedTreemap<T, G> = {
   groups: Array<{
@@ -17,6 +28,30 @@ export type GroupedSquarifiedTreemap<T, G> = {
     children: TreemapLayoutNode<T>[]
   }>
   leaves: TreemapLayoutNode<T>[]
+}
+
+export type NormalizeTreemapOptions = {
+  maxShare: number
+  minVisibleShare?: number
+  khacMaxShare?: number
+  maxIterations?: number
+}
+
+export type NormalizedTreemapItem<T> = {
+  data: T
+  metric: number
+  weight: number
+}
+
+export type KhacBucket<T> = {
+  items: T[]
+  weight: number
+  metric: number
+}
+
+export type NormalizeTreemapResult<T> = {
+  items: NormalizedTreemapItem<T>[]
+  khac?: KhacBucket<T>
 }
 
 function aspectRatio(rect: TreemapRect): number {
@@ -41,15 +76,122 @@ function layoutScore(rects: TreemapRect[]): number {
   return worst + overPreferred * 0.5
 }
 
-function sqrtMetric(value: number): number {
-  return Math.sqrt(Math.max(value, 0))
-}
-
 /** True when every raw metric is zero or missing — equal grid is allowed only then. */
 export function allMetricsInvalid<T>(
   items: Array<{ data: T; value: number }>,
 ): boolean {
   return !items.some((item) => item.value > 0)
+}
+
+/**
+ * Sqrt-compress metrics into area shares, cap at maxShare, redistribute excess.
+ * Steps: filter invalid → raw share → sqrt → normalize → cap loop → final weights.
+ */
+export function normalizeTreemapWeights<T>(
+  items: Array<{ data: T; metric: number }>,
+  options: NormalizeTreemapOptions,
+): NormalizedTreemapItem<T>[] {
+  const maxShare = options.maxShare
+  const maxIterations = options.maxIterations ?? DEFAULT_MAX_CAP_ITERATIONS
+
+  const valid = items.filter((item) => item.metric > 0)
+  if (!valid.length) return []
+
+  const total = valid.reduce((sum, item) => sum + item.metric, 0)
+  if (total <= 0) return []
+
+  const compressedSum = valid.reduce((sum, item) => {
+    const rawWeight = item.metric / total
+    return sum + Math.sqrt(rawWeight)
+  }, 0)
+  if (compressedSum <= 0) return []
+
+  let shares: Array<{ data: T; metric: number; weight: number }> = valid.map((item) => {
+    const rawWeight = item.metric / total
+    return {
+      data: item.data,
+      metric: item.metric,
+      weight: Math.sqrt(rawWeight) / compressedSum,
+    }
+  })
+
+  for (let iter = 0; iter < maxIterations; iter++) {
+    let excess = 0
+    let uncappedTotal = 0
+    const pass = shares.map((item) => {
+      if (item.weight > maxShare + 1e-12) {
+        excess += item.weight - maxShare
+        return { ...item, weight: maxShare, capped: true as const }
+      }
+      uncappedTotal += item.weight
+      return { ...item, capped: false as const }
+    })
+
+    if (excess <= 1e-12) {
+      return pass.map(({ data, metric, weight }) => ({ data, metric, weight }))
+    }
+
+    if (uncappedTotal <= 1e-12) {
+      return pass.map(({ data, metric, weight }) => ({ data, metric, weight }))
+    }
+
+    shares = pass.map((item) => {
+      if (item.capped) return { data: item.data, metric: item.metric, weight: item.weight }
+      return {
+        data: item.data,
+        metric: item.metric,
+        weight: item.weight + excess * (item.weight / uncappedTotal),
+      }
+    })
+  }
+
+  return shares.map(({ data, metric, weight }) => ({ data, metric, weight }))
+}
+
+/** Group tiny items into Khác; promote symbols back if Khác would exceed khacMaxShare. */
+export function splitKhacBucket<T>(
+  items: NormalizedTreemapItem<T>[],
+  options: { minVisibleShare?: number; khacMaxShare?: number },
+): NormalizeTreemapResult<T> {
+  const minVisibleShare = options.minVisibleShare ?? MIN_VISIBLE_SHARE
+  const khacMaxShare = options.khacMaxShare ?? KHAC_MAX_SHARE
+
+  if (!items.length) return { items: [] }
+
+  const visible: NormalizedTreemapItem<T>[] = []
+  let khacPool: NormalizedTreemapItem<T>[] = []
+
+  for (const item of items) {
+    if (item.weight >= minVisibleShare) {
+      visible.push(item)
+    } else {
+      khacPool.push(item)
+    }
+  }
+
+  if (!khacPool.length) return { items }
+
+  khacPool.sort((a, b) => b.weight - a.weight)
+
+  let khacWeight = khacPool.reduce((sum, item) => sum + item.weight, 0)
+  while (khacWeight > khacMaxShare + 1e-12 && khacPool.length) {
+    const promoted = khacPool.shift()!
+    visible.push(promoted)
+    khacWeight = khacPool.reduce((sum, item) => sum + item.weight, 0)
+  }
+
+  if (!khacPool.length) {
+    return { items: visible.length ? visible : items }
+  }
+
+  return {
+    items: visible,
+    khac: {
+      items: khacPool.map((item) => item.data),
+      weight: khacWeight,
+      metric: khacPool.reduce((sum, item) => sum + item.metric, 0),
+    },
+  }
 }
 
 function balancedGridFallback<T>(
@@ -147,19 +289,34 @@ export function packSquarified<T>(
   return best
 }
 
-/** Flat squarified treemap — tile size from metric (sqrt-weighted), never slice bars. */
+export type FlatMetricTreemapOptions = {
+  maxShare?: number
+  allowEqualGridFallback?: boolean
+}
+
+/** Flat squarified treemap — tile size from normalized/capped weights, never slice bars. */
 export function buildFlatMetricTreemap<T>(
   items: T[],
   metric: (item: T) => number,
   rect: TreemapRect = { x: 0, y: 0, w: 1, h: 1 },
+  options?: FlatMetricTreemapOptions,
 ): TreemapLayoutNode<T>[] {
+  const maxShare = options?.maxShare ?? MAX_ITEM_AREA_SHARE
   const raw = items.map((item) => ({
     data: item,
-    value: metric(item),
+    metric: metric(item),
   }))
-  const weighted = capLeafWeights(raw)
+  const rawForInvalid = raw.map((item) => ({ data: item.data, value: item.metric }))
+
+  const normalized = normalizeTreemapWeights(raw, { maxShare })
+  const weighted = normalized.map((item) => ({
+    data: item.data,
+    value: item.weight,
+  }))
+
   return packSquarified(weighted, rect, {
-    allowEqualGridFallback: allMetricsInvalid(raw),
+    allowEqualGridFallback:
+      options?.allowEqualGridFallback ?? allMetricsInvalid(rawForInvalid),
   })
 }
 
@@ -176,16 +333,20 @@ function insetRect(rect: TreemapRect, gap: number): TreemapRect {
   }
 }
 
+export type GroupedSectorTreemapOptions = {
+  rect?: TreemapRect
+  gap?: number
+  headerRatio?: number
+  maxSectorShare?: number
+  maxStockShare?: number
+}
+
 /** Two-level grouped sector treemap — squarified sector blocks, squarified leaves inside. */
 export function buildGroupedSectorTreemap<T>(
   items: T[],
   sectorKey: (item: T) => string,
   metric: (item: T) => number,
-  options?: {
-    rect?: TreemapRect
-    gap?: number
-    headerRatio?: number
-  },
+  options?: GroupedSectorTreemapOptions,
 ): GroupedSquarifiedTreemap<T, string> {
   const rect = options?.rect ?? { x: 0, y: 0, w: 1, h: 1 }
   const gap = options?.gap ?? 0.002
@@ -204,7 +365,13 @@ export function buildGroupedSectorTreemap<T>(
     items: groupItems,
   }))
 
-  return buildGroupedSectorTreemapFromGroups(groups, metric, { rect, gap, headerRatio })
+  return buildGroupedSectorTreemapFromGroups(groups, metric, {
+    rect,
+    gap,
+    headerRatio,
+    maxSectorShare: options?.maxSectorShare ?? MAX_SECTOR_AREA_SHARE,
+    maxStockShare: options?.maxStockShare ?? MAX_STOCK_AREA_SHARE_IN_SECTOR,
+  })
 }
 
 function buildGroupedSectorTreemapFromGroups<T, G>(
@@ -214,9 +381,11 @@ function buildGroupedSectorTreemapFromGroups<T, G>(
     rect: TreemapRect
     gap: number
     headerRatio: number
+    maxSectorShare: number
+    maxStockShare: number
   },
 ): GroupedSquarifiedTreemap<T, G> {
-  const { rect, gap, headerRatio } = options
+  const { rect, gap, headerRatio, maxSectorShare, maxStockShare } = options
 
   const nonEmpty = groups.filter((group) => group.items.length > 0)
   if (!nonEmpty.length) {
@@ -225,16 +394,21 @@ function buildGroupedSectorTreemapFromGroups<T, G>(
 
   const rootRaw = nonEmpty.map((group) => ({
     data: group,
-    value: group.items.reduce((sum, item) => sum + itemMetric(item), 0),
+    metric: group.items.reduce((sum, item) => sum + itemMetric(item), 0),
+  }))
+  const rootRawForInvalid = rootRaw.map((item) => ({
+    data: item.data,
+    value: item.metric,
   }))
 
-  const rootWeighted = rootRaw.map((item) => ({
-    ...item,
-    value: Math.max(sqrtMetric(item.value), MIN_VALUE),
+  const rootNormalized = normalizeTreemapWeights(rootRaw, { maxShare: maxSectorShare })
+  const rootWeighted = rootNormalized.map((item) => ({
+    data: item.data,
+    value: item.weight,
   }))
 
   const rootPacked = packSquarified(rootWeighted, rect, {
-    allowEqualGridFallback: allMetricsInvalid(rootRaw),
+    allowEqualGridFallback: allMetricsInvalid(rootRawForInvalid),
   })
   const result: GroupedSquarifiedTreemap<T, G> = { groups: [], leaves: [] }
 
@@ -251,7 +425,9 @@ function buildGroupedSectorTreemapFromGroups<T, G>(
 
     const children =
       inner.w > 0 && inner.h > 0
-        ? buildFlatMetricTreemap(group.items, itemMetric, inner)
+        ? buildFlatMetricTreemap(group.items, itemMetric, inner, {
+            maxShare: maxStockShare,
+          })
         : []
 
     result.groups.push({
@@ -270,15 +446,13 @@ export function buildGroupedSquarifiedTreemap<T, G>(
   groups: Array<{ data: G; items: T[] }>,
   groupMetric: (group: { data: G; items: T[] }) => number,
   itemMetric: (item: T) => number,
-  options?: {
-    rect?: TreemapRect
-    gap?: number
-    headerRatio?: number
-  },
+  options?: GroupedSectorTreemapOptions,
 ): GroupedSquarifiedTreemap<T, G> {
   const rect = options?.rect ?? { x: 0, y: 0, w: 1, h: 1 }
   const gap = options?.gap ?? 0.002
   const headerRatio = options?.headerRatio ?? 0.04
+  const maxSectorShare = options?.maxSectorShare ?? MAX_SECTOR_AREA_SHARE
+  const maxStockShare = options?.maxStockShare ?? MAX_STOCK_AREA_SHARE_IN_SECTOR
 
   const nonEmpty = groups.filter((group) => group.items.length > 0)
   if (!nonEmpty.length) {
@@ -287,16 +461,21 @@ export function buildGroupedSquarifiedTreemap<T, G>(
 
   const rootRaw = nonEmpty.map((group) => ({
     data: group,
-    value: groupMetric(group),
+    metric: groupMetric(group),
+  }))
+  const rootRawForInvalid = rootRaw.map((item) => ({
+    data: item.data,
+    value: item.metric,
   }))
 
-  const rootWeighted = rootRaw.map((item) => ({
-    ...item,
-    value: Math.max(sqrtMetric(item.value), MIN_VALUE),
+  const rootNormalized = normalizeTreemapWeights(rootRaw, { maxShare: maxSectorShare })
+  const rootWeighted = rootNormalized.map((item) => ({
+    data: item.data,
+    value: item.weight,
   }))
 
   const rootPacked = packSquarified(rootWeighted, rect, {
-    allowEqualGridFallback: allMetricsInvalid(rootRaw),
+    allowEqualGridFallback: allMetricsInvalid(rootRawForInvalid),
   })
   const result: GroupedSquarifiedTreemap<T, G> = { groups: [], leaves: [] }
 
@@ -313,7 +492,9 @@ export function buildGroupedSquarifiedTreemap<T, G>(
 
     const children =
       inner.w > 0 && inner.h > 0
-        ? buildFlatMetricTreemap(group.items, itemMetric, inner)
+        ? buildFlatMetricTreemap(group.items, itemMetric, inner, {
+            maxShare: maxStockShare,
+          })
         : []
 
     result.groups.push({
