@@ -363,8 +363,6 @@
     .dashboard-sidebar-right {
       position: sticky;
       top: var(--dashboard-top-offset);
-      height: calc(100vh - var(--dashboard-top-offset));
-      overflow-y: auto;
       align-self: start;
     }
   }

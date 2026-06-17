@@ -40,7 +40,7 @@ export function MarketNews({ fallbackItems }: { fallbackItems: MarketNewsItem[] 
   }, [fallbackItems, news.data])
 
   return (
-    <section aria-labelledby="news-title" className="flex min-w-0 h-[320px] flex-col">
+    <section aria-labelledby="news-title" className="flex min-w-0 flex-col">
       <SectionHeading
         id="news-title"
         title={t("sec.news")}
@@ -51,8 +51,8 @@ export function MarketNews({ fallbackItems }: { fallbackItems: MarketNewsItem[] 
           </Button>
         }
       />
-      <DashboardCard className="min-h-0 flex-1 ring-0">
-        <DashboardCardBody className="flex h-full flex-col">
+      <DashboardCard className="ring-0">
+        <DashboardCardBody>
           {loading ? (
             <NewsListSkeleton count={fallbackItems.length || 5} />
           ) : (

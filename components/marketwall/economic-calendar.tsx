@@ -53,7 +53,7 @@ export function EconomicCalendar({ fallbackEvents }: { fallbackEvents: EconomicE
   }, [fallbackEvents, calendar.data])
 
   return (
-    <section aria-labelledby="calendar-title" className="flex min-w-0 h-[320px] flex-col">
+    <section aria-labelledby="calendar-title" className="flex min-w-0 flex-col">
       <SectionHeading
         id="calendar-title"
         title={t("sec.calendar")}
@@ -63,7 +63,7 @@ export function EconomicCalendar({ fallbackEvents }: { fallbackEvents: EconomicE
           </Badge>
         }
       />
-      <DashboardCard className="min-h-0 flex-1 ring-0">
+      <DashboardCard className="ring-0">
         <DashboardCardBody>
           <div className="hidden grid-cols-[auto_1fr_auto_auto_auto] gap-x-3 border-b border-border px-4 py-2 text-[10px] font-medium uppercase tracking-wide text-muted-foreground sm:grid">
             <span>{t("label.time")}</span>

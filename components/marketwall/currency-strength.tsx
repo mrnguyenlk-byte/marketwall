@@ -295,7 +295,7 @@ export function CurrencyStrength({ variant = "default" }: { variant?: "default" 
   return (
     <section
       aria-labelledby="currency-strength-title"
-      className={cn("min-w-0", compact ? "h-[360px]" : "h-[400px]")}
+      className={cn("min-w-0", !compact && "h-[400px]")}
     >
       <div className="mb-1 flex items-center gap-2">
         <SectionHeading title={t("sec.currencyStrength1D")} />
@@ -305,8 +305,8 @@ export function CurrencyStrength({ variant = "default" }: { variant?: "default" 
           </Badge>
         )}
       </div>
-      <Card className="h-[calc(100%-1.75rem)] border-border bg-card py-0">
-        <CardContent className="flex h-full flex-col px-3 py-3">
+      <Card className={cn(!compact && "h-[calc(100%-1.75rem)]", "border-border bg-card py-0")}>
+        <CardContent className={cn("flex flex-col px-3 py-3", !compact && "h-full")}>
           {showUnavailableMessage && (
             <p className="mb-2 text-xs text-muted-foreground">
               {t("error.currencyStrengthUnavailable")}
@@ -356,8 +356,8 @@ export function CurrencyStrength({ variant = "default" }: { variant?: "default" 
               </div>
               <div
                 className={cn(
-                  "flex min-w-0 flex-1 flex-col overflow-hidden rounded-md border border-border bg-chart-bg p-2",
-                  compact ? "min-h-[140px]" : "min-h-[220px]",
+                  "flex min-w-0 flex-col rounded-md border border-border bg-chart-bg p-2",
+                  compact ? "min-h-[140px]" : "min-h-[220px] flex-1 overflow-hidden",
                 )}
                 role="img"
                 aria-label={t("sec.currencyStrength1D")}

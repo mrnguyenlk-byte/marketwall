@@ -138,7 +138,7 @@ export function MarketOverview({
     marketQuotes.data?.unavailable === true
 
   return (
-    <DashboardCard className="flex h-[600px] w-full max-w-full flex-col gap-0 overflow-hidden p-0 ring-0">
+    <DashboardCard className="flex w-full max-w-full flex-col gap-0 p-0 ring-0">
       <WidgetHeader title={t("sec.overview")} className="!min-h-0 gap-1 py-1.5">
         <div className="flex min-w-0 w-full basis-full gap-0.5 overflow-x-auto rounded-md bg-secondary/60 p-0.5 scrollbar-none">
           {TABS.map((id) => (
@@ -164,7 +164,7 @@ export function MarketOverview({
       ) : dataUnavailable ? (
         <p className="px-3 py-4 type-table text-muted-foreground">{t("error.marketDataUnavailable")}</p>
       ) : (
-        <ul className="min-h-0 flex-1 divide-y divide-border overflow-y-auto">
+        <ul className="divide-y divide-border">
           {items.map((item) => (
             <OverviewRow
               key={item.symbol}
