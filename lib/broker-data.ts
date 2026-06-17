@@ -25,6 +25,10 @@ export type Broker = {
   category: BrokerCategory
   /** Platform website — future auto-sync source */
   websiteUrl: string
+  /** Primary domain for logo auto-fetch (e.g. ssi.com.vn). */
+  domain: string
+  /** Optional direct logo CDN URL; falls back to Clearbit then favicon. */
+  logoUrl?: string
   rating: number
   trustScore: number
   minDeposit: string
@@ -75,6 +79,7 @@ export const brokers: Broker[] = [
     initials: "SSI",
     category: "vn",
     websiteUrl: "https://www.ssi.com.vn",
+    domain: "ssi.com.vn",
     rating: 4.7,
     trustScore: 91,
     minDeposit: "0 VND",
@@ -103,6 +108,7 @@ export const brokers: Broker[] = [
     initials: "VND",
     category: "vn",
     websiteUrl: "https://www.vndirect.com.vn",
+    domain: "vndirect.com.vn",
     rating: 4.6,
     trustScore: 89,
     minDeposit: "0 VND",
@@ -131,6 +137,7 @@ export const brokers: Broker[] = [
     initials: "TCB",
     category: "vn",
     websiteUrl: "https://www.tcbs.com.vn",
+    domain: "tcbs.com.vn",
     rating: 4.6,
     trustScore: 88,
     minDeposit: "0 VND",
@@ -159,6 +166,7 @@ export const brokers: Broker[] = [
     initials: "VPS",
     category: "vn",
     websiteUrl: "https://www.vps.com.vn",
+    domain: "vps.com.vn",
     rating: 4.5,
     trustScore: 86,
     minDeposit: "0 VND",
@@ -187,6 +195,7 @@ export const brokers: Broker[] = [
     initials: "HSC",
     category: "vn",
     websiteUrl: "https://www.hsc.com.vn",
+    domain: "hsc.com.vn",
     rating: 4.5,
     trustScore: 85,
     minDeposit: "0 VND",
@@ -215,6 +224,7 @@ export const brokers: Broker[] = [
     initials: "MBS",
     category: "vn",
     websiteUrl: "https://www.mbs.com.vn",
+    domain: "mbs.com.vn",
     rating: 4.4,
     trustScore: 84,
     minDeposit: "0 VND",
@@ -243,6 +253,7 @@ export const brokers: Broker[] = [
     initials: "EX",
     category: "global",
     websiteUrl: "https://www.exness.com",
+    domain: "exness.com",
     rating: 4.8,
     trustScore: 92,
     minDeposit: "$10",
@@ -279,6 +290,7 @@ export const brokers: Broker[] = [
     initials: "IC",
     category: "global",
     websiteUrl: "https://www.icmarkets.com",
+    domain: "icmarkets.com",
     rating: 4.7,
     trustScore: 90,
     minDeposit: "$200",
@@ -314,6 +326,7 @@ export const brokers: Broker[] = [
     initials: "XM",
     category: "global",
     websiteUrl: "https://www.xm.com",
+    domain: "xm.com",
     rating: 4.6,
     trustScore: 88,
     minDeposit: "$5",
@@ -350,6 +363,7 @@ export const brokers: Broker[] = [
     initials: "PP",
     category: "global",
     websiteUrl: "https://www.pepperstone.com",
+    domain: "pepperstone.com",
     rating: 4.6,
     trustScore: 89,
     minDeposit: "$0",
@@ -384,6 +398,7 @@ export const brokers: Broker[] = [
     initials: "FB",
     category: "global",
     websiteUrl: "https://www.fbs.com",
+    domain: "fbs.com",
     rating: 4.5,
     trustScore: 85,
     minDeposit: "$1",
@@ -419,6 +434,7 @@ export const brokers: Broker[] = [
     initials: "FX",
     category: "global",
     websiteUrl: "https://www.fxtm.com",
+    domain: "fxtm.com",
     rating: 4.4,
     trustScore: 84,
     minDeposit: "$10",

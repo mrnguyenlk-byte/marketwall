@@ -20,6 +20,10 @@ export type BrokerRecord = {
   initials: string
   category: BrokerCategory
   websiteUrl: string
+  /** Primary domain for logo auto-fetch (e.g. ssi.com.vn). */
+  domain: string
+  /** Optional direct logo CDN URL; falls back to Clearbit then favicon. */
+  logoUrl?: string
   /** Optional affiliate override; redirect service appends tracking params. */
   affiliateUrl?: string
   rating: number

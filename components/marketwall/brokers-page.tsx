@@ -15,6 +15,7 @@ import {
 } from "@/lib/broker-data"
 import { brokerSlug } from "@/lib/brokers/registry"
 import { cn } from "@/lib/utils"
+import { BrokerLogo } from "./BrokerLogo"
 import { DashboardCard, DashboardCardBody, WidgetHeader } from "./shared"
 
 const BADGE_STYLES: Record<BrokerBadge, string> = {
@@ -22,6 +23,13 @@ const BADGE_STYLES: Record<BrokerBadge, string> = {
   bestBeginners: "border-gain/40 bg-gain/15 text-gain",
   lowestSpread: "border-warn/40 bg-warn/15 text-warn",
   fastWithdrawal: "border-cyan-500/40 bg-cyan-500/10 text-cyan-400",
+}
+
+/** Fewer columns on wide screens so each card stays wide and prominent. */
+function brokerGridColumns(count: number): string {
+  if (count <= 2) return "grid-cols-1 sm:grid-cols-2"
+  if (count <= 3) return "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3"
+  return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4"
 }
 
 type CompareRow = {
@@ -99,32 +107,16 @@ const GLOBAL_COMPARE_ROWS: CompareRow[] = [
   },
 ]
 
-function BrokerLogo({ broker, variant }: { broker: Broker; variant: "vn" | "global" }) {
-  return (
-    <span
-      className={cn(
-        "flex h-16 w-[4.75rem] shrink-0 items-center justify-center rounded-2xl text-xl font-bold shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] ring-1 sm:h-[4.5rem] sm:w-20 sm:text-2xl",
-        variant === "vn"
-          ? "bg-gradient-to-br from-[#c41e3a]/30 via-secondary/50 to-card text-[#fca5a5] ring-[#c41e3a]/35"
-          : "bg-gradient-to-br from-primary/25 via-secondary/50 to-card text-primary ring-primary/25",
-      )}
-      aria-hidden
-    >
-      {broker.initials}
-    </span>
-  )
-}
-
 function BrokerBadges({ badges }: { badges: BrokerBadge[] }) {
   const { t } = useLang()
   if (badges.length === 0) return null
   return (
-    <div className="flex flex-wrap justify-center gap-1">
+    <div className="flex flex-wrap justify-center gap-1.5">
       {badges.map((b) => (
         <Badge
           key={b}
           variant="outline"
-          className={cn("h-5 rounded-md px-1.5 text-[10px] font-semibold", BADGE_STYLES[b])}
+          className={cn("h-6 rounded-md px-2 text-[11px] font-semibold sm:text-xs", BADGE_STYLES[b])}
         >
           {t(`brokers.badge.${b}`)}
         </Badge>
@@ -136,9 +128,9 @@ function BrokerBadges({ badges }: { badges: BrokerBadge[] }) {
 function RatingPill({ broker }: { broker: Broker }) {
   const { t } = useLang()
   return (
-    <div className="flex flex-wrap items-center justify-center gap-1.5 text-[11px]">
-      <span className="inline-flex items-center gap-0.5 rounded-full bg-secondary/80 px-2 py-0.5 font-semibold text-foreground">
-        <Star className="size-3 fill-warn text-warn" aria-hidden />
+    <div className="flex flex-wrap items-center justify-center gap-2 text-sm">
+      <span className="inline-flex items-center gap-1 rounded-full bg-secondary/80 px-2.5 py-1 font-semibold text-foreground">
+        <Star className="size-3.5 fill-warn text-warn" aria-hidden />
         {broker.rating.toFixed(1)}
       </span>
       <span className="text-muted-foreground">
@@ -151,17 +143,21 @@ function RatingPill({ broker }: { broker: Broker }) {
 function CellValue({ value }: { value: string | string[] }) {
   if (Array.isArray(value)) {
     return (
-      <ul className="space-y-1 text-left text-xs leading-snug text-foreground">
+      <ul className="space-y-1.5 text-left text-sm leading-relaxed text-foreground sm:text-base">
         {value.map((item) => (
-          <li key={item} className="flex items-start gap-1.5">
-            <span className="mt-1.5 size-1 shrink-0 rounded-full bg-primary/70" aria-hidden />
+          <li key={item} className="flex items-start gap-2">
+            <span className="mt-2 size-1.5 shrink-0 rounded-full bg-primary/70" aria-hidden />
             <span>{item}</span>
           </li>
         ))}
       </ul>
     )
   }
-  return <span className="text-xs leading-snug text-foreground">{value}</span>
+  return (
+    <span className="text-sm font-semibold leading-relaxed text-foreground sm:text-base">
+      {value}
+    </span>
+  )
 }
 
 function BrokerCardHeader({
@@ -179,31 +175,32 @@ function BrokerCardHeader({
   return (
     <div
       className={cn(
-        "flex h-full flex-col items-center gap-3 rounded-xl border p-3 text-center transition-colors sm:p-4",
+        "group flex h-full min-h-[22rem] flex-col items-center gap-4 rounded-2xl border p-5 text-center transition-all duration-200 sm:gap-5 sm:p-6 lg:min-h-[24rem] lg:p-7",
+        "hover:-translate-y-1 hover:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.45)]",
         variant === "vn"
-          ? "border-[#c41e3a]/20 bg-[#c41e3a]/[0.04] hover:border-[#c41e3a]/35"
-          : "border-primary/15 bg-primary/[0.04] hover:border-primary/30",
+          ? "border-[#c41e3a]/25 bg-[#c41e3a]/[0.06] hover:border-[#c41e3a]/45 hover:shadow-[#c41e3a]/10"
+          : "border-primary/20 bg-primary/[0.06] hover:border-primary/40 hover:shadow-primary/10",
         highlighted && "ring-2 ring-primary/40 ring-offset-2 ring-offset-background",
       )}
     >
-      <BrokerLogo broker={broker} variant={variant} />
-      <div className="w-full min-w-0 space-y-1.5">
-        <p className="truncate text-sm font-bold text-foreground sm:text-base">{broker.name}</p>
+      <BrokerLogo broker={broker} variant={variant} size="xl" />
+      <div className="w-full min-w-0 space-y-2">
+        <p className="truncate text-lg font-bold text-foreground sm:text-xl">{broker.name}</p>
         {variant === "global" && <RatingPill broker={broker} />}
         <BrokerBadges badges={broker.badges} />
       </div>
-      <div className="mt-auto flex w-full flex-col gap-1.5 pt-1">
+      <div className="mt-auto flex w-full flex-col gap-2.5 pt-2">
         <a
           href={`/brokers/${slug}`}
-          className="inline-flex h-8 w-full items-center justify-center rounded-lg border border-border bg-secondary/50 px-2 text-[11px] font-semibold text-foreground transition-colors hover:bg-secondary/80"
+          className="inline-flex h-10 w-full items-center justify-center rounded-xl border border-border bg-secondary/50 px-3 text-sm font-semibold text-foreground transition-colors hover:bg-secondary/80 sm:h-11"
         >
           {t("misc.viewReview")}
         </a>
         <a
           href={`/api/brokers/redirect?slug=${encodeURIComponent(slug)}&source=listing`}
-          className="inline-flex h-8 w-full items-center justify-center gap-1 rounded-lg bg-primary px-2 text-[11px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+          className="inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-xl bg-primary px-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 sm:h-11"
         >
-          <ExternalLink className="size-3" aria-hidden />
+          <ExternalLink className="size-4" aria-hidden />
           {t("misc.visitBroker")}
         </a>
       </div>
@@ -223,16 +220,11 @@ function ComparisonGrid({
   highlightedNames?: Set<string>
 }) {
   const { t, lang } = useLang()
-  const columnClass =
-    brokers.length <= 3
-      ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
-      : brokers.length === 4
-        ? "grid-cols-2 lg:grid-cols-4"
-        : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-5"
+  const columnClass = brokerGridColumns(brokers.length)
 
   return (
-    <div className="space-y-6">
-      <div className={cn("grid gap-3", columnClass)}>
+    <div className="space-y-8">
+      <div className={cn("grid gap-4 sm:gap-5 lg:gap-6", columnClass)}>
         {brokers.map((broker) => (
           <BrokerCardHeader
             key={broker.name}
@@ -243,24 +235,24 @@ function ComparisonGrid({
         ))}
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-border/80 bg-card/40">
+      <div className="overflow-hidden rounded-2xl border border-border/80 bg-card/40 shadow-sm">
         {rows.map((row, index) => (
           <div
             key={row.id}
             className={cn(
-              "grid gap-3 px-3 py-3 sm:px-4 sm:py-3.5",
+              "grid gap-4 px-4 py-4 sm:gap-5 sm:px-5 sm:py-5 lg:px-6 lg:py-6",
               index > 0 && "border-t border-border/60",
               index % 2 === 0 ? "bg-muted/10" : "bg-transparent",
             )}
           >
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <p className="text-sm font-semibold uppercase tracking-wide text-muted-foreground sm:text-base">
               {t(row.labelKey)}
             </p>
-            <div className={cn("grid gap-3", columnClass)}>
+            <div className={cn("grid gap-4 sm:gap-5", columnClass)}>
               {brokers.map((broker) => (
                 <div
                   key={`${row.id}-${broker.name}`}
-                  className="min-h-[2.5rem] rounded-lg border border-border/50 bg-background/40 px-3 py-2.5"
+                  className="min-h-[3.5rem] rounded-xl border border-border/50 bg-background/50 px-4 py-3.5 sm:min-h-[4rem] sm:px-5 sm:py-4"
                 >
                   <CellValue value={row.getValue(broker, lang)} />
                 </div>
@@ -364,32 +356,34 @@ function ComparisonSection({
       className={cn(
         "ring-0",
         variant === "vn"
-          ? "border-[#c41e3a]/25 bg-gradient-to-br from-[#c41e3a]/[0.07] via-card to-card"
-          : "border-primary/25 bg-gradient-to-br from-primary/[0.06] via-card to-card",
+          ? "border-[#c41e3a]/30 bg-gradient-to-br from-[#c41e3a]/[0.12] via-card to-card shadow-[0_0_60px_-20px_rgba(196,30,58,0.25)]"
+          : "border-primary/30 bg-gradient-to-br from-primary/[0.1] via-card to-card shadow-[0_0_60px_-20px_rgba(var(--primary),0.2)]",
       )}
     >
       <WidgetHeader
         title={title}
         className={cn(
           variant === "vn"
-            ? "border-[#c41e3a]/20 bg-gradient-to-r from-[#c41e3a]/10 to-card/60"
-            : "border-primary/20 bg-gradient-to-r from-primary/10 to-card/60",
+            ? "border-[#c41e3a]/25 bg-gradient-to-r from-[#c41e3a]/15 to-card/60"
+            : "border-primary/25 bg-gradient-to-r from-primary/15 to-card/60",
         )}
         badge={
           <span
             className={cn(
-              "rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+              "rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide",
               variant === "vn"
-                ? "bg-[#c41e3a]/15 text-[#fca5a5]"
-                : "bg-primary/15 text-primary",
+                ? "bg-[#c41e3a]/20 text-[#fca5a5]"
+                : "bg-primary/20 text-primary",
             )}
           >
             {brokers.length}
           </span>
         }
       />
-      <DashboardCardBody className="space-y-5 px-3 py-4 sm:px-5 sm:py-5">
-        <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground">{description}</p>
+      <DashboardCardBody className="space-y-6 px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-7">
+        <p className="max-w-3xl text-base leading-relaxed text-muted-foreground sm:text-lg">
+          {description}
+        </p>
         {filterBar}
         {brokers.length === 0 && emptyMessage ? (
           <div className="rounded-xl border border-dashed border-border bg-muted/20 px-4 py-10 text-center">
@@ -434,12 +428,12 @@ export function BrokersPageContent() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[90rem] space-y-8 lg:space-y-10">
-      <header className="space-y-2 border-b border-border/60 pb-5">
-        <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+    <div className="mx-auto w-full max-w-[96rem] space-y-10 lg:space-y-12">
+      <header className="space-y-3 border-b border-border/60 pb-6">
+        <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
           {t("sec.brokers")}
         </h1>
-        <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground sm:text-base">
+        <p className="max-w-3xl text-base leading-relaxed text-muted-foreground sm:text-lg">
           {t("brokers.hero.tagline")}
         </p>
       </header>
