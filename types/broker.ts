@@ -10,6 +10,9 @@ export type BrokerBadge =
 
 export type BrokerCategory = "vn" | "global"
 
+/** Popularity / search-interest tier (mock signals for global FX platforms). */
+export type MarketInterestTier = "high" | "medium" | "low"
+
 /** Canonical broker record for listings, detail, and comparison pages. */
 export type BrokerRecord = {
   slug: string
@@ -27,9 +30,13 @@ export type BrokerRecord = {
   licenseTags: string[]
   spread: string
   spreadValue: number
+  /** EUR/USD-style spread in pips (global FX); mirrors spreadValue for FX brokers. */
+  spreadPips: number
   platforms: Bi
   platformTags: string[]
   leverage: string
+  /** Max leverage parsed from strings like "1:2000". */
+  leverageMax: number
   executionType: Bi
   region: Bi
   accountType: Bi
@@ -39,6 +46,12 @@ export type BrokerRecord = {
   featured?: boolean
   /** Global FX: rebate returned per standard lot traded. */
   rebatePerLot?: Bi
+  /** Numeric rebate (USD/lot) for sorting and filter chips. */
+  rebatePerLotValue: number
+  /** Count of active promotional programs. */
+  promotionCount: number
+  /** Mock market-interest tier for global platforms. */
+  marketInterest?: MarketInterestTier
   /** Global FX: slippage / price tolerance benefit for order execution. */
   priceTolerance?: Bi
   /** Global FX: promotional programs (may differ from primary offer). */

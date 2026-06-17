@@ -10,7 +10,7 @@ export default function BrokersPage() {
     <div className="min-h-screen bg-background">
       <Header />
 
-      <main className="w-full px-3 py-4 lg:px-4">
+      <main className="w-full px-3 py-5 sm:px-4 lg:px-6 xl:px-8">
         <BrokersPageContent />
       </main>
 

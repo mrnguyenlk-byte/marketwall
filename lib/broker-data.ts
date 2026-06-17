@@ -9,6 +9,16 @@ export type BrokerBadge =
 
 export type BrokerCategory = "vn" | "global"
 
+export type MarketInterestTier = "high" | "medium" | "low"
+
+export type GlobalBrokerFilterId =
+  | "highRating"
+  | "highRebate"
+  | "highLeverage"
+  | "manyPromotions"
+  | "lowSpread"
+  | "marketInterest"
+
 export type Broker = {
   name: string
   initials: string
@@ -22,6 +32,7 @@ export type Broker = {
   spread: string
   platforms: Bi
   leverage: string
+  leverageMax: number
   executionType: Bi
   region: Bi
   accountType: Bi
@@ -30,10 +41,14 @@ export type Broker = {
   platformTags: string[]
   minDepositValue: number
   spreadValue: number
+  spreadPips: number
   withdrawalTime: Bi
   badges: BrokerBadge[]
   featured?: boolean
   rebatePerLot?: Bi
+  rebatePerLotValue: number
+  promotionCount: number
+  marketInterest?: MarketInterestTier
   priceTolerance?: Bi
   promotions?: Bi[]
 }
@@ -67,6 +82,7 @@ export const brokers: Broker[] = [
     spread: "0.15%",
     platforms: { en: "Web, Mobile, SSI Pro", vi: "Web, Mobile, SSI Pro" },
     leverage: "—",
+    leverageMax: 0,
     executionType: { en: "Stock exchange", vi: "Sàn chứng khoán" },
     region: { en: "Vietnam", vi: "Việt Nam" },
     accountType: { en: "Standard · Margin", vi: "Cơ sở · Ký quỹ" },
@@ -75,9 +91,12 @@ export const brokers: Broker[] = [
     platformTags: ["Web", "Mobile", "SSI Pro"],
     minDepositValue: 0,
     spreadValue: 0.15,
+    spreadPips: 0.15,
     withdrawalTime: { en: "T+2 settlement", vi: "Thanh toán T+2" },
     badges: ["bestOverall"],
     featured: true,
+    rebatePerLotValue: 0,
+    promotionCount: 1,
   },
   {
     name: "VNDirect",
@@ -91,6 +110,7 @@ export const brokers: Broker[] = [
     spread: "0.15%",
     platforms: { en: "Web, DStock, Mobile", vi: "Web, DStock, Mobile" },
     leverage: "—",
+    leverageMax: 0,
     executionType: { en: "Stock exchange", vi: "Sàn chứng khoán" },
     region: { en: "Vietnam", vi: "Việt Nam" },
     accountType: { en: "Standard · Margin", vi: "Cơ sở · Ký quỹ" },
@@ -99,9 +119,12 @@ export const brokers: Broker[] = [
     platformTags: ["Web", "DStock", "Mobile"],
     minDepositValue: 0,
     spreadValue: 0.15,
+    spreadPips: 0.15,
     withdrawalTime: { en: "T+2 settlement", vi: "Thanh toán T+2" },
     badges: ["bestBeginners"],
     featured: true,
+    rebatePerLotValue: 0,
+    promotionCount: 1,
   },
   {
     name: "TCBS",
@@ -115,6 +138,7 @@ export const brokers: Broker[] = [
     spread: "0.15%",
     platforms: { en: "Web, TCInvest, Mobile", vi: "Web, TCInvest, Mobile" },
     leverage: "—",
+    leverageMax: 0,
     executionType: { en: "Stock exchange", vi: "Sàn chứng khoán" },
     region: { en: "Vietnam", vi: "Việt Nam" },
     accountType: { en: "Standard · Margin", vi: "Cơ sở · Ký quỹ" },
@@ -123,9 +147,12 @@ export const brokers: Broker[] = [
     platformTags: ["Web", "TCInvest", "Mobile"],
     minDepositValue: 0,
     spreadValue: 0.15,
+    spreadPips: 0.15,
     withdrawalTime: { en: "T+2 settlement", vi: "Thanh toán T+2" },
     badges: ["fastWithdrawal"],
     featured: true,
+    rebatePerLotValue: 0,
+    promotionCount: 1,
   },
   {
     name: "VPS",
@@ -139,6 +166,7 @@ export const brokers: Broker[] = [
     spread: "0.15%",
     platforms: { en: "Web, SmartOne, Mobile", vi: "Web, SmartOne, Mobile" },
     leverage: "—",
+    leverageMax: 0,
     executionType: { en: "Stock exchange", vi: "Sàn chứng khoán" },
     region: { en: "Vietnam", vi: "Việt Nam" },
     accountType: { en: "Standard · Margin", vi: "Cơ sở · Ký quỹ" },
@@ -147,9 +175,12 @@ export const brokers: Broker[] = [
     platformTags: ["Web", "SmartOne", "Mobile"],
     minDepositValue: 0,
     spreadValue: 0.15,
+    spreadPips: 0.15,
     withdrawalTime: { en: "T+2 settlement", vi: "Thanh toán T+2" },
     badges: [],
     featured: false,
+    rebatePerLotValue: 0,
+    promotionCount: 1,
   },
   {
     name: "HSC",
@@ -163,6 +194,7 @@ export const brokers: Broker[] = [
     spread: "0.20%",
     platforms: { en: "Web, HSC Trade, Mobile", vi: "Web, HSC Trade, Mobile" },
     leverage: "—",
+    leverageMax: 0,
     executionType: { en: "Stock exchange", vi: "Sàn chứng khoán" },
     region: { en: "Vietnam", vi: "Việt Nam" },
     accountType: { en: "Standard · Margin", vi: "Cơ sở · Ký quỹ" },
@@ -171,9 +203,12 @@ export const brokers: Broker[] = [
     platformTags: ["Web", "HSC Trade", "Mobile"],
     minDepositValue: 0,
     spreadValue: 0.2,
+    spreadPips: 0.2,
     withdrawalTime: { en: "T+2 settlement", vi: "Thanh toán T+2" },
     badges: [],
     featured: false,
+    rebatePerLotValue: 0,
+    promotionCount: 1,
   },
   {
     name: "MBS",
@@ -187,6 +222,7 @@ export const brokers: Broker[] = [
     spread: "0.20%",
     platforms: { en: "Web, MBS Mobile, eMBS", vi: "Web, MBS Mobile, eMBS" },
     leverage: "—",
+    leverageMax: 0,
     executionType: { en: "Stock exchange", vi: "Sàn chứng khoán" },
     region: { en: "Vietnam", vi: "Việt Nam" },
     accountType: { en: "Standard · Margin", vi: "Cơ sở · Ký quỹ" },
@@ -195,9 +231,12 @@ export const brokers: Broker[] = [
     platformTags: ["Web", "eMBS", "Mobile"],
     minDepositValue: 0,
     spreadValue: 0.2,
+    spreadPips: 0.2,
     withdrawalTime: { en: "T+2 settlement", vi: "Thanh toán T+2" },
     badges: [],
     featured: false,
+    rebatePerLotValue: 0,
+    promotionCount: 1,
   },
   {
     name: "Exness",
@@ -211,6 +250,7 @@ export const brokers: Broker[] = [
     spread: "0.0 pips",
     platforms: { en: "MT4, MT5, Web", vi: "MT4, MT5, Web" },
     leverage: "1:2000",
+    leverageMax: 2000,
     executionType: { en: "ECN / STP", vi: "ECN / STP" },
     region: { en: "Global", vi: "Toàn cầu" },
     accountType: { en: "Standard · ECN", vi: "Standard · ECN" },
@@ -226,9 +266,13 @@ export const brokers: Broker[] = [
     platformTags: ["MT4", "MT5", "Web"],
     minDepositValue: 10,
     spreadValue: 0,
+    spreadPips: 0,
     withdrawalTime: { en: "Instant", vi: "Tức thì" },
     badges: ["bestOverall", "fastWithdrawal"],
     featured: true,
+    rebatePerLotValue: 7,
+    promotionCount: 3,
+    marketInterest: "high",
   },
   {
     name: "IC Markets",
@@ -242,6 +286,7 @@ export const brokers: Broker[] = [
     spread: "0.0 pips",
     platforms: { en: "MT4, MT5, cTrader", vi: "MT4, MT5, cTrader" },
     leverage: "1:500",
+    leverageMax: 500,
     executionType: { en: "ECN", vi: "ECN" },
     region: { en: "Global", vi: "Toàn cầu" },
     accountType: { en: "ECN", vi: "ECN" },
@@ -256,9 +301,13 @@ export const brokers: Broker[] = [
     platformTags: ["MT4", "MT5", "cTrader"],
     minDepositValue: 200,
     spreadValue: 0,
+    spreadPips: 0,
     withdrawalTime: { en: "Same day", vi: "Trong ngày" },
     badges: ["lowestSpread"],
     featured: true,
+    rebatePerLotValue: 3,
+    promotionCount: 2,
+    marketInterest: "high",
   },
   {
     name: "XM",
@@ -272,6 +321,7 @@ export const brokers: Broker[] = [
     spread: "0.6 pips",
     platforms: { en: "MT4, MT5, Web", vi: "MT4, MT5, Web" },
     leverage: "1:888",
+    leverageMax: 888,
     executionType: { en: "Market Maker", vi: "Market Maker" },
     region: { en: "Global", vi: "Toàn cầu" },
     accountType: { en: "Standard · Islamic", vi: "Standard · Islamic" },
@@ -287,9 +337,13 @@ export const brokers: Broker[] = [
     platformTags: ["MT4", "MT5", "Web"],
     minDepositValue: 5,
     spreadValue: 0.6,
+    spreadPips: 0.6,
     withdrawalTime: { en: "1–2 days", vi: "1–2 ngày" },
     badges: ["bestBeginners"],
     featured: true,
+    rebatePerLotValue: 15,
+    promotionCount: 3,
+    marketInterest: "high",
   },
   {
     name: "Pepperstone",
@@ -303,6 +357,7 @@ export const brokers: Broker[] = [
     spread: "0.0 pips",
     platforms: { en: "MT4, MT5, cTrader", vi: "MT4, MT5, cTrader" },
     leverage: "1:500",
+    leverageMax: 500,
     executionType: { en: "ECN", vi: "ECN" },
     region: { en: "Global", vi: "Toàn cầu" },
     accountType: { en: "Standard · ECN", vi: "Standard · ECN" },
@@ -317,8 +372,12 @@ export const brokers: Broker[] = [
     platformTags: ["MT4", "MT5", "cTrader"],
     minDepositValue: 0,
     spreadValue: 0,
+    spreadPips: 0,
     withdrawalTime: { en: "Same day", vi: "Trong ngày" },
     badges: ["lowestSpread"],
+    rebatePerLotValue: 1.5,
+    promotionCount: 2,
+    marketInterest: "high",
   },
   {
     name: "FBS",
@@ -332,6 +391,7 @@ export const brokers: Broker[] = [
     spread: "0.5 pips",
     platforms: { en: "MT4, MT5, Web", vi: "MT4, MT5, Web" },
     leverage: "1:3000",
+    leverageMax: 3000,
     executionType: { en: "Market Maker", vi: "Market Maker" },
     region: { en: "Asia", vi: "Châu Á" },
     accountType: { en: "Standard · ECN", vi: "Standard · ECN" },
@@ -347,8 +407,12 @@ export const brokers: Broker[] = [
     platformTags: ["MT4", "MT5", "Web"],
     minDepositValue: 1,
     spreadValue: 0.5,
+    spreadPips: 0.5,
     withdrawalTime: { en: "1–3 days", vi: "1–3 ngày" },
     badges: ["bestBeginners"],
+    rebatePerLotValue: 10,
+    promotionCount: 3,
+    marketInterest: "medium",
   },
   {
     name: "FXTM",
@@ -362,6 +426,7 @@ export const brokers: Broker[] = [
     spread: "0.8 pips",
     platforms: { en: "MT4, MT5, Web", vi: "MT4, MT5, Web" },
     leverage: "1:1000",
+    leverageMax: 1000,
     executionType: { en: "ECN / STP", vi: "ECN / STP" },
     region: { en: "Europe", vi: "Châu Âu" },
     accountType: { en: "Standard · ECN · Islamic", vi: "Standard · ECN · Islamic" },
@@ -370,8 +435,12 @@ export const brokers: Broker[] = [
     platformTags: ["MT4", "MT5", "Web"],
     minDepositValue: 10,
     spreadValue: 0.8,
+    spreadPips: 0.8,
     withdrawalTime: { en: "1–2 days", vi: "1–2 ngày" },
     badges: [],
+    rebatePerLotValue: 2,
+    promotionCount: 1,
+    marketInterest: "low",
   },
 ]
 
@@ -397,3 +466,74 @@ export const brokerComparisons: BrokerComparison[] = [
   { left: "IC Markets", right: "Pepperstone" },
   { left: "XM", right: "FBS" },
 ]
+
+export const GLOBAL_BROKER_FILTERS: GlobalBrokerFilterId[] = [
+  "highRating",
+  "highRebate",
+  "highLeverage",
+  "manyPromotions",
+  "lowSpread",
+  "marketInterest",
+]
+
+const FILTER_THRESHOLDS = {
+  ratingMin: 4.6,
+  trustScoreMin: 88,
+  rebateMin: 5,
+  leverageMin: 888,
+  promotionsMin: 3,
+  spreadPipsMax: 0.5,
+} as const
+
+export function brokerMatchesGlobalFilter(
+  broker: Broker,
+  filter: GlobalBrokerFilterId,
+): boolean {
+  switch (filter) {
+    case "highRating":
+      return broker.rating >= FILTER_THRESHOLDS.ratingMin &&
+        broker.trustScore >= FILTER_THRESHOLDS.trustScoreMin
+    case "highRebate":
+      return broker.rebatePerLotValue >= FILTER_THRESHOLDS.rebateMin
+    case "highLeverage":
+      return broker.leverageMax >= FILTER_THRESHOLDS.leverageMin
+    case "manyPromotions":
+      return broker.promotionCount >= FILTER_THRESHOLDS.promotionsMin
+    case "lowSpread":
+      return broker.spreadPips <= FILTER_THRESHOLDS.spreadPipsMax
+    case "marketInterest":
+      return broker.marketInterest === "high"
+    default:
+      return false
+  }
+}
+
+/** Composite score for ordering brokers that pass all active filters. */
+export function globalBrokerRankScore(broker: Broker): number {
+  const interestBonus =
+    broker.marketInterest === "high" ? 12 : broker.marketInterest === "medium" ? 6 : 0
+
+  return (
+    broker.rating * 8 +
+    broker.trustScore / 12 +
+    broker.rebatePerLotValue * 1.5 +
+    broker.leverageMax / 250 +
+    broker.promotionCount * 3 +
+    Math.max(0, 6 - broker.spreadPips * 8) +
+    interestBonus
+  )
+}
+
+/** Keep brokers matching every active filter; sort best matches first. */
+export function filterGlobalBrokers(
+  source: Broker[],
+  activeFilters: GlobalBrokerFilterId[],
+): Broker[] {
+  if (activeFilters.length === 0) return source
+
+  return source
+    .filter((broker) =>
+      activeFilters.every((filter) => brokerMatchesGlobalFilter(broker, filter)),
+    )
+    .sort((a, b) => globalBrokerRankScore(b) - globalBrokerRankScore(a))
+}
