@@ -43,10 +43,19 @@ type HeatmapTileProps = {
   asset: MarketAsset
   size: TileSize
   rect?: TreemapRect
+  proprietaryFallback?: boolean
   onClick: (asset: MarketAsset) => void
 }
 
-function CompactTooltip({ asset, up }: { asset: MarketAsset; up: boolean }) {
+function CompactTooltip({
+  asset,
+  up,
+  proprietaryFallback = false,
+}: {
+  asset: MarketAsset
+  up: boolean
+  proprietaryFallback?: boolean
+}) {
   const { lang } = useLang()
 
   return (
@@ -60,11 +69,20 @@ function CompactTooltip({ asset, up }: { asset: MarketAsset; up: boolean }) {
           {asset.changePercent.toFixed(2)}%
         </span>
       </p>
+      {proprietaryFallback && (
+        <p className="text-[10px] text-amber-200/90">Nguồn: proxy GTGD</p>
+      )}
     </div>
   )
 }
 
-export function HeatmapTile({ asset, size, rect, onClick }: HeatmapTileProps) {
+export function HeatmapTile({
+  asset,
+  size,
+  rect,
+  proprietaryFallback = false,
+  onClick,
+}: HeatmapTileProps) {
   const up = asset.changePercent >= 0
   const classes = sizeClasses[size]
   const showChange = size === "large" || size === "medium"
@@ -134,7 +152,7 @@ export function HeatmapTile({ asset, size, rect, onClick }: HeatmapTileProps) {
         sideOffset={6}
         className="pointer-events-none max-w-[180px] flex-col items-start p-2"
       >
-        <CompactTooltip asset={asset} up={up} />
+        <CompactTooltip asset={asset} up={up} proprietaryFallback={proprietaryFallback} />
       </TooltipContent>
     </Tooltip>
   )

@@ -31,7 +31,10 @@ import {
 } from "@/lib/treemap/treemap-builders"
 import {
   buildFlatVnTreemapLayoutForMode,
+  resolveVnProprietaryModeContext,
   vnHeatmapMetric,
+  vnProprietaryDisplayMetric,
+  vnProprietaryFlowMetric,
   type VnHeatmapMode,
 } from "@/lib/vietnam/vn-heatmap-modes"
 import {
@@ -84,6 +87,11 @@ type FlatModeReport = {
   layoutTileCount: number
   worstTile: FlatTileDiagnostic | null
   tileDiagnostics: FlatTileDiagnostic[]
+  /** VN proprietary-flow only */
+  proprietaryDataAvailable?: boolean
+  fallbackMetric?: "tradingValue"
+  invalidProprietaryMetricCount?: number
+  renderedWithFallback?: boolean
 }
 
 type SectorDiagnostic = {
@@ -467,6 +475,15 @@ function printFlatReport(r: FlatModeReport, includeTileDiagnostics = false) {
   }
   console.log(`layoutMaxAspectRatio: ${r.layoutMaxAspectRatio.toFixed(3)}`)
 
+  if (r.renderedWithFallback != null) {
+    console.log("")
+    console.log("--- Proprietary fallback ---")
+    console.log(`proprietaryDataAvailable: ${r.proprietaryDataAvailable === true}`)
+    console.log(`fallbackMetric: ${r.fallbackMetric ?? "none"}`)
+    console.log(`invalidProprietaryMetricCount: ${r.invalidProprietaryMetricCount ?? 0}`)
+    console.log(`renderedWithFallback: ${r.renderedWithFallback === true}`)
+  }
+
   if (includeTileDiagnostics && r.tileDiagnostics.length) {
     console.log("")
     console.log("--- Per-tile diagnostics (sorted by aspect desc) ---")
@@ -611,6 +628,39 @@ function section(title: string) {
   console.log("=".repeat(80))
 }
 
+function analyzeProprietaryFlatMode(
+  label: string,
+  assets: MarketAsset[],
+  dataSource: string,
+  layout: { leaves: TreemapLayoutNode<MarketAsset>[] },
+  power: number,
+): FlatModeReport {
+  const context = resolveVnProprietaryModeContext(assets)
+  const displayMetricFn = (asset: MarketAsset) => vnProprietaryDisplayMetric(asset, context)
+  const invalidProprietaryMetricCount = assets.filter((a) => vnProprietaryFlowMetric(a) <= 0).length
+
+  const base = analyzeFlatMode(
+    label,
+    context.useTradingValueFallback
+      ? "tradingValue (vnTradingValueMetric) — GTGD proxy fallback"
+      : "proprietaryNetValue|proprietaryTradingValue|buy/sell (vnProprietaryFlowMetric)",
+    assets,
+    dataSource,
+    displayMetricFn,
+    MAX_ITEM_AREA_SHARE,
+    power,
+    layout,
+  )
+
+  return {
+    ...base,
+    proprietaryDataAvailable: context.proprietaryDataAvailable,
+    fallbackMetric: context.useTradingValueFallback ? "tradingValue" : undefined,
+    invalidProprietaryMetricCount,
+    renderedWithFallback: context.useTradingValueFallback,
+  }
+}
+
 async function main() {
   console.log("Heatmap debug report")
   console.log(`generatedAt: ${new Date().toISOString()}`)
@@ -654,6 +704,12 @@ async function main() {
       mode === "market-cap"
         ? TREEMAP_COMPRESSION_POWER.VN_MARKET_CAP_FLAT
         : TREEMAP_COMPRESSION_POWER.VN_FLOW_FLAT
+
+    if (mode === "proprietary-flow") {
+      printFlatReport(analyzeProprietaryFlatMode(label, assets, source, layout, power))
+      continue
+    }
+
     const report = analyzeFlatMode(
       label,
       metricField,

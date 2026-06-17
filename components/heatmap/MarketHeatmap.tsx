@@ -16,6 +16,7 @@ import {
 } from "@/lib/treemap/heatmap-engine"
 import {
   DEFAULT_VN_HEATMAP_MODE,
+  resolveVnProprietaryModeContext,
   vnModeHasValidMetrics,
   type VnHeatmapMode,
 } from "@/lib/vietnam/vn-heatmap-modes"
@@ -61,6 +62,11 @@ export function MarketHeatmap({
     return limitHeatmapAssets(assets, marketType, defaultSizing("crypto"))
   }, [assets, marketType, mode])
 
+  const isProprietaryFallback = useMemo(() => {
+    if (marketType !== "vn" || mode !== "proprietary-flow") return false
+    return resolveVnProprietaryModeContext(limitedAssets).useTradingValueFallback
+  }, [limitedAssets, marketType, mode])
+
   const emptyMessage = useMemo(() => {
     if (!limitedAssets.length) {
       return heatmapEmptyMessage(marketType, mode, "no-assets")
@@ -101,6 +107,7 @@ export function MarketHeatmap({
       <VietnamFlatTreemap
         assets={limitedAssets}
         mode={mode}
+        isProprietaryFallback={isProprietaryFallback}
         onTileClick={onTileClick}
       />
     )

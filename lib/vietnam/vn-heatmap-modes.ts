@@ -95,6 +95,37 @@ export function vnProprietaryFlowMetric(asset: MarketAsset): number {
   return 0
 }
 
+/** True when at least one asset has direct proprietary flow metrics. */
+export function hasVnProprietaryMetrics(assets: MarketAsset[]): boolean {
+  return assets.some((asset) => vnProprietaryFlowMetric(asset) > 0)
+}
+
+export type VnProprietaryModeContext = {
+  proprietaryDataAvailable: boolean
+  useTradingValueFallback: boolean
+}
+
+/** Resolve proprietary mode once per layout — not per tile. */
+export function resolveVnProprietaryModeContext(
+  assets: MarketAsset[],
+): VnProprietaryModeContext {
+  const proprietaryDataAvailable = hasVnProprietaryMetrics(assets)
+  return {
+    proprietaryDataAvailable,
+    useTradingValueFallback: !proprietaryDataAvailable,
+  }
+}
+
+export function vnProprietaryDisplayMetric(
+  asset: MarketAsset,
+  context: VnProprietaryModeContext,
+): number {
+  if (context.useTradingValueFallback) {
+    return vnTradingValueModeMetric(asset)
+  }
+  return vnProprietaryFlowMetric(asset)
+}
+
 export function vnHeatmapMetric(asset: MarketAsset, mode: VnHeatmapMode): number {
   switch (mode) {
     case "sector-volume":
@@ -109,6 +140,10 @@ export function vnHeatmapMetric(asset: MarketAsset, mode: VnHeatmapMode): number
 }
 
 export function vnModeHasValidMetrics(assets: MarketAsset[], mode: VnHeatmapMode): boolean {
+  if (mode === "proprietary-flow") {
+    const context = resolveVnProprietaryModeContext(assets)
+    return assets.some((asset) => vnProprietaryDisplayMetric(asset, context) > 0)
+  }
   return assets.some((asset) => vnHeatmapMetric(asset, mode) > 0)
 }
 
@@ -118,6 +153,8 @@ export function sortByVnHeatmapMode(assets: MarketAsset[], mode: VnHeatmapMode):
 
 export type VnFlatTreemapLayout = {
   leaves: TreemapLayoutNode<MarketAsset>[]
+  /** Set when proprietary-flow renders with GTGD proxy sizing. */
+  isProprietaryFallback?: boolean
 }
 
 function vnFlatCompressionPower(mode: VnHeatmapMode): number {
@@ -142,6 +179,18 @@ export function buildFlatVnTreemapLayoutForMode(
   assets: MarketAsset[],
   mode: VnHeatmapMode,
 ): VnFlatTreemapLayout {
+  if (mode === "proprietary-flow") {
+    const context = resolveVnProprietaryModeContext(assets)
+    return {
+      ...buildFlatVnTreemapLayout(
+        assets,
+        (asset) => vnProprietaryDisplayMetric(asset, context),
+        { power: vnFlatCompressionPower(mode) },
+      ),
+      isProprietaryFallback: context.useTradingValueFallback,
+    }
+  }
+
   return buildFlatVnTreemapLayout(
     assets,
     (asset) => vnHeatmapMetric(asset, mode),
