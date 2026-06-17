@@ -7,6 +7,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { useOpenSymbolDetail } from "@/hooks/useOpenSymbolDetail"
 import { useVietnamMarkets } from "@/lib/swr/use-market-apis"
 import { useLang } from "@/lib/i18n"
 import type { VietnamDashboardRow } from "@/lib/providers/vietnam-market-provider"
@@ -117,6 +118,7 @@ function RowTooltipContent({ row }: { row: VietnamDashboardRow }) {
 
 function LeaderboardCard({ title, rows, metric, loading }: LeaderboardProps) {
   const { t, lang } = useLang()
+  const { openSymbol, enabled: symbolClickEnabled } = useOpenSymbolDetail()
   const nameBySymbol = useMemo(() => {
     const map = new Map<string, string>()
     for (const record of buildHeatmapSymbolRecords()) {
@@ -161,34 +163,85 @@ function LeaderboardCard({ title, rows, metric, loading }: LeaderboardProps) {
 
                 {rows.map((row) => {
                   const companyName = nameBySymbol.get(row.symbol.toUpperCase())
+                  const rowCells = (
+                    <>
+                      <span className="justify-center px-1 font-mono type-table tabular-nums text-muted-foreground">
+                        {row.rank}
+                      </span>
+                      <span className="whitespace-nowrap px-1.5 type-table font-bold tracking-tight text-foreground">
+                        {row.symbol}
+                      </span>
+                      <span className="justify-end px-1.5 font-mono type-table tabular-nums text-foreground">
+                        {row.price != null ? fmt(row.price) : "—"}
+                      </span>
+                      <span className="justify-end px-1.5">
+                        <ChangeDelta value={row.change} />
+                      </span>
+                      <span className="justify-end px-1">
+                        <ChangeBadge value={row.changePercent} />
+                      </span>
+                      <span className="justify-end px-1.5 font-mono type-table font-semibold tabular-nums text-foreground">
+                        {metric === "volume"
+                          ? fmt(volumeForRow(row), { notation: "compact" })
+                          : fmt(tradingValueForRow(row), { notation: "compact" })}
+                      </span>
+                    </>
+                  )
+                  const rowClassName =
+                    "contents [&>*]:flex [&>*]:h-[30px] [&>*]:items-center [&>*]:border-b [&>*]:border-border/30 [&>*]:transition-colors hover:[&>*]:bg-secondary/25 sm:[&>*]:h-8"
+
+                  if (symbolClickEnabled) {
+                    return (
+                      <Tooltip key={`${title}-${row.rank}-${row.symbol}`}>
+                        <TooltipTrigger
+                          render={
+                            <button
+                              type="button"
+                              role="row"
+                              className={cn(rowClassName, "cursor-pointer text-left")}
+                              onClick={() =>
+                                openSymbol(row.symbol, {
+                                  hint: {
+                                    price: row.price,
+                                    change: row.change,
+                                    changePercent: row.changePercent,
+                                    volume: volumeForRow(row),
+                                    volumeShares: row.volumeShares,
+                                    volumeLot: row.volumeLot,
+                                    tradingValue: tradingValueForRow(row),
+                                    marketType: "vn",
+                                    exchange: row.exchange,
+                                    name: companyName
+                                      ? { vi: companyName, en: companyName }
+                                      : undefined,
+                                  },
+                                })
+                              }
+                            >
+                              {rowCells}
+                            </button>
+                          }
+                        />
+                        <TooltipContent
+                          side="left"
+                          className="max-w-[220px] flex-col items-start gap-0.5 p-2 type-table"
+                        >
+                          <p className="font-semibold">{row.symbol}</p>
+                          {companyName ? (
+                            <p className="text-background/80">{companyName}</p>
+                          ) : null}
+                          <RowTooltipContent row={row} />
+                        </TooltipContent>
+                      </Tooltip>
+                    )
+                  }
+
                   return (
                     <Tooltip key={`${title}-${row.rank}-${row.symbol}`}>
                       <TooltipTrigger
                         render={
-                          <div
-                            role="row"
-                            className="contents cursor-default [&>*]:flex [&>*]:h-[30px] [&>*]:items-center [&>*]:border-b [&>*]:border-border/30 [&>*]:transition-colors hover:[&>*]:bg-secondary/25 sm:[&>*]:h-8"
-                          >
-                            <span className="justify-center px-1 font-mono type-table tabular-nums text-muted-foreground">
-                              {row.rank}
-                            </span>
-                            <span className="whitespace-nowrap px-1.5 type-table font-bold tracking-tight text-foreground">
-                              {row.symbol}
-                            </span>
-                            <span className="justify-end px-1.5 font-mono type-table tabular-nums text-foreground">
-                              {row.price != null ? fmt(row.price) : "—"}
-                            </span>
-                            <span className="justify-end px-1.5">
-                              <ChangeDelta value={row.change} />
-                            </span>
-                            <span className="justify-end px-1">
-                              <ChangeBadge value={row.changePercent} />
-                            </span>
-                            <span className="justify-end px-1.5 font-mono type-table font-semibold tabular-nums text-foreground">
-                              {metric === "volume"
-                                ? fmt(volumeForRow(row), { notation: "compact" })
-                                : fmt(tradingValueForRow(row), { notation: "compact" })}
-                            </span>
+                          <div role="row" className={cn(rowClassName, "cursor-default")}>
+                            {rowCells}
                           </div>
                         }
                       />

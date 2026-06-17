@@ -13,7 +13,7 @@ import { Search } from "lucide-react"
 
 import { Input } from "@/components/ui/input"
 import { ChangePill, fmt } from "@/components/marketwall/shared"
-import { useHeatmapDetail } from "@/lib/heatmap-detail-context"
+import { useOpenSymbolDetail } from "@/hooks/useOpenSymbolDetail"
 import { useLang } from "@/lib/i18n"
 import { buildVnSearchAssets, filterSymbolSearch } from "@/lib/market/symbol-search"
 import { useHeatmapMarket } from "@/lib/swr/use-market-apis"
@@ -25,7 +25,7 @@ const RESULT_LIMIT = 8
 
 export function HeaderSearch() {
   const { t, lang } = useLang()
-  const { openAsset } = useHeatmapDetail()
+  const { openMarketAsset } = useOpenSymbolDetail()
   const listboxId = useId()
   const rootRef = useRef<HTMLDivElement>(null)
 
@@ -72,12 +72,12 @@ export function HeaderSearch() {
 
   const selectAsset = useCallback(
     (asset: MarketAsset) => {
-      openAsset(asset)
+      openMarketAsset(asset)
       setQuery("")
       setDebouncedQuery("")
       setOpen(false)
     },
-    [openAsset],
+    [openMarketAsset],
   )
 
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {

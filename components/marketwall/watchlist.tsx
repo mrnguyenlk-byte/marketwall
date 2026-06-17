@@ -7,6 +7,7 @@ import { Plus, Star, X } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { clientDebug, features } from "@/lib/config/features"
+import { useOpenSymbolDetail } from "@/hooks/useOpenSymbolDetail"
 import { useLang } from "@/lib/i18n"
 import {
   useCryptoMarkets,
@@ -24,17 +25,23 @@ function WatchlistRow({
   symbol,
   quote,
   onRemove,
+  onOpen,
+  interactive,
 }: {
   symbol: WatchlistSymbol
   quote: WatchlistQuote
   onRemove: (symbol: WatchlistSymbol) => void
+  onOpen: (symbol: WatchlistSymbol) => void
+  interactive: boolean
 }) {
   const { lang, t } = useLang()
   const entry = WATCHLIST_CATALOG[symbol]
   const up = quote.trend === "up"
+  const rowClassName =
+    "flex w-full items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-secondary/50"
 
-  return (
-    <li className="flex items-center gap-2 px-3 py-2 transition-colors hover:bg-secondary/50">
+  const content = (
+    <>
       <SymbolLogo symbol={symbol} size="md" />
       <span
         className="min-w-0 flex-1 truncate text-xs font-semibold text-foreground"
@@ -68,18 +75,34 @@ function WatchlistRow({
         size="icon"
         className="size-6 shrink-0 text-muted-foreground hover:text-loss"
         aria-label={`${t("watchlist.remove")} ${symbol}`}
-        onClick={() => onRemove(symbol)}
+        onClick={(event) => {
+          event.stopPropagation()
+          onRemove(symbol)
+        }}
       >
         <X className="size-3" aria-hidden />
       </Button>
-    </li>
+    </>
   )
+
+  if (interactive) {
+    return (
+      <li>
+        <button type="button" className={rowClassName} onClick={() => onOpen(symbol)}>
+          {content}
+        </button>
+      </li>
+    )
+  }
+
+  return <li className={rowClassName}>{content}</li>
 }
 
 export function Watchlist() {
   const { t } = useLang()
   const { status } = useSession()
   const { symbols, add, remove, available } = useWatchlist()
+  const { openSymbol, enabled: symbolClickEnabled } = useOpenSymbolDetail()
 
   const vietnam = useVietnamMarkets()
   const global = useGlobalMarkets()
@@ -117,14 +140,26 @@ export function Watchlist() {
             </p>
           ) : (
             <ul className="divide-y divide-border">
-              {symbols.map((symbol) => (
-                <WatchlistRow
-                  key={symbol}
-                  symbol={symbol}
-                  quote={quotes.get(symbol) ?? getWatchlistQuote(symbol)}
-                  onRemove={remove}
-                />
-              ))}
+              {symbols.map((symbol) => {
+                const quote = quotes.get(symbol) ?? getWatchlistQuote(symbol)
+                return (
+                  <WatchlistRow
+                    key={symbol}
+                    symbol={symbol}
+                    quote={quote}
+                    onRemove={remove}
+                    interactive={symbolClickEnabled}
+                    onOpen={(watchSymbol) =>
+                      openSymbol(watchSymbol, {
+                        hint: {
+                          price: quote.price,
+                          changePercent: quote.changePercent,
+                        },
+                      })
+                    }
+                  />
+                )
+              })}
             </ul>
           )}
 

@@ -195,6 +195,9 @@ export type DetailTabId =
   | "financials"
   | "historical"
 
+/** Default tab when opening StockDetailModal from symbol clicks / search. */
+export const DEFAULT_SYMBOL_DETAIL_TAB: DetailTabId = "chart"
+
 export function getAvailableDetailTabs(
   asset: MarketAsset,
   options: {

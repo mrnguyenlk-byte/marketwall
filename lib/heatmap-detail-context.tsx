@@ -10,17 +10,35 @@ import {
 } from "react"
 
 import { features } from "@/lib/config/features"
+import { DEFAULT_SYMBOL_DETAIL_TAB } from "@/lib/market/asset-detail-availability"
+import type { DetailTabId } from "@/lib/market/asset-detail-availability"
+import {
+  resolveSymbolToMarketAsset,
+  type SymbolQuoteHint,
+} from "@/lib/market/symbol-to-asset"
 import type { MarketAsset } from "@/types/market"
+
+type OpenAssetOptions = {
+  tab?: DetailTabId
+}
+
+type OpenSymbolOptions = OpenAssetOptions & {
+  hint?: SymbolQuoteHint
+}
 
 type HeatmapDetailContextValue = {
   asset: MarketAsset | null
-  openAsset: (asset: MarketAsset) => void
+  initialTab: DetailTabId
+  openAsset: (asset: MarketAsset, options?: OpenAssetOptions) => void
+  openSymbolDetail: (symbol: string, options?: OpenSymbolOptions) => void
   closeAsset: () => void
 }
 
 const NOOP_CONTEXT: HeatmapDetailContextValue = {
   asset: null,
+  initialTab: DEFAULT_SYMBOL_DETAIL_TAB,
   openAsset: () => {},
+  openSymbolDetail: () => {},
   closeAsset: () => {},
 }
 
@@ -28,16 +46,25 @@ const HeatmapDetailContext = createContext<HeatmapDetailContextValue | null>(nul
 
 function HeatmapDetailProviderEnabled({ children }: { children: ReactNode }) {
   const [asset, setAsset] = useState<MarketAsset | null>(null)
+  const [initialTab, setInitialTab] = useState<DetailTabId>(DEFAULT_SYMBOL_DETAIL_TAB)
 
-  const openAsset = useCallback((next: MarketAsset) => {
+  const openAsset = useCallback((next: MarketAsset, options?: OpenAssetOptions) => {
+    setInitialTab(options?.tab ?? DEFAULT_SYMBOL_DETAIL_TAB)
     setAsset(next)
+  }, [])
+
+  const openSymbolDetail = useCallback((symbol: string, options?: OpenSymbolOptions) => {
+    const resolved = resolveSymbolToMarketAsset(symbol, options?.hint)
+    if (!resolved) return
+    setInitialTab(options?.tab ?? DEFAULT_SYMBOL_DETAIL_TAB)
+    setAsset(resolved)
   }, [])
 
   const closeAsset = useCallback(() => setAsset(null), [])
 
   const value = useMemo(
-    () => ({ asset, openAsset, closeAsset }),
-    [asset, openAsset, closeAsset],
+    () => ({ asset, initialTab, openAsset, openSymbolDetail, closeAsset }),
+    [asset, initialTab, openAsset, openSymbolDetail, closeAsset],
   )
 
   return (

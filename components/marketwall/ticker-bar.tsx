@@ -9,8 +9,8 @@ import { useQuotes } from "@/hooks/useQuotes"
 import { mergeGlobalQuotesIntoTickerItems } from "@/lib/global-market-merge"
 import { mergeMarketQuotesIntoTickerItems } from "@/lib/market-quotes-merge"
 import { mergeVietnamIndicesIntoTickerItems } from "@/lib/vietnam-market-merge"
+import { useOpenSymbolDetail } from "@/hooks/useOpenSymbolDetail"
 import { useLang } from "@/lib/i18n"
-import { useSymbolDetail } from "@/lib/symbol-detail-context"
 import {
   useCryptoMarkets,
   useGlobalMarkets,
@@ -84,7 +84,7 @@ export function TickerBar({
   compact?: boolean
 }) {
   const { t } = useLang()
-  const { openDetail } = useSymbolDetail()
+  const { openSymbol, enabled: symbolClickEnabled } = useOpenSymbolDetail()
 
   const vietnam = useVietnamMarkets()
   const global = useGlobalMarkets()
@@ -124,7 +124,6 @@ export function TickerBar({
 
   const symbols = items.map((item) => item.symbol)
   const itemBySymbol = Object.fromEntries(items.map((item) => [item.symbol, item]))
-  const symbolClickEnabled = features.symbolModal
 
   return (
     <div
@@ -156,7 +155,14 @@ export function TickerBar({
               <TickerItem
                 key={`a-${s}`}
                 item={item}
-                onSelect={openDetail}
+                onSelect={(symbol) => {
+                  const item = itemBySymbol[symbol]
+                  openSymbol(symbol, {
+                    hint: item
+                      ? { price: item.price, changePercent: item.changePercent }
+                      : undefined,
+                  })
+                }}
                 interactive={symbolClickEnabled}
                 compact={compact}
               />
@@ -169,7 +175,14 @@ export function TickerBar({
               <TickerItem
                 key={`b-${s}`}
                 item={item}
-                onSelect={openDetail}
+                onSelect={(symbol) => {
+                  const item = itemBySymbol[symbol]
+                  openSymbol(symbol, {
+                    hint: item
+                      ? { price: item.price, changePercent: item.changePercent }
+                      : undefined,
+                  })
+                }}
                 interactive={symbolClickEnabled}
                 compact={compact}
               />

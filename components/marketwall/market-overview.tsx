@@ -12,8 +12,8 @@ import { mergeGlobalQuotesIntoOverview } from "@/lib/global-market-merge"
 import { mergeMarketQuotesIntoOverview } from "@/lib/market-quotes-merge"
 import { reorderIndicesTab } from "@/lib/overview-order"
 import { mergeVietnamIndicesIntoOverview } from "@/lib/vietnam-market-merge"
+import { useOpenSymbolDetail } from "@/hooks/useOpenSymbolDetail"
 import { useLang } from "@/lib/i18n"
-import { useSymbolDetail } from "@/lib/symbol-detail-context"
 import {
   useCryptoMarkets,
   useGlobalMarkets,
@@ -93,7 +93,7 @@ export function MarketOverview({
   overviewByCategory: Record<OverviewCategory, OverviewListItem[]>
 }) {
   const { t } = useLang()
-  const { openDetail } = useSymbolDetail()
+  const { openSymbol, enabled: symbolClickEnabled } = useOpenSymbolDetail()
   const [tab, setTab] = useState<OverviewCategory>("indices")
 
   const vietnam = useVietnamMarkets()
@@ -133,7 +133,6 @@ export function MarketOverview({
   }, [fallbackOverview, vietnam.data, global.data, crypto.data, marketQuotes.data])
 
   const items = overviewByCategory[tab]
-  const symbolClickEnabled = features.symbolModal
   const dataUnavailable =
     Boolean(marketQuotes.error) ||
     marketQuotes.data?.unavailable === true
@@ -170,7 +169,14 @@ export function MarketOverview({
             <OverviewRow
               key={item.symbol}
               item={item}
-              onSelect={openDetail}
+              onSelect={(symbol) =>
+                openSymbol(symbol, {
+                  hint: {
+                    price: item.price,
+                    changePercent: item.changePercent,
+                  },
+                })
+              }
               interactive={symbolClickEnabled}
             />
           ))}

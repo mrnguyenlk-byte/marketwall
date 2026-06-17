@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { Star, X } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -25,10 +25,22 @@ function formatUpdatedAt(iso: string, locale: string): string {
   }
 }
 
-function StockDetailContent({ asset, onClose }: { asset: MarketAsset; onClose: () => void }) {
+function StockDetailContent({
+  asset,
+  initialTab,
+  onClose,
+}: {
+  asset: MarketAsset
+  initialTab: string
+  onClose: () => void
+}) {
   const { t, lang } = useLang()
-  const [activeTab, setActiveTab] = useState("overview")
+  const [activeTab, setActiveTab] = useState(initialTab)
   const [watching, setWatching] = useState(false)
+
+  useEffect(() => {
+    setActiveTab(initialTab)
+  }, [asset.symbol, initialTab])
   const locale = lang === "vi" ? "vi-VN" : "en-US"
   const heatmapOnly = isHeatmapOnlyAsset(asset)
   const showName =
@@ -109,7 +121,7 @@ function StockDetailContent({ asset, onClose }: { asset: MarketAsset; onClose: (
 }
 
 export function StockDetailModal() {
-  const { asset, closeAsset } = useHeatmapDetail()
+  const { asset, initialTab, closeAsset } = useHeatmapDetail()
 
   useEffect(() => {
     if (!asset) return
@@ -153,7 +165,12 @@ export function StockDetailModal() {
           "sm:h-[min(88vh,820px)] sm:max-h-[88vh] sm:w-[min(92vw,960px)] sm:max-w-[960px] sm:rounded-lg",
         )}
       >
-        <StockDetailContent key={asset.symbol} asset={asset} onClose={closeAsset} />
+        <StockDetailContent
+          key={asset.symbol}
+          asset={asset}
+          initialTab={initialTab}
+          onClose={closeAsset}
+        />
       </div>
     </div>
   )

@@ -14,12 +14,11 @@ import type {
   UsHeatmapSizingMode,
 } from "@/lib/treemap/heatmap-engine"
 import { clientDebug, features } from "@/lib/config/features"
-import { useHeatmapDetail } from "@/lib/heatmap-detail-context"
+import { useOpenSymbolDetail } from "@/hooks/useOpenSymbolDetail"
 import { useLang } from "@/lib/i18n"
 import { heatmapRowsToMarketAssets } from "@/lib/market/heatmap-assets"
 import { mergeHeatmapPriceWithRealtime } from "@/lib/realtime/merge-quotes"
 import { useRealtime } from "@/lib/realtime/realtime-context"
-import { useSymbolDetail } from "@/lib/symbol-detail-context"
 import { useHeatmapMarket, useMarketsLoading, useVietnamMarkets } from "@/lib/swr/use-market-apis"
 import type { HeatmapMarket, HeatmapTile, VnExchangeId } from "@/lib/market-types"
 import type { MarketType } from "@/types/market"
@@ -122,8 +121,7 @@ function legacyTileTier(weight: number): "large" | "medium" | "small" | "tiny" {
 
 function HeatGrid({ tiles }: { tiles: HeatmapTile[] }) {
   const { lang } = useLang()
-  const { openDetail } = useSymbolDetail()
-  const symbolClickEnabled = features.symbolModal
+  const { openSymbol, enabled: symbolClickEnabled } = useOpenSymbolDetail()
 
   return (
     <div className="grid h-full grid-flow-dense auto-rows-[minmax(36px,1fr)] grid-cols-8 gap-px bg-heatmap-gap sm:grid-cols-10 md:grid-cols-12 lg:grid-cols-[repeat(14,minmax(0,1fr))] xl:grid-cols-[repeat(16,minmax(0,1fr))]">
@@ -187,7 +185,14 @@ function HeatGrid({ tiles }: { tiles: HeatmapTile[] }) {
           <button
             key={tile.symbol}
             type="button"
-            onClick={() => openDetail(tile.symbol)}
+            onClick={() => openSymbol(tile.symbol, {
+              hint: {
+                price: tile.price,
+                changePercent: tile.changePercent,
+                marketType: "vn",
+                name: tile.name,
+              },
+            })}
             style={heatStyle(tile.changePercent)}
             className={className}
             title={`${tile.name[lang]} ${up ? "+" : ""}${tile.changePercent.toFixed(2)}%`}
@@ -209,7 +214,7 @@ function filterVnExchanges(market: HeatmapMarket): HeatmapMarket {
 
 function HeatmapDetailSection() {
   const { t, lang } = useLang()
-  const { openAsset } = useHeatmapDetail()
+  const { openMarketAsset } = useOpenSymbolDetail()
   const { quoteBySymbol } = useRealtime()
   const [activeMarket, setActiveMarket] = useState<MarketType>("vn")
   const [timeframe, setTimeframe] = useState<(typeof timeframes)[number]>("1D")
@@ -414,7 +419,7 @@ function HeatmapDetailSection() {
               sizingMode={activeMarket !== "vn" ? activeSizing : undefined}
               vnMode={activeMarket === "vn" ? vnMode : undefined}
               groupLabel={(key) => t(key)}
-              onTileClick={(asset) => openAsset(asset)}
+              onTileClick={(asset) => openMarketAsset(asset)}
             />
           ) : (
             <HeatmapGridSkeleton />
