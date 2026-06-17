@@ -1,22 +1,19 @@
 import {
   allMetricsInvalid,
-  KHAC_MAX_SHARE,
   MAX_SECTOR_AREA_SHARE,
   MAX_STOCK_AREA_SHARE_IN_SECTOR,
-  MIN_VISIBLE_SHARE,
   normalizeTreemapWeights,
   packSquarified,
-  splitKhacBucket,
   TREEMAP_COMPRESSION_POWER,
 } from "@/lib/treemap/treemap-builders"
 import type { TreemapRect } from "@/lib/treemap/squarify"
 import { vnTradingValueMetric } from "@/lib/treemap/heatmap-engine"
 import {
-  normalizeVnSectorGroup,
   VN_SECTOR_GROUP_LABEL_KEYS,
   VN_SECTOR_GROUP_ORDER,
   type VnSectorGroupId,
 } from "@/lib/vietnam/sector-groups"
+import { vnSectorGroupForAsset } from "@/lib/vietnam/vn-sector-map"
 import type { MarketAsset } from "@/types/market"
 
 const INNER_ASPECT_LIMIT = 6
@@ -38,19 +35,12 @@ export type VnSectorTileLayout = {
   textTier: VnTileTextTier
 }
 
-export type VnSectorOtherBucket = {
-  symbols: string[]
-  rect: TreemapRect
-  weight: number
-}
-
 export type VnSectorBlockLayout = {
   id: VnSectorGroupId
   labelKey: string
   rect: TreemapRect
   hideLabel: boolean
   tiles: VnSectorTileLayout[]
-  other?: VnSectorOtherBucket
 }
 
 export type VnSectorTreemapLayout = {
@@ -60,9 +50,7 @@ export type VnSectorTreemapLayout = {
 /** @deprecated Use VnSectorTreemapLayout */
 export type VnSectorGridLayout = VnSectorTreemapLayout
 
-type SectorSquarifyItem =
-  | { kind: "stock"; asset: MarketAsset; weight: number }
-  | { kind: "other"; symbols: string[]; weight: number }
+type SectorSquarifyItem = { kind: "stock"; asset: MarketAsset; weight: number }
 
 function tradingValueMetric(asset: MarketAsset): number {
   return Math.max(vnTradingValueMetric(asset), 0)
@@ -166,42 +154,32 @@ function balancedGridFallback(
   })
 }
 
-function layoutSectorTreemap(
-  inner: TreemapRect,
-  assets: MarketAsset[],
-): { tiles: VnSectorTileLayout[]; other?: VnSectorOtherBucket } {
+function layoutSectorTreemap(inner: TreemapRect, assets: MarketAsset[]): VnSectorTileLayout[] {
   if (!assets.length || inner.w <= 0 || inner.h <= 0) {
-    return { tiles: [] }
+    return []
   }
 
-  const rawMetrics = assets.map((asset) => ({
-    data: asset,
-    metric: tradingValueMetric(asset),
-  }))
+  const rawMetrics = [...assets]
+    .map((asset) => ({
+      data: asset,
+      metric: tradingValueMetric(asset),
+    }))
+    .sort((a, b) => b.metric - a.metric)
 
   const normalized = normalizeTreemapWeights(rawMetrics, {
     maxShare: MAX_STOCK_AREA_SHARE_IN_SECTOR,
     power: TREEMAP_COMPRESSION_POWER.VN_STOCK_IN_SECTOR,
   })
-  const { items: visible, khac } = splitKhacBucket(normalized, {
-    minVisibleShare: MIN_VISIBLE_SHARE,
-    khacMaxShare: KHAC_MAX_SHARE,
-  })
 
-  const baseItems: SectorSquarifyItem[] = visible.map((item) => ({
-    kind: "stock",
-    asset: item.data,
-    weight: item.weight,
-  }))
-  if (khac) {
-    baseItems.push({
-      kind: "other",
-      symbols: khac.items.map((asset) => asset.symbol),
-      weight: khac.weight,
-    })
-  }
+  const baseItems: SectorSquarifyItem[] = [...normalized]
+    .sort((a, b) => b.weight - a.weight)
+    .map((item) => ({
+      kind: "stock" as const,
+      asset: item.data,
+      weight: item.weight,
+    }))
 
-  if (!baseItems.length) return { tiles: [] }
+  if (!baseItems.length) return []
 
   let chosen = squarifyPlacements(inner, baseItems, true)
   if (worstAspect(chosen) > INNER_ASPECT_LIMIT) {
@@ -209,23 +187,11 @@ function layoutSectorTreemap(
   }
 
   const innerArea = inner.w * inner.h || 1
-  const tiles: VnSectorTileLayout[] = []
-  let otherBucket: VnSectorOtherBucket | undefined
-
-  for (const { item, rect } of chosen) {
-    const share = (rect.w * rect.h) / innerArea
-    if (item.kind === "stock") {
-      tiles.push({
-        asset: item.asset,
-        rect,
-        textTier: textTierForSectorShare(share),
-      })
-    } else {
-      otherBucket = { symbols: item.symbols, rect, weight: item.weight }
-    }
-  }
-
-  return { tiles, other: otherBucket }
+  return chosen.map(({ item, rect }) => ({
+    asset: item.asset,
+    rect,
+    textTier: textTierForSectorShare((rect.w * rect.h) / innerArea),
+  }))
 }
 
 function layoutSectorBlock(
@@ -242,7 +208,7 @@ function layoutSectorBlock(
     h: Math.max(rect.h - headerH, 0),
   }
 
-  const { tiles, other: otherBucket } = layoutSectorTreemap(inner, assets)
+  const tiles = layoutSectorTreemap(inner, assets)
 
   return {
     id,
@@ -250,7 +216,6 @@ function layoutSectorBlock(
     rect,
     hideLabel,
     tiles,
-    other: otherBucket,
   }
 }
 
@@ -259,10 +224,12 @@ function layoutRootSectors(
   buckets: Map<VnSectorGroupId, MarketAsset[]>,
 ): Array<{ id: VnSectorGroupId; rect: TreemapRect }> {
   const root: TreemapRect = { x: 0, y: 0, w: 1, h: 1 }
-  const rootRaw = present.map((id) => ({
-    data: id,
-    metric: (buckets.get(id) ?? []).reduce((sum, asset) => sum + tradingValueMetric(asset), 0),
-  }))
+  const rootRaw = present
+    .map((id) => ({
+      data: id,
+      metric: (buckets.get(id) ?? []).reduce((sum, asset) => sum + tradingValueMetric(asset), 0),
+    }))
+    .sort((a, b) => b.metric - a.metric)
   const metricsInvalid = allMetricsInvalid(
     rootRaw.map((item) => ({ data: item.data, value: item.metric })),
   )
@@ -271,10 +238,12 @@ function layoutRootSectors(
     maxShare: MAX_SECTOR_AREA_SHARE,
     power: TREEMAP_COMPRESSION_POWER.VN_SECTOR_ROOT,
   })
-  const weighted = normalized.map((item) => ({
-    data: item.data,
-    value: item.weight,
-  }))
+  const weighted = [...normalized]
+    .sort((a, b) => b.weight - a.weight)
+    .map((item) => ({
+      data: item.data,
+      value: item.weight,
+    }))
 
   const nodes = packSquarified(weighted, root, {
     allowEqualGridFallback: metricsInvalid,
@@ -295,7 +264,7 @@ export function buildSectorGroupedTreemap(assets: MarketAsset[]): VnSectorTreema
     buckets.set(id, [])
   }
   for (const asset of assets) {
-    const id = normalizeVnSectorGroup(asset.sector)
+    const id = vnSectorGroupForAsset(asset)
     buckets.get(id)?.push(asset)
   }
 
@@ -325,7 +294,7 @@ export const buildVietnamSectorGridLayout = buildSectorGroupedTreemap
 export function countVnSectorTreemapTiles(layout: VnSectorTreemapLayout): Record<string, number> {
   const counts: Record<string, number> = {}
   for (const sector of layout.sectors) {
-    counts[sector.id] = sector.tiles.length + (sector.other ? 1 : 0)
+    counts[sector.id] = sector.tiles.length
   }
   counts.total = layout.sectors.reduce((s, sec) => s + sec.tiles.length, 0)
   return counts
@@ -358,12 +327,6 @@ export function analyzeVnSectorTreemapLayout(layout: VnSectorTreemapLayout): {
           (tile.rect.w * tile.rect.h) / innerArea,
         )
       }
-    }
-    if (sector.other && innerArea > 0) {
-      maxTileSectorAreaShare = Math.max(
-        maxTileSectorAreaShare,
-        (sector.other.rect.w * sector.other.rect.h) / innerArea,
-      )
     }
   }
 

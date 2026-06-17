@@ -4,9 +4,9 @@ import { sizeMetric, sortBySizeMetric, type VnHeatmapSizingMode } from "./heatma
 import {
   VN_SECTOR_GROUP_LABEL_KEYS,
   VN_SECTOR_GROUP_ORDER,
-  normalizeVnSectorGroup,
   type VnSectorGroupId,
 } from "./sector-groups"
+import { vnSectorGroupForAsset } from "@/lib/vietnam/vn-sector-map"
 
 export type SectorTreemapBlock = {
   id: VnSectorGroupId
@@ -28,7 +28,7 @@ export function buildSectorTreemapBlocks(
   }
 
   for (const asset of assets) {
-    const group = normalizeVnSectorGroup(asset.sector)
+    const group = vnSectorGroupForAsset(asset)
     buckets.get(group)?.push(asset)
   }
 

@@ -10,29 +10,45 @@ export const VN_SECTOR_GROUP_ORDER = [
   "technology",
   "utilities",
   "industrial",
-  "other",
+  "consumer",
+  "insurance",
+  "chemicals",
+  "healthcare",
+  "unclassified",
 ] as const
 
 export type VnSectorGroupId = (typeof VN_SECTOR_GROUP_ORDER)[number]
 
-const SECTOR_TO_GROUP: Record<string, VnSectorGroupId> = {
+export const SECTOR_TO_GROUP: Record<string, VnSectorGroupId> = {
   Banking: "banking",
   "Real Estate": "realEstate",
   Brokerage: "securities",
   Securities: "securities",
   Steel: "steel",
+  Materials: "steel",
   Energy: "oilGas",
   "Oil & Gas": "oilGas",
   Retail: "retail",
   Technology: "technology",
   Utilities: "utilities",
   Industrial: "industrial",
+  Logistics: "industrial",
+  Transport: "industrial",
+  Consumer: "consumer",
+  Insurance: "insurance",
+  Chemicals: "chemicals",
+  Chemical: "chemicals",
+  Healthcare: "healthcare",
+  "Chưa phân loại": "unclassified",
 }
 
 export function normalizeVnSectorGroup(sector: string): VnSectorGroupId {
   const trimmed = sector.trim()
-  if (!trimmed || trimmed === "—" || trimmed === "Equity") return "other"
-  return SECTOR_TO_GROUP[trimmed] ?? "other"
+  if (!trimmed || trimmed === "—" || trimmed === "Equity") return "unclassified"
+  if (trimmed === "Khác" || trimmed === "KHÁC" || trimmed.toLowerCase() === "other") {
+    return "unclassified"
+  }
+  return SECTOR_TO_GROUP[trimmed] ?? "unclassified"
 }
 
 export const VN_SECTOR_GROUP_LABEL_KEYS: Record<VnSectorGroupId, string> = {
@@ -45,5 +61,9 @@ export const VN_SECTOR_GROUP_LABEL_KEYS: Record<VnSectorGroupId, string> = {
   technology: "sector.technology",
   utilities: "sector.utilities",
   industrial: "sector.industrial",
-  other: "sector.other",
+  consumer: "sector.consumer",
+  insurance: "sector.insurance",
+  chemicals: "sector.chemicals",
+  healthcare: "sector.healthcare",
+  unclassified: "sector.unclassified",
 }

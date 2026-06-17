@@ -9,7 +9,6 @@ import {
   tierToTileSize,
 } from "@/lib/vietnam/vietnam-sector-grid-layout"
 import type { MarketAsset } from "@/types/market"
-import { cn } from "@/lib/utils"
 
 type VietnamSectorGridHeatmapProps = {
   assets: MarketAsset[]
@@ -69,24 +68,6 @@ export function VietnamSectorGridHeatmap({
               onClick={onTileClick}
             />
           )),
-        )}
-
-        {layout.sectors.map(
-          (sector) =>
-            sector.other && (
-              <div
-                key={`other-${sector.id}`}
-                className={cn(
-                  "absolute flex items-center justify-center border border-black/20 bg-secondary/80 p-0.5",
-                )}
-                style={rectStyle(sector.other.rect)}
-                title={sector.other.symbols.join(", ")}
-              >
-                <span className="text-[9px] font-bold uppercase tracking-wide text-foreground/90">
-                  Khác
-                </span>
-              </div>
-            ),
         )}
       </div>
     </TooltipProvider>

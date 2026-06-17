@@ -169,7 +169,11 @@ export function buildFlatVnTreemapLayout(
   metricFn: (asset: MarketAsset) => number,
   options?: { power?: number },
 ): VnFlatTreemapLayout {
-  const leaves = buildFlatMetricTreemap(assets, metricFn, undefined, {
+  const leaves = buildFlatMetricTreemap(
+    [...assets].sort((a, b) => metricFn(b) - metricFn(a)),
+    metricFn,
+    undefined,
+    {
     allowEqualGridFallback: false,
     maxShare: VN_MAX_ITEM_AREA_SHARE,
     power: options?.power,

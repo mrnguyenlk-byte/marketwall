@@ -23,10 +23,7 @@ import {
   MAX_ITEM_AREA_SHARE,
   MAX_SECTOR_AREA_SHARE,
   MAX_STOCK_AREA_SHARE_IN_SECTOR,
-  MIN_VISIBLE_SHARE,
-  KHAC_MAX_SHARE,
   normalizeTreemapWeights,
-  splitKhacBucket,
   TREEMAP_COMPRESSION_POWER,
 } from "@/lib/treemap/treemap-builders"
 import {
@@ -42,7 +39,10 @@ import {
   type VnSectorTreemapLayout,
 } from "@/lib/vietnam/vietnam-sector-grid-layout"
 import {
-  normalizeVnSectorGroup,
+  countVnSectorSources,
+  vnSectorGroupForAsset,
+} from "@/lib/vietnam/vn-sector-map"
+import {
   VN_SECTOR_GROUP_LABEL_KEYS,
   VN_SECTOR_GROUP_ORDER,
   type VnSectorGroupId,
@@ -114,6 +114,15 @@ type SectorModeReport = {
   sectorCount: number
   totalMetric: number
   invalidMetricCount: number
+  sectorMapping: {
+    provider: number
+    fallback: number
+    unmapped: number
+    unmappedSymbols: string[]
+  }
+  sectorLayoutOrder: Array<{ id: string; label: string }>
+  topLeftSector: { id: string; label: string } | null
+  topLeftStockBySector: Array<{ sectorId: string; symbol: string }>
   topRawSectors: Array<{ id: string; label: string; metric: number }>
   topSectorShares: WeightRow[]
   maxRootShare: number
@@ -193,12 +202,19 @@ function collectLeafRects(layout: { leaves: TreemapLayoutNode<MarketAsset>[] }):
   return layout.leaves.map((leaf) => leaf.rect)
 }
 
+function layoutTopLeftOrder<T extends { rect: TreemapRect }>(items: T[]): T[] {
+  return [...items].sort((a, b) => {
+    const dy = a.rect.y - b.rect.y
+    if (Math.abs(dy) > 1e-6) return dy
+    return a.rect.x - b.rect.x
+  })
+}
+
 function collectSectorRects(layout: VnSectorTreemapLayout): TreemapRect[] {
   const rects: TreemapRect[] = []
   for (const sector of layout.sectors) {
     rects.push(sector.rect)
     for (const tile of sector.tiles) rects.push(tile.rect)
-    if (sector.other) rects.push(sector.other.rect)
   }
   return rects
 }
@@ -267,11 +283,12 @@ function analyzeSectorMode(
   layout: VnSectorTreemapLayout,
 ): SectorModeReport {
   const metricFn = (asset: MarketAsset) => Math.max(vnTradingValueMetric(asset), 0)
+  const sectorMapping = countVnSectorSources(assets)
 
   const buckets = new Map<VnSectorGroupId, MarketAsset[]>()
   for (const id of VN_SECTOR_GROUP_ORDER) buckets.set(id, [])
   for (const asset of assets) {
-    buckets.get(normalizeVnSectorGroup(asset.sector))?.push(asset)
+    buckets.get(vnSectorGroupForAsset(asset))?.push(asset)
   }
 
   const present = VN_SECTOR_GROUP_ORDER.filter((id) => (buckets.get(id)?.length ?? 0) > 0)
@@ -309,45 +326,40 @@ function analyzeSectorMode(
     for (const tile of sector.tiles) {
       maxInnerShare = Math.max(maxInnerShare, (tile.rect.w * tile.rect.h) / innerArea)
     }
-    if (sector.other) {
-      maxInnerShare = Math.max(
-        maxInnerShare,
-        (sector.other.rect.w * sector.other.rect.h) / innerArea,
-      )
-    }
   }
 
   const largestSector = [...sectorMetrics].sort((a, b) => b.metric - a.metric)[0]
   const sampleInnerNorm = normalizeTreemapWeights(
     largestSector.assets
       .map((a) => ({ data: a, metric: metricFn(a) }))
-      .filter((r) => r.metric > 0),
+      .filter((r) => r.metric > 0)
+      .sort((a, b) => b.metric - a.metric),
     {
       maxShare: MAX_STOCK_AREA_SHARE_IN_SECTOR,
       power: TREEMAP_COMPRESSION_POWER.VN_STOCK_IN_SECTOR,
     },
   )
-  const { items: sampleVisible, khac: sampleKhac } = splitKhacBucket(sampleInnerNorm, {
-    minVisibleShare: MIN_VISIBLE_SHARE,
-    khacMaxShare: KHAC_MAX_SHARE,
-  })
-  const sampleShareRows: WeightRow[] = sampleVisible.map((item) => ({
+  const sampleShareRows: WeightRow[] = sampleInnerNorm.map((item) => ({
     symbol: item.data.symbol,
     metric: item.metric,
     share: item.weight,
   }))
-  if (sampleKhac) {
-    sampleShareRows.push({
-      symbol: `Khác (${sampleKhac.items.length})`,
-      metric: sampleKhac.metric,
-      share: sampleKhac.weight,
-    })
-  }
 
-  const layoutTileCount = layout.sectors.reduce(
-    (sum, s) => sum + s.tiles.length + (s.other ? 1 : 0),
-    0,
-  )
+  const layoutTileCount = layout.sectors.reduce((sum, s) => sum + s.tiles.length, 0)
+
+  const orderedSectors = layoutTopLeftOrder(layout.sectors)
+  const sectorLayoutOrder = orderedSectors.map((sector) => ({
+    id: sector.id,
+    label: VN_SECTOR_GROUP_LABEL_KEYS[sector.id],
+  }))
+  const topLeftSector = sectorLayoutOrder[0] ?? null
+  const topLeftStockBySector = orderedSectors.map((sector) => {
+    const topTile = layoutTopLeftOrder(sector.tiles)[0]
+    return {
+      sectorId: sector.id,
+      symbol: topTile?.asset.symbol ?? "—",
+    }
+  })
 
   let maxSectorAspect = 0
   let maxStockAspect = 0
@@ -370,21 +382,6 @@ function analyzeSectorMode(
       }
       if (tileAspect > worstStock.aspect) {
         worstStock = { symbol: tile.asset.symbol, aspect: tileAspect, sectorId: sector.id }
-      }
-    }
-    if (sector.other) {
-      const otherAspect = aspectRatio(sector.other.rect)
-      maxStockAspect = Math.max(maxStockAspect, otherAspect)
-      if (otherAspect > maxInnerTileAspect) {
-        maxInnerTileAspect = otherAspect
-        worstInnerSymbol = `Khác (${sector.other.symbols.length})`
-      }
-      if (otherAspect > worstStock.aspect) {
-        worstStock = {
-          symbol: `Khác (${sector.other.symbols.length})`,
-          aspect: otherAspect,
-          sectorId: sector.id,
-        }
       }
     }
 
@@ -420,6 +417,10 @@ function analyzeSectorMode(
     sectorCount: present.length,
     totalMetric,
     invalidMetricCount,
+    sectorMapping,
+    sectorLayoutOrder,
+    topLeftSector,
+    topLeftStockBySector,
     topRawSectors: [...sectorMetrics]
       .sort((a, b) => b.metric - a.metric)
       .slice(0, 10)
@@ -504,6 +505,28 @@ function printSectorReport(r: SectorModeReport) {
   console.log(`metricField: ${r.metricField}`)
   console.log(`totalMetric: ${fmtNum(r.totalMetric)}`)
   console.log(`invalidMetricCount: ${r.invalidMetricCount}`)
+  console.log("")
+  console.log("--- Sector mapping ---")
+  console.log(`provider: ${r.sectorMapping.provider}`)
+  console.log(`fallback: ${r.sectorMapping.fallback}`)
+  console.log(`unmapped: ${r.sectorMapping.unmapped}`)
+  if (r.sectorMapping.unmappedSymbols.length) {
+    console.log(`unmappedSymbols: ${r.sectorMapping.unmappedSymbols.join(", ")}`)
+  }
+  console.log("")
+  console.log("--- Sector layout order (top-left → bottom-right) ---")
+  for (const [i, sector] of r.sectorLayoutOrder.entries()) {
+    console.log(`  ${i + 1}. ${sector.id.padEnd(12)} ${sector.label}`)
+  }
+  if (r.topLeftSector) {
+    console.log(
+      `topLeftSector: ${r.topLeftSector.id} (${r.topLeftSector.label})`,
+    )
+  }
+  console.log("--- Top-left stock per sector ---")
+  for (const row of r.topLeftStockBySector) {
+    console.log(`  ${row.sectorId.padEnd(12)} ${row.symbol}`)
+  }
   console.log("")
   console.log("--- Top 10 root sectors by raw metric ---")
   for (const [i, row] of r.topRawSectors.entries()) {
@@ -664,7 +687,7 @@ function analyzeProprietaryFlatMode(
 async function main() {
   console.log("Heatmap debug report")
   console.log(`generatedAt: ${new Date().toISOString()}`)
-  console.log(`branch: heatmap-rewrite`)
+  console.log(`branch: main`)
 
   const vnModes: Array<{ mode: VnHeatmapMode; label: string; metricField: string }> = [
     {

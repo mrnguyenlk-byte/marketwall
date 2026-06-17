@@ -532,17 +532,21 @@ export function buildFlatMetricTreemap<T>(
 ): TreemapLayoutNode<T>[] {
   const maxShare = options?.maxShare ?? MAX_ITEM_AREA_SHARE
   const power = options?.power ?? TREEMAP_COMPRESSION_POWER.DEFAULT
-  const raw = items.map((item) => ({
-    data: item,
-    metric: metric(item),
-  }))
+  const raw = [...items]
+    .map((item) => ({
+      data: item,
+      metric: metric(item),
+    }))
+    .sort((a, b) => b.metric - a.metric)
   const rawForInvalid = raw.map((item) => ({ data: item.data, value: item.metric }))
 
   const normalized = normalizeTreemapWeights(raw, { maxShare, power })
-  const weighted = normalized.map((item) => ({
-    data: item.data,
-    value: item.weight,
-  }))
+  const weighted = [...normalized]
+    .sort((a, b) => b.weight - a.weight)
+    .map((item) => ({
+      data: item.data,
+      value: item.weight,
+    }))
 
   return packSquarified(weighted, rect, {
     allowEqualGridFallback:
@@ -594,10 +598,16 @@ export function buildGroupedSectorTreemap<T>(
     buckets.set(key, list)
   }
 
-  const groups = [...buckets.entries()].map(([id, groupItems]) => ({
-    data: id,
-    items: groupItems,
-  }))
+  const groups = [...buckets.entries()]
+    .map(([id, groupItems]) => ({
+      data: id,
+      items: [...groupItems].sort((a, b) => metric(b) - metric(a)),
+    }))
+    .sort(
+      (a, b) =>
+        b.items.reduce((sum, item) => sum + metric(item), 0) -
+        a.items.reduce((sum, item) => sum + metric(item), 0),
+    )
 
   return buildGroupedSectorTreemapFromGroups(groups, metric, {
     rect,
@@ -631,10 +641,12 @@ function buildGroupedSectorTreemapFromGroups<T, G>(
     return { groups: [], leaves: [] }
   }
 
-  const rootRaw = nonEmpty.map((group) => ({
-    data: group,
-    metric: group.items.reduce((sum, item) => sum + itemMetric(item), 0),
-  }))
+  const rootRaw = [...nonEmpty]
+    .map((group) => ({
+      data: group,
+      metric: group.items.reduce((sum, item) => sum + itemMetric(item), 0),
+    }))
+    .sort((a, b) => b.metric - a.metric)
   const rootRawForInvalid = rootRaw.map((item) => ({
     data: item.data,
     value: item.metric,
@@ -644,10 +656,12 @@ function buildGroupedSectorTreemapFromGroups<T, G>(
     maxShare: maxSectorShare,
     power: sectorPower,
   })
-  const rootWeighted = rootNormalized.map((item) => ({
-    data: item.data,
-    value: item.weight,
-  }))
+  const rootWeighted = [...rootNormalized]
+    .sort((a, b) => b.weight - a.weight)
+    .map((item) => ({
+      data: item.data,
+      value: item.weight,
+    }))
 
   const rootPacked = packSquarified(rootWeighted, rect, {
     allowEqualGridFallback: allMetricsInvalid(rootRawForInvalid),
@@ -704,10 +718,12 @@ export function buildGroupedSquarifiedTreemap<T, G>(
     return { groups: [], leaves: [] }
   }
 
-  const rootRaw = nonEmpty.map((group) => ({
-    data: group,
-    metric: groupMetric(group),
-  }))
+  const rootRaw = [...nonEmpty]
+    .map((group) => ({
+      data: group,
+      metric: groupMetric(group),
+    }))
+    .sort((a, b) => b.metric - a.metric)
   const rootRawForInvalid = rootRaw.map((item) => ({
     data: item.data,
     value: item.metric,
@@ -717,10 +733,12 @@ export function buildGroupedSquarifiedTreemap<T, G>(
     maxShare: maxSectorShare,
     power: sectorPower,
   })
-  const rootWeighted = rootNormalized.map((item) => ({
-    data: item.data,
-    value: item.weight,
-  }))
+  const rootWeighted = [...rootNormalized]
+    .sort((a, b) => b.weight - a.weight)
+    .map((item) => ({
+      data: item.data,
+      value: item.weight,
+    }))
 
   const rootPacked = packSquarified(rootWeighted, rect, {
     allowEqualGridFallback: allMetricsInvalid(rootRawForInvalid),

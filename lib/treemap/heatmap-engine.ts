@@ -155,9 +155,10 @@ export function buildFlatMarketHeatmapLayout(
       : sizing === "volume"
         ? TREEMAP_COMPRESSION_POWER.CRYPTO_VOLUME
         : TREEMAP_COMPRESSION_POWER.DEFAULT
+  const sorted = [...assets].sort((a, b) => metric(b) - metric(a))
   return {
     groups: [],
-    leaves: buildFlatMetricTreemap(assets, metric, rect, {
+    leaves: buildFlatMetricTreemap(sorted, metric, rect, {
       allowEqualGridFallback: false,
       power,
       forceWeightedFallback: marketType === "crypto",
