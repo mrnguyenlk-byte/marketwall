@@ -232,6 +232,22 @@
   animation: live-pulse 1.6s ease-in-out infinite;
 }
 
+@keyframes live-dot-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(0.82);
+  }
+}
+
+@utility animate-live-dot-pulse {
+  animation: live-dot-pulse 1.2s ease-in-out infinite;
+}
+
 /* Dashboard layout — Sprint 37 root grid + sticky offset */
 :root {
   --dashboard-header-height: 44px;
