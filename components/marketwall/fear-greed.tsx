@@ -110,9 +110,21 @@ export function FearGreed({
                 compact ? "px-1.5 py-1" : "px-3 py-2",
               )}
             >
-              <p className={cn("type-secondary-label font-semibold text-foreground", !compact && "type-table")}>
-                {t(g.key)}
-              </p>
+              <div
+                className={cn(
+                  "flex w-full min-h-[28px] items-center justify-center px-1",
+                  !compact && "min-h-[32px]",
+                )}
+              >
+                <p
+                  className={cn(
+                    "type-secondary-label text-center text-balance font-semibold leading-tight text-foreground line-clamp-2",
+                    !compact && "type-table",
+                  )}
+                >
+                  {t(g.key)}
+                </p>
+              </div>
               <div className="relative w-full py-0.5">
                 <Gauge value={g.value} compact={compact} />
                 <span
