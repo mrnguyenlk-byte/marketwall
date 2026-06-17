@@ -105,12 +105,18 @@ export function squarify<T>(
   if (total <= 0) return []
 
   const containerArea = rect.w * rect.h
-  const normalized = items
-    .map((item) => ({
-      ...item,
-      value: Math.max(item.value, minValue) * (containerArea / total),
-    }))
-    .sort((a, b) => b.value - a.value)
+  const normalized = items.map((item, index) => ({
+    ...item,
+    index,
+    value: Math.max(item.value, minValue) * (containerArea / total),
+  }))
+  // Bruls requires descending values; preserve caller insertion order on ties.
+  for (let i = 1; i < normalized.length; i++) {
+    if (normalized[i].value > normalized[i - 1].value + 1e-15) {
+      normalized.sort((a, b) => b.value - a.value || a.index - b.index)
+      break
+    }
+  }
 
   const normalizedTotal = sumValues(normalized)
   const out: TreemapLayoutNode<T>[] = []

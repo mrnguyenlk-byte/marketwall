@@ -94,10 +94,23 @@ type FlatModeReport = {
   renderedWithFallback?: boolean
 }
 
+type TilePositionDiagnostic = {
+  symbol: string
+  sectorId: string
+  sectorLabel: string
+  share: number
+  x: number
+  y: number
+  w: number
+  h: number
+}
+
 type SectorDiagnostic = {
   id: string
   label: string
   areaShare: number
+  x: number
+  y: number
   w: number
   h: number
   aspect: number
@@ -123,6 +136,9 @@ type SectorModeReport = {
   sectorLayoutOrder: Array<{ id: string; label: string }>
   topLeftSector: { id: string; label: string } | null
   topLeftStockBySector: Array<{ sectorId: string; symbol: string }>
+  topLeftTiles: TilePositionDiagnostic[]
+  bottomRightTiles: TilePositionDiagnostic[]
+  tilePositionMethod: string
   topRawSectors: Array<{ id: string; label: string; metric: number }>
   topSectorShares: WeightRow[]
   maxRootShare: number
@@ -208,6 +224,46 @@ function layoutTopLeftOrder<T extends { rect: TreemapRect }>(items: T[]): T[] {
     if (Math.abs(dy) > 1e-6) return dy
     return a.rect.x - b.rect.x
   })
+}
+
+function layoutBottomRightOrder<T extends { rect: TreemapRect }>(items: T[]): T[] {
+  return [...items].sort((a, b) => {
+    const scoreA = a.rect.x + a.rect.y + a.rect.w + a.rect.h
+    const scoreB = b.rect.x + b.rect.y + b.rect.w + b.rect.h
+    if (Math.abs(scoreA - scoreB) > 1e-6) return scoreB - scoreA
+    const dy = b.rect.y - a.rect.y
+    if (Math.abs(dy) > 1e-6) return dy
+    return b.rect.x - a.rect.x
+  })
+}
+
+function collectStockTileDiagnostics(
+  layout: VnSectorTreemapLayout,
+): TilePositionDiagnostic[] {
+  const tiles: TilePositionDiagnostic[] = []
+
+  for (const sector of layout.sectors) {
+    const headerH = sector.hideLabel
+      ? 0
+      : Math.min(Math.max(sector.rect.h * 0.07, 18 / 1080), 22 / 1080)
+    const innerArea = sector.rect.w * Math.max(sector.rect.h - headerH, 0) || 1
+
+    for (const tile of sector.tiles) {
+      const tileArea = tile.rect.w * tile.rect.h
+      tiles.push({
+        symbol: tile.asset.symbol,
+        sectorId: sector.id,
+        sectorLabel: vnSectorViLabel(sector.id),
+        share: tileArea / innerArea,
+        x: tile.rect.x,
+        y: tile.rect.y,
+        w: tile.rect.w,
+        h: tile.rect.h,
+      })
+    }
+  }
+
+  return tiles
 }
 
 function collectSectorRects(layout: VnSectorTreemapLayout): TreemapRect[] {
@@ -361,6 +417,18 @@ function analyzeSectorMode(
     }
   })
 
+  const stockTiles = collectStockTileDiagnostics(layout)
+  const topLeftTiles = layoutTopLeftOrder(
+    stockTiles.map((tile) => ({ ...tile, rect: { x: tile.x, y: tile.y, w: tile.w, h: tile.h } })),
+  )
+    .slice(0, 10)
+    .map(({ rect: _rect, ...tile }) => tile)
+  const bottomRightTiles = layoutBottomRightOrder(
+    stockTiles.map((tile) => ({ ...tile, rect: { x: tile.x, y: tile.y, w: tile.w, h: tile.h } })),
+  )
+    .slice(0, 10)
+    .map(({ rect: _rect, ...tile }) => tile)
+
   let maxSectorAspect = 0
   let maxStockAspect = 0
   let worstSector = { id: "", label: "", aspect: 0 }
@@ -398,6 +466,8 @@ function analyzeSectorMode(
       id: sector.id,
       label: vnSectorViLabel(sector.id),
       areaShare,
+      x: sector.rect.x,
+      y: sector.rect.y,
       w: sector.rect.w,
       h: sector.rect.h,
       aspect: sectorAspect,
@@ -421,6 +491,10 @@ function analyzeSectorMode(
     sectorLayoutOrder,
     topLeftSector,
     topLeftStockBySector,
+    topLeftTiles,
+    bottomRightTiles,
+    tilePositionMethod:
+      "top-left: sort by (y asc, x asc) on root-normalized coords; bottom-right: sort by (x+y+w+h desc)",
     topRawSectors: [...sectorMetrics]
       .sort((a, b) => b.metric - a.metric)
       .slice(0, 10)
@@ -528,6 +602,20 @@ function printSectorReport(r: SectorModeReport) {
     console.log(`  ${row.sectorId.padEnd(12)} ${row.symbol}`)
   }
   console.log("")
+  console.log(`--- Top-left 10 tiles (${r.tilePositionMethod}) ---`)
+  for (const [i, tile] of r.topLeftTiles.entries()) {
+    console.log(
+      `  ${i + 1}. ${tile.symbol.padEnd(8)} ${tile.sectorId.padEnd(12)} share=${fmtPct(tile.share).padEnd(7)} x=${tile.x.toFixed(4)} y=${tile.y.toFixed(4)} w=${tile.w.toFixed(4)} h=${tile.h.toFixed(4)}`,
+    )
+  }
+  console.log("")
+  console.log(`--- Bottom-right 10 tiles (${r.tilePositionMethod}) ---`)
+  for (const [i, tile] of r.bottomRightTiles.entries()) {
+    console.log(
+      `  ${i + 1}. ${tile.symbol.padEnd(8)} ${tile.sectorId.padEnd(12)} share=${fmtPct(tile.share).padEnd(7)} x=${tile.x.toFixed(4)} y=${tile.y.toFixed(4)} w=${tile.w.toFixed(4)} h=${tile.h.toFixed(4)}`,
+    )
+  }
+  console.log("")
   console.log("--- Top 10 root sectors by raw metric ---")
   for (const [i, row] of r.topRawSectors.entries()) {
     console.log(`  ${i + 1}. ${row.id.padEnd(12)} ${row.label.padEnd(24)} ${fmtNum(row.metric)}`)
@@ -567,7 +655,7 @@ function printSectorReport(r: SectorModeReport) {
   for (const d of r.sectorDiagnostics) {
     const flag = d.aspect > 20 || d.maxInnerTileAspect > 20 ? " ***" : ""
     console.log(
-      `  ${d.id.padEnd(12)} share=${fmtPct(d.areaShare)} w=${d.w.toFixed(4)} h=${d.h.toFixed(4)} sectorAspect=${d.aspect.toFixed(3)} maxInner=${d.maxInnerTileAspect.toFixed(3)} (${d.worstInnerSymbol})${flag}`,
+      `  ${d.id.padEnd(12)} share=${fmtPct(d.areaShare)} x=${d.x.toFixed(4)} y=${d.y.toFixed(4)} w=${d.w.toFixed(4)} h=${d.h.toFixed(4)} sectorAspect=${d.aspect.toFixed(3)} maxInner=${d.maxInnerTileAspect.toFixed(3)} (${d.worstInnerSymbol})${flag}`,
     )
   }
 }
