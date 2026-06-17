@@ -5,9 +5,9 @@ import { ArrowUpRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { MarketHeatmap } from "@/components/heatmap/MarketHeatmap"
 import {
-  DEFAULT_VN_HEATMAP_SIZING,
-  type VnHeatmapSizingMode,
-} from "@/lib/vietnam/heatmap-sizing"
+  DEFAULT_VN_HEATMAP_MODE,
+  type VnHeatmapMode,
+} from "@/lib/vietnam/vn-heatmap-modes"
 import type {
   CryptoHeatmapSizingMode,
   HeatmapGroupingMode,
@@ -213,8 +213,7 @@ function HeatmapDetailSection() {
   const { quoteBySymbol } = useRealtime()
   const [activeMarket, setActiveMarket] = useState<MarketType>("vn")
   const [timeframe, setTimeframe] = useState<(typeof timeframes)[number]>("1D")
-  const [vnGrouping, setVnGrouping] = useState<HeatmapGroupingMode>("sector")
-  const [vnSizing, setVnSizing] = useState<VnHeatmapSizingMode>(DEFAULT_VN_HEATMAP_SIZING)
+  const [vnMode, setVnMode] = useState<VnHeatmapMode>(DEFAULT_VN_HEATMAP_MODE)
   const [usGrouping, setUsGrouping] = useState<HeatmapGroupingMode>("sector")
   const [usSizing, setUsSizing] = useState<UsHeatmapSizingMode>("marketCap")
   const [cryptoGrouping, setCryptoGrouping] = useState<HeatmapGroupingMode>("category")
@@ -246,9 +245,8 @@ function HeatmapDetailSection() {
   const activeTab = DETAIL_MARKET_TABS.find((tab) => tab.id === activeMarket) ?? DETAIL_MARKET_TABS[0]
 
   const activeGrouping =
-    activeMarket === "vn" ? vnGrouping : activeMarket === "us" ? usGrouping : cryptoGrouping
-  const activeSizing =
-    activeMarket === "vn" ? vnSizing : activeMarket === "us" ? usSizing : cryptoSizing
+    activeMarket === "us" ? usGrouping : activeMarket === "crypto" ? cryptoGrouping : "sector"
+  const activeSizing = activeMarket === "us" ? usSizing : activeMarket === "crypto" ? cryptoSizing : "volume"
 
   return (
     <section aria-labelledby="heatmap-title" className="min-w-0">
@@ -266,36 +264,24 @@ function HeatmapDetailSection() {
           action={
             <div className="flex w-full shrink-0 flex-wrap items-center gap-2 sm:ml-auto sm:w-auto">
             {activeMarket === "vn" && (
-              <>
-                <ControlGroup>
-                  <ControlPill active={vnGrouping === "sector"} onClick={() => setVnGrouping("sector")}>
-                    {t("heatmap.groupBySector")}
-                  </ControlPill>
+              <ControlGroup>
+                {(
+                  [
+                    ["sector-volume", "heatmap.modeSectorVolume"],
+                    ["market-cap", "heatmap.modeMarketCap"],
+                    ["foreign-flow", "heatmap.modeForeignFlow"],
+                    ["proprietary-flow", "heatmap.modeProprietaryFlow"],
+                  ] as const
+                ).map(([mode, labelKey]) => (
                   <ControlPill
-                    active={vnGrouping === "marketCap"}
-                    onClick={() => setVnGrouping("marketCap")}
+                    key={mode}
+                    active={vnMode === mode}
+                    onClick={() => setVnMode(mode)}
                   >
-                    {t("heatmap.groupByMarketCap")}
+                    {t(labelKey)}
                   </ControlPill>
-                </ControlGroup>
-                <ControlGroup>
-                  {(
-                    [
-                      ["tradingValue", "heatmap.sizeTradingValue"],
-                      ["volume", "heatmap.sizeVolume"],
-                      ["marketCap", "heatmap.sizeMarketCap"],
-                    ] as const
-                  ).map(([mode, labelKey]) => (
-                    <ControlPill
-                      key={mode}
-                      active={vnSizing === mode}
-                      onClick={() => setVnSizing(mode)}
-                    >
-                      {t(labelKey)}
-                    </ControlPill>
-                  ))}
-                </ControlGroup>
-              </>
+                ))}
+              </ControlGroup>
             )}
             {activeMarket === "us" && (
               <>
@@ -425,7 +411,8 @@ function HeatmapDetailSection() {
               locale={lang}
               marketType={activeMarket}
               groupingMode={activeGrouping}
-              sizingMode={activeSizing}
+              sizingMode={activeMarket !== "vn" ? activeSizing : undefined}
+              vnMode={activeMarket === "vn" ? vnMode : undefined}
               groupLabel={(key) => t(key)}
               onTileClick={(asset) => openAsset(asset)}
             />

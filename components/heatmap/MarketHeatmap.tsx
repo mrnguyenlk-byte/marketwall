@@ -3,17 +3,18 @@
 import { useMemo } from "react"
 
 import { FinvizTreemap } from "@/components/heatmap/FinvizTreemap"
+import { VietnamFlatTreemap } from "@/components/heatmap/VietnamFlatTreemap"
 import { VietnamSectorGridHeatmap } from "@/components/heatmap/VietnamSectorGridHeatmap"
 import { limitHeatmapAssets } from "@/lib/market/heatmap-limits"
-import {
-  DEFAULT_VN_HEATMAP_SIZING,
-  type VnHeatmapSizingMode,
-} from "@/lib/vietnam/heatmap-sizing"
 import type {
   CryptoHeatmapSizingMode,
   HeatmapGroupingMode,
   UsHeatmapSizingMode,
 } from "@/lib/treemap/heatmap-engine"
+import {
+  DEFAULT_VN_HEATMAP_MODE,
+  type VnHeatmapMode,
+} from "@/lib/vietnam/vn-heatmap-modes"
 import type { Lang } from "@/lib/i18n"
 import type { MarketAsset, MarketType } from "@/types/market"
 
@@ -24,14 +25,17 @@ type MarketHeatmapProps = {
   locale: Lang
   marketType: MarketType
   groupingMode?: HeatmapGroupingMode
-  sizingMode?: VnHeatmapSizingMode | UsHeatmapSizingMode | CryptoHeatmapSizingMode
+  sizingMode?: UsHeatmapSizingMode | CryptoHeatmapSizingMode
+  vnMode?: VnHeatmapMode
   groupLabel?: (key: string) => string
   onTileClick: (asset: MarketAsset) => void
 }
 
-function defaultSizing(marketType: MarketType): VnHeatmapSizingMode | UsHeatmapSizingMode | CryptoHeatmapSizingMode {
-  if (marketType === "vn") return DEFAULT_VN_HEATMAP_SIZING
-  if (marketType === "us") return "marketCap"
+function defaultUsSizing(): UsHeatmapSizingMode {
+  return "marketCap"
+}
+
+function defaultCryptoSizing(): CryptoHeatmapSizingMode {
   return "volume"
 }
 
@@ -41,26 +45,42 @@ export function MarketHeatmap({
   marketType,
   groupingMode = "sector",
   sizingMode,
+  vnMode,
   groupLabel,
   onTileClick,
 }: MarketHeatmapProps) {
-  const sizing = sizingMode ?? defaultSizing(marketType)
+  const mode = vnMode ?? DEFAULT_VN_HEATMAP_MODE
 
-  const limitedAssets = useMemo(
-    () => limitHeatmapAssets(assets, marketType, sizing),
-    [assets, marketType, sizing],
-  )
+  const limitedAssets = useMemo(() => {
+    if (marketType === "vn") {
+      return limitHeatmapAssets(assets, marketType, mode)
+    }
+    const sizing = sizingMode ?? (marketType === "us" ? defaultUsSizing() : defaultCryptoSizing())
+    return limitHeatmapAssets(assets, marketType, sizing)
+  }, [assets, marketType, mode, sizingMode])
 
-  if (marketType === "vn" && groupingMode === "sector") {
+  if (marketType === "vn") {
+    if (mode === "sector-volume") {
+      return (
+        <VietnamSectorGridHeatmap
+          assets={limitedAssets}
+          sizing="volume"
+          groupLabel={groupLabel}
+          onTileClick={onTileClick}
+        />
+      )
+    }
+
     return (
-      <VietnamSectorGridHeatmap
+      <VietnamFlatTreemap
         assets={limitedAssets}
-        sizing={sizing as VnHeatmapSizingMode}
-        groupLabel={groupLabel}
+        mode={mode}
         onTileClick={onTileClick}
       />
     )
   }
+
+  const sizing = sizingMode ?? (marketType === "us" ? defaultUsSizing() : defaultCryptoSizing())
 
   return (
     <FinvizTreemap
