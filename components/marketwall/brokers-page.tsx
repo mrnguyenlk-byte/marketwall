@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState, type ReactNode } from "react"
+import { useMemo, useState, type CSSProperties, type ReactNode } from "react"
 import { AlertTriangle, ExternalLink, Filter, Star, X } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { useLang } from "@/lib/i18n"
@@ -25,11 +25,19 @@ const BADGE_STYLES: Record<BrokerBadge, string> = {
   fastWithdrawal: "border-cyan-500/40 bg-cyan-500/10 text-cyan-400",
 }
 
-/** Fewer columns on wide screens so each card stays wide and prominent. */
-function brokerGridColumns(count: number): string {
-  if (count <= 2) return "grid-cols-1 sm:grid-cols-2"
-  if (count <= 3) return "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3"
-  return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4"
+/** Card grid: 5 brokers on one row at lg+ when listing all platforms. */
+function brokerCardGridClass(count: number): string {
+  if (count <= 1) return "grid-cols-1"
+  if (count === 2) return "grid-cols-1 sm:grid-cols-2"
+  if (count === 3) return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+  if (count === 4) return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"
+  return "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5"
+}
+
+function comparisonGridStyle(count: number): CSSProperties {
+  return {
+    gridTemplateColumns: `minmax(7.5rem, 10rem) repeat(${count}, minmax(0, 1fr))`,
+  }
 }
 
 type CompareRow = {
@@ -128,33 +136,53 @@ function BrokerBadges({ badges }: { badges: BrokerBadge[] }) {
 function RatingPill({ broker }: { broker: Broker }) {
   const { t } = useLang()
   return (
-    <div className="flex flex-wrap items-center justify-center gap-2 text-sm">
-      <span className="inline-flex items-center gap-1 rounded-full bg-secondary/80 px-2.5 py-1 font-semibold text-foreground">
-        <Star className="size-3.5 fill-warn text-warn" aria-hidden />
+    <div className="flex flex-wrap items-center justify-center gap-1.5 text-xs">
+      <span className="inline-flex items-center gap-0.5 rounded-full bg-secondary/80 px-2 py-0.5 font-semibold text-foreground">
+        <Star className="size-3 fill-warn text-warn" aria-hidden />
         {broker.rating.toFixed(1)}
       </span>
-      <span className="text-muted-foreground">
+      <span className="text-[11px] text-muted-foreground">
         {t("label.trustScore")}: {broker.trustScore}
       </span>
     </div>
   )
 }
 
-function CellValue({ value }: { value: string | string[] }) {
+function CompactCellValue({
+  value,
+  rowId,
+}: {
+  value: string | string[]
+  rowId?: string
+}) {
   if (Array.isArray(value)) {
+    const text = value.join(" · ")
     return (
-      <ul className="space-y-1.5 text-left text-sm leading-relaxed text-foreground sm:text-base">
-        {value.map((item) => (
-          <li key={item} className="flex items-start gap-2">
-            <span className="mt-2 size-1.5 shrink-0 rounded-full bg-primary/70" aria-hidden />
-            <span>{item}</span>
-          </li>
-        ))}
-      </ul>
+      <p
+        className="line-clamp-2 text-left text-[11px] leading-snug text-foreground sm:text-xs lg:text-center"
+        title={text}
+      >
+        {text}
+      </p>
     )
   }
+
+  if (rowId === "regulator") {
+    return (
+      <span
+        className="inline-block max-w-full truncate rounded-md border border-border/50 bg-muted/25 px-1.5 py-0.5 text-[10px] font-medium text-foreground sm:text-[11px]"
+        title={value}
+      >
+        {value}
+      </span>
+    )
+  }
+
   return (
-    <span className="text-sm font-semibold leading-relaxed text-foreground sm:text-base">
+    <span
+      className="text-xs font-semibold leading-snug text-foreground sm:text-sm"
+      title={value}
+    >
       {value}
     </span>
   )
@@ -164,10 +192,12 @@ function BrokerCardHeader({
   broker,
   variant,
   highlighted,
+  compact = false,
 }: {
   broker: Broker
   variant: "vn" | "global"
   highlighted?: boolean
+  compact?: boolean
 }) {
   const { t } = useLang()
   const slug = brokerSlug(broker.name)
@@ -175,35 +205,98 @@ function BrokerCardHeader({
   return (
     <div
       className={cn(
-        "group flex h-full min-h-[22rem] flex-col items-center gap-4 rounded-2xl border p-5 text-center transition-all duration-200 sm:gap-5 sm:p-6 lg:min-h-[24rem] lg:p-7",
-        "hover:-translate-y-1 hover:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.45)]",
+        "group flex h-full flex-col items-center text-center transition-all duration-200",
+        compact
+          ? "min-h-[13rem] gap-2 rounded-xl border p-3 lg:min-h-[14rem] lg:p-3"
+          : "min-h-[16rem] gap-3 rounded-2xl border p-4 sm:gap-4 sm:p-5",
+        "hover:-translate-y-0.5 hover:shadow-[0_8px_28px_-10px_rgba(0,0,0,0.4)]",
         variant === "vn"
           ? "border-[#c41e3a]/25 bg-[#c41e3a]/[0.06] hover:border-[#c41e3a]/45 hover:shadow-[#c41e3a]/10"
           : "border-primary/20 bg-primary/[0.06] hover:border-primary/40 hover:shadow-primary/10",
         highlighted && "ring-2 ring-primary/40 ring-offset-2 ring-offset-background",
       )}
     >
-      <BrokerLogo broker={broker} variant={variant} size="xl" />
-      <div className="w-full min-w-0 space-y-2">
-        <p className="truncate text-lg font-bold text-foreground sm:text-xl">{broker.name}</p>
+      <BrokerLogo broker={broker} variant={variant} size={compact ? "lg" : "xl"} />
+      <div className="w-full min-w-0 space-y-1">
+        <p
+          className={cn(
+            "truncate font-bold text-foreground",
+            compact ? "text-sm" : "text-base sm:text-lg",
+          )}
+        >
+          {broker.name}
+        </p>
         {variant === "global" && <RatingPill broker={broker} />}
         <BrokerBadges badges={broker.badges} />
       </div>
-      <div className="mt-auto flex w-full flex-col gap-2.5 pt-2">
+      <div className="mt-auto flex w-full flex-col gap-1.5 pt-1">
         <a
           href={`/brokers/${slug}`}
-          className="inline-flex h-10 w-full items-center justify-center rounded-xl border border-border bg-secondary/50 px-3 text-sm font-semibold text-foreground transition-colors hover:bg-secondary/80 sm:h-11"
+          className={cn(
+            "inline-flex w-full items-center justify-center rounded-lg border border-border bg-secondary/50 font-semibold text-foreground transition-colors hover:bg-secondary/80",
+            compact ? "h-8 px-2 text-[11px]" : "h-9 px-3 text-xs sm:h-10 sm:text-sm",
+          )}
         >
           {t("misc.viewReview")}
         </a>
         <a
           href={`/api/brokers/redirect?slug=${encodeURIComponent(slug)}&source=listing`}
-          className="inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-xl bg-primary px-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 sm:h-11"
+          className={cn(
+            "inline-flex w-full items-center justify-center gap-1 rounded-lg bg-primary font-semibold text-primary-foreground transition-colors hover:bg-primary/90",
+            compact ? "h-8 px-2 text-[11px]" : "h-9 px-3 text-xs sm:h-10 sm:text-sm",
+          )}
         >
-          <ExternalLink className="size-4" aria-hidden />
+          <ExternalLink className={compact ? "size-3" : "size-3.5"} aria-hidden />
           {t("misc.visitBroker")}
         </a>
       </div>
+    </div>
+  )
+}
+
+function ComparisonTable({
+  brokers,
+  rows,
+  gridStyle,
+  className,
+}: {
+  brokers: Broker[]
+  rows: CompareRow[]
+  gridStyle: CSSProperties
+  className?: string
+}) {
+  const { t, lang } = useLang()
+
+  return (
+    <div className={cn("overflow-hidden rounded-xl border border-border/80 bg-card/40 shadow-sm", className)}>
+      {rows.map((row, index) => (
+        <div
+          key={row.id}
+          className={cn(
+            "grid items-stretch",
+            index > 0 && "border-t border-border/60",
+            index % 2 === 0 ? "bg-muted/10" : "bg-transparent",
+          )}
+          style={gridStyle}
+        >
+          <div className="flex items-center border-r border-border/40 px-3 py-2">
+            <span className="text-[10px] font-semibold uppercase leading-tight tracking-wide text-muted-foreground sm:text-[11px]">
+              {t(row.labelKey)}
+            </span>
+          </div>
+          {brokers.map((broker, colIndex) => (
+            <div
+              key={`${row.id}-${broker.name}`}
+              className={cn(
+                "flex min-h-[2.5rem] items-center justify-center px-2 py-2 sm:py-2.5",
+                colIndex > 0 && "border-l border-border/40",
+              )}
+            >
+              <CompactCellValue value={row.getValue(broker, lang)} rowId={row.id} />
+            </div>
+          ))}
+        </div>
+      ))}
     </div>
   )
 }
@@ -219,47 +312,45 @@ function ComparisonGrid({
   variant: "vn" | "global"
   highlightedNames?: Set<string>
 }) {
-  const { t, lang } = useLang()
-  const columnClass = brokerGridColumns(brokers.length)
+  const cardGridClass = brokerCardGridClass(brokers.length)
+  const gridStyle = comparisonGridStyle(brokers.length)
 
   return (
-    <div className="space-y-8">
-      <div className={cn("grid gap-4 sm:gap-5 lg:gap-6", columnClass)}>
-        {brokers.map((broker) => (
-          <BrokerCardHeader
-            key={broker.name}
-            broker={broker}
-            variant={variant}
-            highlighted={highlightedNames?.has(broker.name)}
-          />
-        ))}
+    <div className="space-y-4">
+      {/* Mobile / tablet: stacked cards + scrollable comparison */}
+      <div className="space-y-4 lg:hidden">
+        <div className={cn("grid gap-3 sm:gap-4", cardGridClass)}>
+          {brokers.map((broker) => (
+            <BrokerCardHeader
+              key={broker.name}
+              broker={broker}
+              variant={variant}
+              highlighted={highlightedNames?.has(broker.name)}
+            />
+          ))}
+        </div>
+        <div className="overflow-x-auto">
+          <div className="min-w-[36rem]">
+            <ComparisonTable brokers={brokers} rows={rows} gridStyle={gridStyle} />
+          </div>
+        </div>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-border/80 bg-card/40 shadow-sm">
-        {rows.map((row, index) => (
-          <div
-            key={row.id}
-            className={cn(
-              "grid gap-4 px-4 py-4 sm:gap-5 sm:px-5 sm:py-5 lg:px-6 lg:py-6",
-              index > 0 && "border-t border-border/60",
-              index % 2 === 0 ? "bg-muted/10" : "bg-transparent",
-            )}
-          >
-            <p className="text-sm font-semibold uppercase tracking-wide text-muted-foreground sm:text-base">
-              {t(row.labelKey)}
-            </p>
-            <div className={cn("grid gap-4 sm:gap-5", columnClass)}>
-              {brokers.map((broker) => (
-                <div
-                  key={`${row.id}-${broker.name}`}
-                  className="min-h-[3.5rem] rounded-xl border border-border/50 bg-background/50 px-4 py-3.5 sm:min-h-[4rem] sm:px-5 sm:py-4"
-                >
-                  <CellValue value={row.getValue(broker, lang)} />
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
+      {/* Desktop: cards aligned above column-matched comparison table */}
+      <div className="hidden space-y-3 lg:block">
+        <div className="grid gap-3" style={gridStyle}>
+          <div aria-hidden className="min-w-0" />
+          {brokers.map((broker) => (
+            <BrokerCardHeader
+              key={broker.name}
+              broker={broker}
+              variant={variant}
+              highlighted={highlightedNames?.has(broker.name)}
+              compact
+            />
+          ))}
+        </div>
+        <ComparisonTable brokers={brokers} rows={rows} gridStyle={gridStyle} />
       </div>
     </div>
   )
@@ -380,8 +471,8 @@ function ComparisonSection({
           </span>
         }
       />
-      <DashboardCardBody className="space-y-6 px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-7">
-        <p className="max-w-3xl text-base leading-relaxed text-muted-foreground sm:text-lg">
+      <DashboardCardBody className="space-y-4 px-4 py-4 sm:px-5 sm:py-5 lg:px-6 lg:py-5">
+        <p className="max-w-4xl text-sm leading-relaxed text-muted-foreground sm:text-base">
           {description}
         </p>
         {filterBar}
@@ -428,12 +519,12 @@ export function BrokersPageContent() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[96rem] space-y-10 lg:space-y-12">
-      <header className="space-y-3 border-b border-border/60 pb-6">
-        <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+    <div className="mx-auto w-full max-w-[112rem] space-y-8 lg:space-y-10">
+      <header className="space-y-2 border-b border-border/60 pb-4">
+        <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
           {t("sec.brokers")}
         </h1>
-        <p className="max-w-3xl text-base leading-relaxed text-muted-foreground sm:text-lg">
+        <p className="max-w-4xl text-sm leading-relaxed text-muted-foreground sm:text-base">
           {t("brokers.hero.tagline")}
         </p>
       </header>
