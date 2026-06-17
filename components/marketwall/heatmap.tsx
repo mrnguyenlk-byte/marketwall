@@ -1,6 +1,10 @@
 "use client"
 
-import { useMemo, useState, type ReactNode } from "react"
+import { useMemo, useRef, useState, type ReactNode } from "react"
+import {
+  HEATMAP_HEIGHT_MIN,
+  useResizableHeight,
+} from "@/hooks/useResizableHeight"
 import { MarketHeatmap } from "@/components/heatmap/MarketHeatmap"
 import {
   DEFAULT_VN_HEATMAP_MODE,
@@ -70,9 +74,42 @@ const HEATMAP_VIEWPORT_CLASS =
   "h-[clamp(480px,50vh,560px)] max-h-[560px] min-h-[480px] min-w-0"
 
 function HeatmapViewport({ children }: { children: ReactNode }) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const { height, startResize } = useResizableHeight()
+
   return (
-    <div className={cn("min-w-0 overflow-hidden bg-chart-bg p-px", HEATMAP_VIEWPORT_CLASS)}>
-      <div className="h-full min-w-0 w-full">{children}</div>
+    <div ref={containerRef} className="relative min-w-0">
+      <div
+        className={cn(
+          "min-w-0 overflow-hidden bg-chart-bg p-px",
+          height == null && HEATMAP_VIEWPORT_CLASS,
+        )}
+        style={
+          height != null
+            ? { height: `${height}px`, minHeight: HEATMAP_HEIGHT_MIN }
+            : undefined
+        }
+      >
+        <div className="h-full min-w-0 w-full">{children}</div>
+      </div>
+      <div
+        role="separator"
+        aria-orientation="horizontal"
+        aria-label="Resize heatmap panel"
+        className="absolute inset-x-0 bottom-0 z-10 flex h-3 -translate-y-px cursor-ns-resize touch-none items-center justify-center"
+        onPointerDown={(e) => {
+          e.preventDefault()
+          const el = containerRef.current?.firstElementChild as HTMLElement | null
+          const startHeight =
+            height ?? el?.getBoundingClientRect().height ?? HEATMAP_HEIGHT_MIN
+          startResize(e.clientY, startHeight)
+        }}
+      >
+        <div
+          aria-hidden
+          className="h-1 w-10 rounded-full bg-border/70 transition-colors hover:bg-border"
+        />
+      </div>
     </div>
   )
 }
