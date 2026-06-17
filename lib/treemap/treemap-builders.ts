@@ -476,6 +476,8 @@ export type PackSquarifiedOptions = {
   aspectFallbackLimit?: number
   /** Always use weighted grid when squarify aspect exceeds limit (crypto flat). */
   forceWeightedFallback?: boolean
+  /** Skip squarify and use weight-proportional grid (preserves metric order top-left). */
+  preferOrderedGrid?: boolean
 }
 
 /** Squarified pack — weighted grid when aspect too high; equal grid only for invalid metrics. */
@@ -490,10 +492,15 @@ export function packSquarified<T>(
   const allowEqualGrid = options?.allowEqualGridFallback ?? rawInvalid
   const aspectLimit = options?.aspectFallbackLimit ?? FLAT_ASPECT_FALLBACK_LIMIT
 
-  const weighted = items.map((item) => ({
+  const weighted = items.map((item, index) => ({
     ...item,
-    value: Math.max(item.value, MIN_VALUE),
+    value: Math.max(item.value, MIN_VALUE) + (items.length - index) * 1e-12,
   }))
+
+  if (options?.preferOrderedGrid) {
+    const ordered = weightedBalancedGridFallback(rect, weighted)
+    if (ordered.length) return ordered
+  }
 
   const packed = squarify(weighted, rect, MIN_VALUE)
   const worst = worstAspect(packed.map((node) => node.rect))
@@ -542,7 +549,7 @@ export function buildFlatMetricTreemap<T>(
 
   const normalized = normalizeTreemapWeights(raw, { maxShare, power })
   const weighted = [...normalized]
-    .sort((a, b) => b.weight - a.weight)
+    .sort((a, b) => b.weight - a.weight || b.metric - a.metric)
     .map((item) => ({
       data: item.data,
       value: item.weight,
@@ -657,7 +664,7 @@ function buildGroupedSectorTreemapFromGroups<T, G>(
     power: sectorPower,
   })
   const rootWeighted = [...rootNormalized]
-    .sort((a, b) => b.weight - a.weight)
+    .sort((a, b) => b.weight - a.weight || b.metric - a.metric)
     .map((item) => ({
       data: item.data,
       value: item.weight,
@@ -734,7 +741,7 @@ export function buildGroupedSquarifiedTreemap<T, G>(
     power: sectorPower,
   })
   const rootWeighted = [...rootNormalized]
-    .sort((a, b) => b.weight - a.weight)
+    .sort((a, b) => b.weight - a.weight || b.metric - a.metric)
     .map((item) => ({
       data: item.data,
       value: item.weight,

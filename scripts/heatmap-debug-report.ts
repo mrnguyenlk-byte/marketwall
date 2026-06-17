@@ -43,8 +43,8 @@ import {
   vnSectorGroupForAsset,
 } from "@/lib/vietnam/vn-sector-map"
 import {
-  VN_SECTOR_GROUP_LABEL_KEYS,
   VN_SECTOR_GROUP_ORDER,
+  vnSectorViLabel,
   type VnSectorGroupId,
 } from "@/lib/vietnam/sector-groups"
 import type { HeatmapAsset, MarketAsset, MarketType } from "@/types/market"
@@ -291,10 +291,10 @@ function analyzeSectorMode(
     buckets.get(vnSectorGroupForAsset(asset))?.push(asset)
   }
 
-  const present = VN_SECTOR_GROUP_ORDER.filter((id) => (buckets.get(id)?.length ?? 0) > 0)
+  const present = layout.sectors.map((s) => s.id)
   const sectorMetrics = present.map((id) => ({
     id,
-    label: VN_SECTOR_GROUP_LABEL_KEYS[id],
+    label: vnSectorViLabel(id),
     metric: (buckets.get(id) ?? []).reduce((sum, a) => sum + metricFn(a), 0),
     assets: buckets.get(id) ?? [],
   }))
@@ -350,7 +350,7 @@ function analyzeSectorMode(
   const orderedSectors = layoutTopLeftOrder(layout.sectors)
   const sectorLayoutOrder = orderedSectors.map((sector) => ({
     id: sector.id,
-    label: VN_SECTOR_GROUP_LABEL_KEYS[sector.id],
+    label: vnSectorViLabel(sector.id),
   }))
   const topLeftSector = sectorLayoutOrder[0] ?? null
   const topLeftStockBySector = orderedSectors.map((sector) => {
@@ -389,14 +389,14 @@ function analyzeSectorMode(
     if (sectorAspect > worstSector.aspect) {
       worstSector = {
         id: sector.id,
-        label: VN_SECTOR_GROUP_LABEL_KEYS[sector.id],
+        label: vnSectorViLabel(sector.id),
         aspect: sectorAspect,
       }
     }
 
     sectorDiagnostics.push({
       id: sector.id,
-      label: VN_SECTOR_GROUP_LABEL_KEYS[sector.id],
+      label: vnSectorViLabel(sector.id),
       areaShare,
       w: sector.rect.w,
       h: sector.rect.h,
@@ -428,7 +428,7 @@ function analyzeSectorMode(
     topSectorShares: topNByShare(
       sectorShareRows.map((r) => ({
         ...r,
-        symbol: `${r.symbol} (${VN_SECTOR_GROUP_LABEL_KEYS[r.symbol as VnSectorGroupId] ?? r.symbol})`,
+        symbol: `${r.symbol} (${vnSectorViLabel(r.symbol as VnSectorGroupId)})`,
       })),
     ),
     maxRootShare,

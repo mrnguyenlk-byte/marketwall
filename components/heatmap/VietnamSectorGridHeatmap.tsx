@@ -51,7 +51,7 @@ export function VietnamSectorGridHeatmap({
             style={rectStyle(sector.rect)}
           >
             {!sector.hideLabel && (
-              <header className="flex h-[min(7%,22px)] min-h-[18px] shrink-0 items-center truncate border-b border-black/30 bg-black/65 px-1.5 text-[10px] font-bold uppercase tracking-wide text-white sm:text-[11px]">
+              <header className="flex h-[min(7%,22px)] min-h-[18px] shrink-0 items-center truncate border-b border-black/30 bg-black/65 px-1.5 text-[10px] font-bold tracking-wide text-white sm:text-[11px]">
                 {groupLabel ? groupLabel(sector.labelKey) : sector.labelKey}
               </header>
             )}

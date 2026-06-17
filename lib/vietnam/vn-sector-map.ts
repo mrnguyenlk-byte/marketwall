@@ -1,10 +1,14 @@
+import {
+  HOSE_SEEDS,
+  HNX_SEEDS,
+  UPCOM_SEEDS,
+} from "@/lib/vietnam-heatmap-seeds"
 import type { MarketAsset } from "@/types/market"
 
 import { normalizeVnSectorGroup, SECTOR_TO_GROUP, type VnSectorGroupId } from "./sector-groups"
 
 /** Canonical sector labels used by {@link SECTOR_TO_GROUP}. */
 const BANKING = "Banking"
-const SECURITIES = "Securities"
 const REAL_ESTATE = "Real Estate"
 const STEEL = "Steel"
 const RETAIL = "Retail"
@@ -13,11 +17,19 @@ const OIL_GAS = "Oil & Gas"
 const UTILITIES = "Utilities"
 const CONSUMER = "Consumer"
 const INDUSTRIAL = "Industrial"
-const INSURANCE = "Insurance"
-const CHEMICALS = "Chemicals"
-const HEALTHCARE = "Healthcare"
 
-/** Explicit symbol → sector map for heatmap grouping when provider data is missing or invalid. */
+function buildSeedSymbolMap(): Record<string, string> {
+  const map: Record<string, string> = {}
+  for (const seed of [...HOSE_SEEDS, ...HNX_SEEDS, ...UPCOM_SEEDS]) {
+    map[seed.symbol.toUpperCase()] = seed.sector
+  }
+  return map
+}
+
+/** Seed universe fallback — covers full HOSE/HNX/UPCOM heatmap symbol list. */
+const SEED_SYMBOL_TO_SECTOR = buildSeedSymbolMap()
+
+/** Explicit overrides for heatmap grouping when provider data is missing or invalid. */
 export const VN_SYMBOL_TO_SECTOR: Record<string, string> = {
   VCB: BANKING,
   BID: BANKING,
@@ -38,20 +50,29 @@ export const VN_SYMBOL_TO_SECTOR: Record<string, string> = {
   SSB: BANKING,
   NAB: BANKING,
   ABB: BANKING,
-  SSI: SECURITIES,
-  VND: SECURITIES,
-  VCI: SECURITIES,
-  HCM: SECURITIES,
-  SHS: SECURITIES,
-  MBS: SECURITIES,
-  VIX: SECURITIES,
-  FTS: SECURITIES,
-  BSI: SECURITIES,
-  CTS: SECURITIES,
-  VDS: SECURITIES,
-  ORS: SECURITIES,
-  APS: SECURITIES,
-  BVS: SECURITIES,
+  BAB: BANKING,
+  TVB: BANKING,
+  SSI: BANKING,
+  VND: BANKING,
+  VCI: BANKING,
+  HCM: BANKING,
+  SHS: BANKING,
+  MBS: BANKING,
+  VIX: BANKING,
+  FTS: BANKING,
+  BSI: BANKING,
+  CTS: BANKING,
+  VDS: BANKING,
+  ORS: BANKING,
+  APS: BANKING,
+  BVS: BANKING,
+  VIG: BANKING,
+  AGR: BANKING,
+  VFS: BANKING,
+  BVH: BANKING,
+  BMI: BANKING,
+  MIG: BANKING,
+  PVI: BANKING,
   VHM: REAL_ESTATE,
   VIC: REAL_ESTATE,
   VRE: REAL_ESTATE,
@@ -72,12 +93,25 @@ export const VN_SYMBOL_TO_SECTOR: Record<string, string> = {
   ITA: REAL_ESTATE,
   IJC: REAL_ESTATE,
   TCH: REAL_ESTATE,
+  BCM: REAL_ESTATE,
+  VPI: REAL_ESTATE,
+  LDG: REAL_ESTATE,
+  SJS: REAL_ESTATE,
+  TIG: REAL_ESTATE,
+  VPH: REAL_ESTATE,
+  SHN: REAL_ESTATE,
+  THD: REAL_ESTATE,
   HPG: STEEL,
   HSG: STEEL,
   NKG: STEEL,
   VGS: STEEL,
   SMC: STEEL,
   TLH: STEEL,
+  TVN: STEEL,
+  GVR: STEEL,
+  VCS: STEEL,
+  VGC: STEEL,
+  NBC: STEEL,
   MWG: RETAIL,
   FRT: RETAIL,
   PNJ: RETAIL,
@@ -87,6 +121,8 @@ export const VN_SYMBOL_TO_SECTOR: Record<string, string> = {
   CMG: TECHNOLOGY,
   ELC: TECHNOLOGY,
   SAM: TECHNOLOGY,
+  VTX: TECHNOLOGY,
+  YEG: TECHNOLOGY,
   GAS: OIL_GAS,
   PVD: OIL_GAS,
   PVS: OIL_GAS,
@@ -94,12 +130,14 @@ export const VN_SYMBOL_TO_SECTOR: Record<string, string> = {
   BSR: OIL_GAS,
   OIL: OIL_GAS,
   PLX: OIL_GAS,
+  GEG: OIL_GAS,
+  PVB: OIL_GAS,
   POW: UTILITIES,
   REE: UTILITIES,
   NT2: UTILITIES,
-  GEG: UTILITIES,
-  PC1: UTILITIES,
   BWE: UTILITIES,
+  PC1: UTILITIES,
+  TV2: UTILITIES,
   MSN: CONSUMER,
   VNM: CONSUMER,
   SAB: CONSUMER,
@@ -109,6 +147,13 @@ export const VN_SYMBOL_TO_SECTOR: Record<string, string> = {
   QNS: CONSUMER,
   KDC: CONSUMER,
   MCH: CONSUMER,
+  ANV: CONSUMER,
+  VHC: CONSUMER,
+  FMC: CONSUMER,
+  DHG: CONSUMER,
+  IMP: CONSUMER,
+  DBD: CONSUMER,
+  TRA: CONSUMER,
   GMD: INDUSTRIAL,
   VSC: INDUSTRIAL,
   HAH: INDUSTRIAL,
@@ -123,19 +168,22 @@ export const VN_SYMBOL_TO_SECTOR: Record<string, string> = {
   FCN: INDUSTRIAL,
   CTD: INDUSTRIAL,
   HBC: INDUSTRIAL,
-  BVH: INSURANCE,
-  BMI: INSURANCE,
-  MIG: INSURANCE,
-  PVI: INSURANCE,
-  DGC: CHEMICALS,
-  DCM: CHEMICALS,
-  DPM: CHEMICALS,
-  LAS: CHEMICALS,
-  CSV: CHEMICALS,
-  DHG: HEALTHCARE,
-  IMP: HEALTHCARE,
-  DBD: HEALTHCARE,
-  TRA: HEALTHCARE,
+  MSR: INDUSTRIAL,
+  PHR: INDUSTRIAL,
+  DCM: INDUSTRIAL,
+  AAA: INDUSTRIAL,
+  PVC: INDUSTRIAL,
+  DDG: INDUSTRIAL,
+  VC3: INDUSTRIAL,
+  NTP: INDUSTRIAL,
+  HUT: INDUSTRIAL,
+  VNR: INDUSTRIAL,
+  EID: INDUSTRIAL,
+  TNG: INDUSTRIAL,
+  DGC: STEEL,
+  DPM: STEEL,
+  LAS: CONSUMER,
+  CSV: STEEL,
 }
 
 export const VN_UNMAPPED_SECTOR_LABEL = "Chưa phân loại"
@@ -160,13 +208,23 @@ const INVALID_PROVIDER_SECTORS = new Set([
   "unknown",
 ])
 
+const loggedUnmappedSymbols = new Set<string>()
+
 function isValidProviderSector(sector: string): boolean {
   if (INVALID_PROVIDER_SECTORS.has(sector)) return false
   const group = SECTOR_TO_GROUP[sector]
   return group != null && group !== "unclassified"
 }
 
-/** Resolve VN sector: provider label → symbol map → unclassified. */
+function logUnmappedSymbol(symbol: string) {
+  if (loggedUnmappedSymbols.has(symbol)) return
+  loggedUnmappedSymbols.add(symbol)
+  if (typeof process !== "undefined" && process.env?.NODE_ENV !== "production") {
+    console.warn(`[vn-sector-map] unmapped symbol: ${symbol}`)
+  }
+}
+
+/** Resolve VN sector: provider label → explicit map → seed map → unclassified. */
 export function resolveVnAssetSector(asset: MarketAsset): VnSectorResolution {
   const provider = asset.sector?.trim() ?? ""
 
@@ -175,11 +233,17 @@ export function resolveVnAssetSector(asset: MarketAsset): VnSectorResolution {
   }
 
   const symbol = asset.symbol.trim().toUpperCase()
-  const fallback = VN_SYMBOL_TO_SECTOR[symbol]
-  if (fallback) {
-    return { sector: fallback, source: "fallback" }
+  const explicit = VN_SYMBOL_TO_SECTOR[symbol]
+  if (explicit) {
+    return { sector: explicit, source: "fallback" }
   }
 
+  const seed = SEED_SYMBOL_TO_SECTOR[symbol]
+  if (seed) {
+    return { sector: seed, source: "fallback" }
+  }
+
+  logUnmappedSymbol(symbol)
   return { sector: VN_UNMAPPED_SECTOR_LABEL, source: "unmapped" }
 }
 

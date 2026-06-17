@@ -1,6 +1,5 @@
 import {
   allMetricsInvalid,
-  MAX_SECTOR_AREA_SHARE,
   MAX_STOCK_AREA_SHARE_IN_SECTOR,
   normalizeTreemapWeights,
   packSquarified,
@@ -22,6 +21,8 @@ const SECTOR_HEADER_RATIO = 0.07
 const SECTOR_HEADER_MIN = 18 / 1080
 const SECTOR_HEADER_MAX = 22 / 1080
 const SECTOR_GAP = 0.002
+/** Allow largest sector (Tài chính) to dominate root like FireAnt; global cap stays 18% for flat modes. */
+const VN_SECTOR_ROOT_MAX_SHARE = 0.36
 const MIN_SQRT_VALUE = 0.0001
 const MIN_LABEL_SECTOR_H = 0.035
 const MIN_LABEL_SECTOR_W = 0.06
@@ -54,6 +55,26 @@ type SectorSquarifyItem = { kind: "stock"; asset: MarketAsset; weight: number }
 
 function tradingValueMetric(asset: MarketAsset): number {
   return Math.max(vnTradingValueMetric(asset), 0)
+}
+
+const MIN_UNCLASSIFIED_ROOT_SHARE = 0.003
+
+function sectorTotalMetric(assets: MarketAsset[]): number {
+  return assets.reduce((sum, asset) => sum + tradingValueMetric(asset), 0)
+}
+
+function includeSectorInLayout(
+  id: VnSectorGroupId,
+  assets: MarketAsset[],
+  allAssets: MarketAsset[],
+): boolean {
+  if (!assets.length) return false
+  if (id !== "unclassified") return true
+
+  const sectorMetric = sectorTotalMetric(assets)
+  const totalMetric = sectorTotalMetric(allAssets)
+  if (totalMetric <= 0) return false
+  return sectorMetric / totalMetric >= MIN_UNCLASSIFIED_ROOT_SHARE
 }
 
 function aspectRatio(rect: TreemapRect): number {
@@ -172,7 +193,7 @@ function layoutSectorTreemap(inner: TreemapRect, assets: MarketAsset[]): VnSecto
   })
 
   const baseItems: SectorSquarifyItem[] = [...normalized]
-    .sort((a, b) => b.weight - a.weight)
+    .sort((a, b) => b.weight - a.weight || b.metric - a.metric)
     .map((item) => ({
       kind: "stock" as const,
       asset: item.data,
@@ -235,14 +256,15 @@ function layoutRootSectors(
   )
 
   const normalized = normalizeTreemapWeights(rootRaw, {
-    maxShare: MAX_SECTOR_AREA_SHARE,
+    maxShare: VN_SECTOR_ROOT_MAX_SHARE,
     power: TREEMAP_COMPRESSION_POWER.VN_SECTOR_ROOT,
   })
   const weighted = [...normalized]
-    .sort((a, b) => b.weight - a.weight)
+    .sort((a, b) => b.weight - a.weight || b.metric - a.metric)
     .map((item) => ({
       data: item.data,
       value: item.weight,
+      metric: item.metric,
     }))
 
   const nodes = packSquarified(weighted, root, {
@@ -268,7 +290,9 @@ export function buildSectorGroupedTreemap(assets: MarketAsset[]): VnSectorTreema
     buckets.get(id)?.push(asset)
   }
 
-  const present = VN_SECTOR_GROUP_ORDER.filter((id) => (buckets.get(id)?.length ?? 0) > 0)
+  const present = VN_SECTOR_GROUP_ORDER.filter((id) =>
+    includeSectorInLayout(id, buckets.get(id) ?? [], assets),
+  )
   const rootPlacements = layoutRootSectors(present, buckets)
 
   const sectors: VnSectorBlockLayout[] = rootPlacements.map(({ id, rect }) => {
