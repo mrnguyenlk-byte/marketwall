@@ -1,8 +1,6 @@
 "use client"
 
 import { useMemo, useState, type ReactNode } from "react"
-import { ArrowUpRight } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import { MarketHeatmap } from "@/components/heatmap/MarketHeatmap"
 import {
   DEFAULT_VN_HEATMAP_MODE,
@@ -320,14 +318,6 @@ function HeatmapDetailSection() {
 
         <DashboardCardFooter>
           <span>{t("misc.delayed")}</span>
-          <Button
-            variant="link"
-            size="sm"
-            className="ml-auto h-auto shrink-0 gap-0.5 p-0 type-secondary-label text-primary"
-          >
-            {t("action.viewFullHeatmap")}
-            <ArrowUpRight className="size-3" aria-hidden />
-          </Button>
         </DashboardCardFooter>
       </DashboardCard>
     </section>
@@ -424,14 +414,6 @@ function LegacyHeatmapSection({ markets }: { markets: HeatmapMarket[] }) {
 
         <DashboardCardFooter>
           <span>{t("misc.delayed")}</span>
-          <Button
-            variant="link"
-            size="sm"
-            className="ml-auto h-auto shrink-0 gap-0.5 p-0 type-secondary-label text-primary"
-          >
-            {t("action.viewFullHeatmap")}
-            <ArrowUpRight className="size-3" aria-hidden />
-          </Button>
         </DashboardCardFooter>
       </DashboardCard>
     </section>

@@ -64,7 +64,6 @@ const dict: Dict = {
   "action.logout": { vi: "Đăng xuất", en: "Log out" },
   "action.notifications": { vi: "Thông báo", en: "Notifications" },
   "action.viewAll": { vi: "Xem tất cả", en: "View all" },
-  "action.viewFullHeatmap": { vi: "Xem bản đồ nhiệt đầy đủ", en: "View full heatmap" },
   "action.language": { vi: "Ngôn ngữ", en: "Language" },
 
   // Auth
