@@ -21,7 +21,6 @@ import {
 import type { TreemapLayoutNode, TreemapRect } from "@/lib/treemap/squarify"
 import {
   MAX_ITEM_AREA_SHARE,
-  MAX_SECTOR_AREA_SHARE,
   MAX_STOCK_AREA_SHARE_IN_SECTOR,
   normalizeTreemapWeights,
   TREEMAP_COMPRESSION_POWER,
@@ -36,6 +35,7 @@ import {
 } from "@/lib/vietnam/vn-heatmap-modes"
 import {
   buildSectorGroupedTreemap,
+  VN_SECTOR_ROOT_MAX_SHARE,
   type VnSectorTreemapLayout,
 } from "@/lib/vietnam/vietnam-sector-grid-layout"
 import {
@@ -305,7 +305,7 @@ function analyzeSectorMode(
   const rootNormalized = normalizeTreemapWeights(
     sectorMetrics.map((s) => ({ data: s, metric: s.metric })),
     {
-      maxShare: MAX_SECTOR_AREA_SHARE,
+      maxShare: VN_SECTOR_ROOT_MAX_SHARE,
       power: TREEMAP_COMPRESSION_POWER.VN_SECTOR_ROOT,
     },
   )

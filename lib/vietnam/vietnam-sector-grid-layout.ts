@@ -21,8 +21,8 @@ const SECTOR_HEADER_RATIO = 0.07
 const SECTOR_HEADER_MIN = 18 / 1080
 const SECTOR_HEADER_MAX = 22 / 1080
 const SECTOR_GAP = 0.002
-/** Allow largest sector (Tài chính) to dominate root like FireAnt; global cap stays 18% for flat modes. */
-const VN_SECTOR_ROOT_MAX_SHARE = 0.36
+/** Max root share for a single sector block (VN mode 1). */
+export const VN_SECTOR_ROOT_MAX_SHARE = 0.25
 const MIN_SQRT_VALUE = 0.0001
 const MIN_LABEL_SECTOR_H = 0.035
 const MIN_LABEL_SECTOR_W = 0.06

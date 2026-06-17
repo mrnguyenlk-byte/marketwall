@@ -15,22 +15,18 @@ const DEFAULT_MAX_CAP_ITERATIONS = 50
 /** Max share of parent area for a single flat leaf (US, Crypto). */
 export const MAX_ITEM_AREA_SHARE = 0.18
 /** Max share of parent area for a single flat leaf (VN flat modes 2–4). */
-export const VN_MAX_ITEM_AREA_SHARE = 0.12
+export const VN_MAX_ITEM_AREA_SHARE = 0.18
 /** Max share of heatmap root for a single sector block (VN mode 1). */
-export const MAX_SECTOR_AREA_SHARE = 0.18
+export const MAX_SECTOR_AREA_SHARE = 0.25
 /** Max share of sector inner area for a single stock tile (VN mode 1). */
-export const MAX_STOCK_AREA_SHARE_IN_SECTOR = 0.12
-/** Items below this final weight share are grouped into Khác. */
-export const MIN_VISIBLE_SHARE = 0.0025
-/** Khác bucket must not exceed this share of its parent. */
-export const KHAC_MAX_SHARE = 0.12
+export const MAX_STOCK_AREA_SHARE_IN_SECTOR = 0.18
 
 /** Power exponents for metric → area-share compression (rawShare ** power). */
 export const TREEMAP_COMPRESSION_POWER = {
-  VN_SECTOR_ROOT: 0.65,
-  VN_STOCK_IN_SECTOR: 0.55,
-  VN_MARKET_CAP_FLAT: 0.65,
-  VN_FLOW_FLAT: 0.55,
+  VN_SECTOR_ROOT: 0.85,
+  VN_STOCK_IN_SECTOR: 0.75,
+  VN_MARKET_CAP_FLAT: 0.85,
+  VN_FLOW_FLAT: 0.75,
   US_DOLLAR_VOLUME: 0.75,
   CRYPTO_VOLUME: 0.75,
   DEFAULT: 0.75,
@@ -49,8 +45,6 @@ export type NormalizeTreemapOptions = {
   maxShare: number
   /** Compression exponent applied to raw share before capping (default 0.75). */
   power?: number
-  minVisibleShare?: number
-  khacMaxShare?: number
   maxIterations?: number
 }
 
@@ -58,17 +52,6 @@ export type NormalizedTreemapItem<T> = {
   data: T
   metric: number
   weight: number
-}
-
-export type KhacBucket<T> = {
-  items: T[]
-  weight: number
-  metric: number
-}
-
-export type NormalizeTreemapResult<T> = {
-  items: NormalizedTreemapItem<T>[]
-  khac?: KhacBucket<T>
 }
 
 function aspectRatio(rect: TreemapRect): number {
@@ -152,52 +135,6 @@ export function normalizeTreemapWeights<T>(
   }
 
   return shares.map(({ data, metric, weight }) => ({ data, metric, weight }))
-}
-
-/** Group tiny items into Khác; promote symbols back if Khác would exceed khacMaxShare. */
-export function splitKhacBucket<T>(
-  items: NormalizedTreemapItem<T>[],
-  options: { minVisibleShare?: number; khacMaxShare?: number },
-): NormalizeTreemapResult<T> {
-  const minVisibleShare = options.minVisibleShare ?? MIN_VISIBLE_SHARE
-  const khacMaxShare = options.khacMaxShare ?? KHAC_MAX_SHARE
-
-  if (!items.length) return { items: [] }
-
-  const visible: NormalizedTreemapItem<T>[] = []
-  let khacPool: NormalizedTreemapItem<T>[] = []
-
-  for (const item of items) {
-    if (item.weight >= minVisibleShare) {
-      visible.push(item)
-    } else {
-      khacPool.push(item)
-    }
-  }
-
-  if (!khacPool.length) return { items }
-
-  khacPool.sort((a, b) => b.weight - a.weight)
-
-  let khacWeight = khacPool.reduce((sum, item) => sum + item.weight, 0)
-  while (khacWeight > khacMaxShare + 1e-12 && khacPool.length) {
-    const promoted = khacPool.shift()!
-    visible.push(promoted)
-    khacWeight = khacPool.reduce((sum, item) => sum + item.weight, 0)
-  }
-
-  if (!khacPool.length) {
-    return { items: visible.length ? visible : items }
-  }
-
-  return {
-    items: visible,
-    khac: {
-      items: khacPool.map((item) => item.data),
-      weight: khacWeight,
-      metric: khacPool.reduce((sum, item) => sum + item.metric, 0),
-    },
-  }
 }
 
 function balancedGridFallback<T>(
