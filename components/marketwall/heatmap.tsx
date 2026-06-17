@@ -32,7 +32,6 @@ import {
 import { HeatmapGridSkeleton } from "./data-skeletons"
 import { cn } from "@/lib/utils"
 
-const timeframes = ["1D", "1M"] as const
 const VN_EXCHANGE_IDS: VnExchangeId[] = ["hose", "hnx", "upcom"]
 
 const DETAIL_MARKET_TABS: { id: MarketType; labelKey: string; flag: string }[] = [
@@ -217,7 +216,6 @@ function HeatmapDetailSection() {
   const { openMarketAsset } = useOpenSymbolDetail()
   const { quoteBySymbol } = useRealtime()
   const [activeMarket, setActiveMarket] = useState<MarketType>("vn")
-  const [timeframe, setTimeframe] = useState<(typeof timeframes)[number]>("1D")
   const [vnMode, setVnMode] = useState<VnHeatmapMode>(DEFAULT_VN_HEATMAP_MODE)
   const [usGrouping, setUsGrouping] = useState<HeatmapGroupingMode>("sector")
   const [usSizing, setUsSizing] = useState<UsHeatmapSizingMode>("marketCap")
@@ -352,23 +350,6 @@ function HeatmapDetailSection() {
                 </ControlGroup>
               </>
             )}
-            <div className="flex items-center gap-0.5 rounded-md bg-secondary/60 p-0.5 ring-1 ring-border/50">
-              {timeframes.map((tf) => (
-                <button
-                  key={tf}
-                  type="button"
-                  onClick={() => setTimeframe(tf)}
-                  className={cn(
-                    "rounded px-2.5 py-1 text-[11px] font-semibold transition-colors",
-                    timeframe === tf
-                      ? "bg-card text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  {tf}
-                </button>
-              ))}
-            </div>
             </div>
           }
         />
@@ -443,7 +424,6 @@ export function HeatmapSection({ markets }: { markets: HeatmapMarket[] }) {
 function LegacyHeatmapSection({ markets }: { markets: HeatmapMarket[] }) {
   const { t } = useLang()
   const [activeExchange, setActiveExchange] = useState<VnExchangeId>("hose")
-  const [timeframe, setTimeframe] = useState<(typeof timeframes)[number]>("1D")
 
   const vietnam = useVietnamMarkets()
   const loading = useMarketsLoading(vietnam)
@@ -488,27 +468,6 @@ function LegacyHeatmapSection({ markets }: { markets: HeatmapMarket[] }) {
               <span aria-hidden>{vnMarket.flag}</span>
               {t(vnMarket.labelKey)}
             </span>
-          }
-          action={
-            <div className="flex shrink-0 items-center gap-2">
-              <div className="flex items-center gap-0.5 rounded-md bg-secondary/60 p-0.5 ring-1 ring-border/50">
-                {timeframes.map((tf) => (
-                  <button
-                    key={tf}
-                    type="button"
-                    onClick={() => setTimeframe(tf)}
-                    className={cn(
-                      "rounded px-2.5 py-1 text-[11px] font-semibold transition-colors",
-                      timeframe === tf
-                        ? "bg-card text-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground",
-                    )}
-                  >
-                    {tf}
-                  </button>
-                ))}
-              </div>
-            </div>
           }
         />
 
