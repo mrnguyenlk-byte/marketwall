@@ -140,15 +140,15 @@ export function MarketOverview({
 
   return (
     <DashboardCard className="flex h-[600px] w-full max-w-full flex-col gap-0 overflow-hidden p-0 ring-0">
-      <WidgetHeader title={t("sec.overview")} className="flex-col items-stretch">
-        <div className="flex w-full basis-full gap-0.5 rounded-md bg-secondary/60 p-0.5">
+      <WidgetHeader title={t("sec.overview")} className="!min-h-0 gap-1 py-1.5">
+        <div className="flex min-w-0 w-full basis-full gap-0.5 overflow-x-auto rounded-md bg-secondary/60 p-0.5 scrollbar-none">
           {TABS.map((id) => (
             <button
               key={id}
               type="button"
               onClick={() => setTab(id)}
               className={cn(
-                "flex-1 rounded px-1.5 py-1 type-secondary-label font-semibold transition-colors",
+                "min-w-0 flex-1 shrink-0 whitespace-nowrap rounded px-1.5 py-0.5 type-secondary-label font-semibold transition-colors",
                 tab === id
                   ? "bg-card text-primary shadow-sm"
                   : "text-muted-foreground hover:text-foreground",
