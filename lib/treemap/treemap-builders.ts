@@ -1,3 +1,4 @@
+/** FROZEN — do not change layout without debug failure */
 import {
   squarify,
   type TreemapLayoutNode,
