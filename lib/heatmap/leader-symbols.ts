@@ -1,3 +1,5 @@
+import type { CSSProperties } from "react"
+
 /** VN index leaders — visual tile emphasis in sector-volume heatmap (top 10 by prominence). */
 export const VN_HEATMAP_LEADER_SYMBOLS = new Set([
   "VCB",
@@ -14,4 +16,9 @@ export const VN_HEATMAP_LEADER_SYMBOLS = new Set([
 
 export function isVnHeatmapLeader(symbol: string): boolean {
   return VN_HEATMAP_LEADER_SYMBOLS.has(symbol.toUpperCase())
+}
+
+/** Subtle outer glow for leader tiles — no border/ring. */
+export function vnHeatmapLeaderGlowStyle(): CSSProperties {
+  return { boxShadow: "0 0 8px rgba(255,255,255,0.25)" }
 }

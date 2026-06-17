@@ -36,7 +36,10 @@ import {
 } from "@/lib/vietnam/vn-heatmap-modes"
 import {
   buildSectorGroupedTreemap,
+  LAYOUT_VIEWPORT_HEIGHT_PX,
+  SECTOR_HEADER_HEIGHT_PX,
   VN_SECTOR_ROOT_MAX_SHARE,
+  VN_TECHNOLOGY_MAX_STOCK_SHARE_IN_SECTOR,
   type VnSectorTreemapLayout,
 } from "@/lib/vietnam/vietnam-sector-grid-layout"
 import {
@@ -152,6 +155,10 @@ type SectorModeReport = {
   worstSector: { id: string; label: string; aspect: number }
   worstStock: { symbol: string; aspect: number; sectorId: string }
   sectorDiagnostics: SectorDiagnostic[]
+  bankingTopLayoutShares: WeightRow[]
+  technologyTopLayoutShares: WeightRow[]
+  technologyFptNormalizedBefore: number
+  technologyFptNormalizedAfter: number
 }
 
 function aspectRatio(rect: TreemapRect): number {
@@ -334,6 +341,32 @@ function analyzeFlatMode(
   }
 }
 
+function sectorHeaderHeight(sectorH: number, hideLabel: boolean): number {
+  if (hideLabel) return 0
+  return SECTOR_HEADER_HEIGHT_PX / LAYOUT_VIEWPORT_HEIGHT_PX
+}
+
+function sectorLayoutInnerShares(
+  layout: VnSectorTreemapLayout,
+  sectorId: VnSectorGroupId,
+  limit: number,
+): WeightRow[] {
+  const sector = layout.sectors.find((s) => s.id === sectorId)
+  if (!sector) return []
+  const headerH = sectorHeaderHeight(sector.rect.h, sector.hideLabel)
+  const innerArea = sector.rect.w * Math.max(sector.rect.h - headerH, 0)
+  if (innerArea <= 0) return []
+
+  return sector.tiles
+    .map((tile) => ({
+      symbol: tile.asset.symbol,
+      metric: vnTradingValueMetric(tile.asset),
+      share: (tile.rect.w * tile.rect.h) / innerArea,
+    }))
+    .sort((a, b) => b.share - a.share)
+    .slice(0, limit)
+}
+
 function analyzeSectorMode(
   assets: MarketAsset[],
   dataSource: string,
@@ -479,6 +512,20 @@ function analyzeSectorMode(
 
   sectorDiagnostics.sort((a, b) => b.aspect - a.aspect)
 
+  const technologyAssets = buckets.get("technology") ?? []
+  const techRaw = technologyAssets
+    .map((a) => ({ data: a, metric: metricFn(a) }))
+    .filter((r) => r.metric > 0)
+    .sort((a, b) => b.metric - a.metric)
+  const fptBefore = normalizeTreemapWeights(techRaw, {
+    maxShare: MAX_STOCK_AREA_SHARE_IN_SECTOR,
+    power: TREEMAP_COMPRESSION_POWER.VN_STOCK_IN_SECTOR,
+  }).find((item) => item.data.symbol === "FPT")
+  const fptAfter = normalizeTreemapWeights(techRaw, {
+    maxShare: VN_TECHNOLOGY_MAX_STOCK_SHARE_IN_SECTOR,
+    power: TREEMAP_COMPRESSION_POWER.VN_STOCK_IN_SECTOR,
+  }).find((item) => item.data.symbol === "FPT")
+
   return {
     kind: "sector",
     mode: "VN sector (sector-volume grouped)",
@@ -521,6 +568,10 @@ function analyzeSectorMode(
     worstSector,
     worstStock,
     sectorDiagnostics,
+    bankingTopLayoutShares: sectorLayoutInnerShares(layout, "banking", 6),
+    technologyTopLayoutShares: sectorLayoutInnerShares(layout, "technology", 5),
+    technologyFptNormalizedBefore: fptBefore?.weight ?? 0,
+    technologyFptNormalizedAfter: fptAfter?.weight ?? 0,
   }
 }
 
@@ -651,6 +702,19 @@ function printSectorReport(r: SectorModeReport) {
     `worstStock: ${r.worstStock.symbol} in ${r.worstStock.sectorId} aspect=${r.worstStock.aspect.toFixed(3)}`,
   )
   console.log(`layoutMaxAspectRatio: ${r.layoutMaxAspectRatio.toFixed(3)}`)
+  console.log("")
+  console.log("--- Banking top 6 layout area shares (power 0.95) ---")
+  for (const [i, row] of r.bankingTopLayoutShares.entries()) {
+    console.log(`  ${i + 1}. ${row.symbol.padEnd(8)} ${fmtPct(row.share)}`)
+  }
+  console.log("")
+  console.log("--- Technology top 5 layout area shares (60% cap) ---")
+  for (const [i, row] of r.technologyTopLayoutShares.entries()) {
+    console.log(`  ${i + 1}. ${row.symbol.padEnd(8)} ${fmtPct(row.share)}`)
+  }
+  console.log(
+    `technology FPT normalized share: before=${fmtPct(r.technologyFptNormalizedBefore)} after=${fmtPct(r.technologyFptNormalizedAfter)}`,
+  )
   console.log("")
   console.log("--- Per-sector diagnostics (sorted by sector aspect desc) ---")
   for (const d of r.sectorDiagnostics) {

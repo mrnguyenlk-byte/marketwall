@@ -6,7 +6,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { heatStyle, fmt } from "@/components/marketwall/shared"
-import { isVnHeatmapLeader } from "@/lib/heatmap/leader-symbols"
+import { isVnHeatmapLeader, vnHeatmapLeaderGlowStyle } from "@/lib/heatmap/leader-symbols"
 import { useLang } from "@/lib/i18n"
 import type { TreemapRect } from "@/lib/treemap/squarify"
 import type { MarketAsset } from "@/types/market"
@@ -130,6 +130,7 @@ export function HeatmapTile({
       onClick={() => onClick(asset)}
       style={{
         ...heatStyle(asset.changePercent),
+        ...(isLeader ? vnHeatmapLeaderGlowStyle() : {}),
         ...(rect
           ? {
               position: "absolute",
@@ -137,16 +138,13 @@ export function HeatmapTile({
               top: `${rect.y * 100}%`,
               width: `${rect.w * 100}%`,
               height: `${rect.h * 100}%`,
-              ...(isLeader ? { zIndex: 25 } : {}),
             }
           : {}),
       }}
       aria-label={`${asset.symbol} ${up ? "+" : ""}${asset.changePercent.toFixed(2)}%`}
       className={cn(
         "group/tile flex w-full min-w-0 flex-col items-start justify-between overflow-hidden rounded-none border text-left",
-        isLeader
-          ? "z-[25] border-2 border-white ring-2 ring-white/70 ring-offset-0"
-          : "border-black/20",
+        "border-black/20",
         size === "tiny" ? "min-h-0 p-0" : "p-0.5 sm:p-1",
         !rect && classes.grid,
       )}

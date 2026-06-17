@@ -23,6 +23,10 @@ export const LAYOUT_VIEWPORT_HEIGHT_PX = 650
 const SECTOR_GAP = 0.002
 /** Max root share for a single sector block (VN mode 1). */
 export const VN_SECTOR_ROOT_MAX_SHARE = 0.25
+/** Inner stock power for banking — less compression than default 0.85. */
+export const VN_BANKING_INNER_COMPRESSION_POWER = 0.95
+/** Inner cap for technology sector — FPT must not dominate entire block. */
+export const VN_TECHNOLOGY_MAX_STOCK_SHARE_IN_SECTOR = 0.6
 const MIN_SQRT_VALUE = 0.0001
 const MIN_LABEL_SECTOR_H = 0.035
 const MIN_LABEL_SECTOR_W = 0.06
@@ -175,7 +179,27 @@ function balancedGridFallback(
   })
 }
 
-function layoutSectorTreemap(inner: TreemapRect, assets: MarketAsset[]): VnSectorTileLayout[] {
+function innerStockNormalizeOptions(sectorId: VnSectorGroupId): {
+  maxShare: number
+  power: number
+} {
+  return {
+    maxShare:
+      sectorId === "technology"
+        ? VN_TECHNOLOGY_MAX_STOCK_SHARE_IN_SECTOR
+        : MAX_STOCK_AREA_SHARE_IN_SECTOR,
+    power:
+      sectorId === "banking"
+        ? VN_BANKING_INNER_COMPRESSION_POWER
+        : TREEMAP_COMPRESSION_POWER.VN_STOCK_IN_SECTOR,
+  }
+}
+
+function layoutSectorTreemap(
+  inner: TreemapRect,
+  assets: MarketAsset[],
+  sectorId: VnSectorGroupId,
+): VnSectorTileLayout[] {
   if (!assets.length || inner.w <= 0 || inner.h <= 0) {
     return []
   }
@@ -187,10 +211,8 @@ function layoutSectorTreemap(inner: TreemapRect, assets: MarketAsset[]): VnSecto
     }))
     .sort((a, b) => b.metric - a.metric)
 
-  const normalized = normalizeTreemapWeights(rawMetrics, {
-    maxShare: MAX_STOCK_AREA_SHARE_IN_SECTOR,
-    power: TREEMAP_COMPRESSION_POWER.VN_STOCK_IN_SECTOR,
-  })
+  const innerOptions = innerStockNormalizeOptions(sectorId)
+  const normalized = normalizeTreemapWeights(rawMetrics, innerOptions)
 
   const baseItems: SectorSquarifyItem[] = [...normalized]
     .sort((a, b) => b.weight - a.weight || b.metric - a.metric)
@@ -203,7 +225,10 @@ function layoutSectorTreemap(inner: TreemapRect, assets: MarketAsset[]): VnSecto
   if (!baseItems.length) return []
 
   let chosen = squarifyPlacements(inner, baseItems, true)
-  if (worstAspect(chosen) > INNER_ASPECT_LIMIT) {
+  if (
+    worstAspect(chosen) > INNER_ASPECT_LIMIT &&
+    sectorId !== "technology"
+  ) {
     chosen = balancedGridFallback(inner, baseItems)
   }
 
@@ -229,7 +254,7 @@ function layoutSectorBlock(
     h: Math.max(rect.h - headerH, 0),
   }
 
-  const tiles = layoutSectorTreemap(inner, assets)
+  const tiles = layoutSectorTreemap(inner, assets, id)
 
   return {
     id,
@@ -279,7 +304,7 @@ function layoutRootSectors(
 /**
  * Mode 1 — sector-grouped two-level treemap (trading-value-weighted).
  * Root: sector metric = sum(raw trading value); single power/cap pass (0.90, max 25%).
- * Inner: stock power 0.85, max 25% per stock within sector.
+ * Inner: stock power 0.85 (banking 0.95), max 25% per stock (technology 60%).
  */
 export function buildSectorGroupedTreemap(assets: MarketAsset[]): VnSectorTreemapLayout {
   const buckets = new Map<VnSectorGroupId, MarketAsset[]>()
