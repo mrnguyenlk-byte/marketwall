@@ -68,11 +68,6 @@ export default async function Page() {
             <SectionErrorBoundary name="vn-analytics">
               <VietnamMarketAnalyticsPanel />
             </SectionErrorBoundary>
-            {features.currencyStrength && (
-              <SectionErrorBoundary name="currency-strength">
-                <CurrencyStrength />
-              </SectionErrorBoundary>
-            )}
             <SectionErrorBoundary name="brokers">
               <BrokerHighlights />
             </SectionErrorBoundary>
@@ -86,6 +81,11 @@ export default async function Page() {
             <SectionErrorBoundary name="fear-greed">
               <FearGreed items={dashboard.fearGreedItems} variant="sidebar" />
             </SectionErrorBoundary>
+            {features.currencyStrength && (
+              <SectionErrorBoundary name="currency-strength">
+                <CurrencyStrength variant="sidebar" />
+              </SectionErrorBoundary>
+            )}
             <SectionErrorBoundary name="news">
               <MarketNews fallbackItems={newsFallback} />
             </SectionErrorBoundary>

@@ -170,9 +170,10 @@ function strengthBarColor(rankKey: string): string {
 type StrengthBarsProps = {
   visible: Set<string>
   items: CurrencyStrengthMockItem[]
+  compact?: boolean
 }
 
-function StrengthBars({ visible, items }: StrengthBarsProps) {
+function StrengthBars({ visible, items, compact = false }: StrengthBarsProps) {
   const sorted = useMemo(
     () =>
       [...items]
@@ -182,8 +183,18 @@ function StrengthBars({ visible, items }: StrengthBarsProps) {
   )
 
   return (
-    <div className="flex h-full flex-col justify-center gap-2.5 px-1 py-2">
-      <div className="mb-1 flex items-center justify-between px-8 text-[9px] font-medium uppercase tracking-wide text-muted-foreground">
+    <div
+      className={cn(
+        "flex h-full flex-col justify-center px-1 py-2",
+        compact ? "gap-1.5" : "gap-2.5",
+      )}
+    >
+      <div
+        className={cn(
+          "mb-1 flex items-center justify-between text-[9px] font-medium uppercase tracking-wide text-muted-foreground",
+          compact ? "px-4" : "px-8",
+        )}
+      >
         <span>{STRENGTH_SCALE_MIN}</span>
         <span>{STRENGTH_NEUTRAL}</span>
         <span>{STRENGTH_SCALE_MAX}</span>
@@ -196,10 +207,22 @@ function StrengthBars({ visible, items }: StrengthBarsProps) {
         return (
           <div
             key={c.code}
-            className="grid grid-cols-[2.25rem_1fr_2.75rem] items-center gap-2"
+            className={cn(
+              "grid items-center gap-2",
+              compact
+                ? "grid-cols-[1.75rem_1fr_2.25rem]"
+                : "grid-cols-[2.25rem_1fr_2.75rem]",
+            )}
           >
-            <span className="text-[10px] font-bold text-foreground">{c.code}</span>
-            <div className="relative h-3.5 rounded-full bg-secondary/50">
+            <span
+              className={cn(
+                "font-bold text-foreground",
+                compact ? "text-[9px]" : "text-[10px]",
+              )}
+            >
+              {c.code}
+            </span>
+            <div className={cn("relative rounded-full bg-secondary/50", compact ? "h-3" : "h-3.5")}>
               <div
                 className="pointer-events-none absolute inset-y-0 w-px bg-muted-foreground/40"
                 style={{ left: `${STRENGTH_NEUTRAL}%` }}
@@ -213,7 +236,12 @@ function StrengthBars({ visible, items }: StrengthBarsProps) {
                 style={{ width: `${widthPct}%` }}
               />
             </div>
-            <span className="font-mono text-[10px] font-semibold tabular-nums text-foreground">
+            <span
+              className={cn(
+                "font-mono font-semibold tabular-nums text-foreground",
+                compact ? "text-[9px]" : "text-[10px]",
+              )}
+            >
               {c.strength.toFixed(1)}
             </span>
           </div>
@@ -223,8 +251,9 @@ function StrengthBars({ visible, items }: StrengthBarsProps) {
   )
 }
 
-export function CurrencyStrength() {
+export function CurrencyStrength({ variant = "default" }: { variant?: "default" | "sidebar" }) {
   const { t, lang } = useLang()
+  const compact = variant === "sidebar"
   const strengthApi = useCurrencyStrength()
   const {
     items: currencyStrength,
@@ -264,7 +293,10 @@ export function CurrencyStrength() {
         : null
 
   return (
-    <section aria-labelledby="currency-strength-title" className="h-[400px]">
+    <section
+      aria-labelledby="currency-strength-title"
+      className={cn("min-w-0", compact ? "h-[360px]" : "h-[400px]")}
+    >
       <div className="mb-1 flex items-center gap-2">
         <SectionHeading title={t("sec.currencyStrength1D")} />
         {coverageBadgeKey && currencyStrength.length > 0 && (
@@ -282,7 +314,12 @@ export function CurrencyStrength() {
           )}
           {hasFullStrengthSet && (
             <>
-              <div className="mb-3 grid shrink-0 grid-cols-8 gap-2">
+              <div
+                className={cn(
+                  "mb-3 grid shrink-0 gap-2",
+                  compact ? "grid-cols-4 gap-1.5" : "grid-cols-8",
+                )}
+              >
                 {currencyStrength.map((c) => {
                   const active = visible.has(c.code)
                   return (
@@ -291,28 +328,41 @@ export function CurrencyStrength() {
                       type="button"
                       onClick={() => toggle(c.code)}
                       className={cn(
-                        "rounded-md border px-2 py-2 text-center transition-all hover:ring-1 hover:ring-primary/30",
+                        "rounded-md border text-center transition-all hover:ring-1 hover:ring-primary/30",
+                        compact ? "px-1 py-1.5" : "px-2 py-2",
                         strengthBoxClass(c.rankKey, active),
                       )}
                       aria-pressed={active}
                     >
-                      <p className="text-[11px] font-bold">{c.code}</p>
-                      <p className="mt-0.5 font-mono text-[10px] font-semibold tabular-nums">
+                      <p className={cn("font-bold", compact ? "text-[10px]" : "text-[11px]")}>
+                        {c.code}
+                      </p>
+                      <p
+                        className={cn(
+                          "mt-0.5 font-mono font-semibold tabular-nums",
+                          compact ? "text-[9px]" : "text-[10px]",
+                        )}
+                      >
                         {c.strength.toFixed(1)}
                       </p>
-                      <p className="mt-0.5 text-[9px] font-medium leading-tight">
-                        {t(c.rankKey)}
-                      </p>
+                      {!compact && (
+                        <p className="mt-0.5 text-[9px] font-medium leading-tight">
+                          {t(c.rankKey)}
+                        </p>
+                      )}
                     </button>
                   )
                 })}
               </div>
               <div
-                className="flex min-h-[220px] min-w-0 flex-1 flex-col overflow-hidden rounded-md border border-border bg-chart-bg p-2"
+                className={cn(
+                  "flex min-w-0 flex-1 flex-col overflow-hidden rounded-md border border-border bg-chart-bg p-2",
+                  compact ? "min-h-[140px]" : "min-h-[220px]",
+                )}
                 role="img"
                 aria-label={t("sec.currencyStrength1D")}
               >
-                <StrengthBars visible={visible} items={currencyStrength} />
+                <StrengthBars visible={visible} items={currencyStrength} compact={compact} />
               </div>
               <StrengthFooter api={strengthApi.data} lang={lang} t={t} />
             </>
