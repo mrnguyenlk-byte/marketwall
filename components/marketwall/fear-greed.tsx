@@ -3,6 +3,7 @@
 import { useLang } from "@/lib/i18n"
 import { fgLabel, type FearGreedItem } from "@/lib/fear-greed"
 import { cn } from "@/lib/utils"
+import { DashboardCard, SectionHeading } from "./shared"
 
 function sentimentTone(value: number) {
   if (value < 25) return "loss"
@@ -90,19 +91,11 @@ export function FearGreed({
   const compact = variant === "sidebar"
 
   return (
-    <section
-      aria-labelledby="fg-title"
-      className={cn(compact ? "h-[220px]" : "h-[200px]")}
-    >
-      <div className={cn("mb-1.5 flex items-center gap-2", compact && "mb-1")}>
-        <span className="h-3.5 w-0.5 rounded-full bg-primary" aria-hidden />
-        <h2 id="fg-title" className="text-xs font-semibold text-foreground sm:text-sm">
-          {t("sec.fearGreed")}
-        </h2>
-      </div>
-      <div
+    <section aria-labelledby="fg-title" className={cn("min-w-0", compact ? "h-[220px]" : "h-[200px]")}>
+      <SectionHeading id="fg-title" title={t("sec.fearGreed")} />
+      <DashboardCard
         className={cn(
-          "grid grid-cols-3 gap-0 overflow-hidden rounded-lg border border-border bg-card",
+          "grid grid-cols-3 gap-0 ring-0",
           compact ? "h-[188px]" : "h-[172px]",
         )}
       >
@@ -117,15 +110,15 @@ export function FearGreed({
                 compact ? "px-1.5 py-1" : "px-3 py-2",
               )}
             >
-              <p className={cn("font-semibold text-foreground", compact ? "text-[10px]" : "text-xs")}>
+              <p className={cn("type-secondary-label font-semibold text-foreground", !compact && "type-table")}>
                 {t(g.key)}
               </p>
               <div className="relative w-full py-0.5">
                 <Gauge value={g.value} compact={compact} />
                 <span
-                  className={cn(
-                    "absolute inset-x-0 bottom-0 text-center font-mono font-bold tabular-nums",
-                    compact ? "text-base" : "text-xl",
+                className={cn(
+                  "absolute inset-x-0 bottom-0 text-center font-mono type-metric tabular-nums",
+                  compact ? "text-base" : "text-xl",
                     tone === "loss" && "text-loss",
                     tone === "warn" && "text-warn",
                     tone === "neutral" && "text-foreground",
@@ -150,7 +143,7 @@ export function FearGreed({
             </div>
           )
         })}
-      </div>
+      </DashboardCard>
     </section>
   )
 }

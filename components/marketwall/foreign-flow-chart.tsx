@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Tooltip,
   TooltipContent,
@@ -20,7 +19,7 @@ import { sectorForSymbol } from "@/lib/vietnam/symbol-sectors"
 import type { VietnamDashboardRow } from "@/lib/providers/vietnam-market-provider"
 import { cn } from "@/lib/utils"
 
-import { fmt } from "./shared"
+import { fmt, DashboardCard, WidgetHeader, DashboardCardBody } from "./shared"
 
 type ForeignFlowChartProps = {
   buyRows: VietnamDashboardRow[]
@@ -117,44 +116,46 @@ export function ForeignFlowChart({ buyRows, sellRows, loading }: ForeignFlowChar
   const maxMag = useMemo(() => maxDisplayMagnitude(rows), [rows])
 
   return (
-    <Card className="gap-0 border-border/80 py-0 shadow-sm md:col-span-2">
-      <CardHeader className="flex flex-col gap-2 border-b border-border/60 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-2">
-          <CardTitle className="text-sm font-semibold">{t("foreignFlow.title")}</CardTitle>
-          <span className="rounded border border-border/60 bg-secondary/40 px-2 py-0.5 text-[10px] font-semibold uppercase text-foreground">
+    <DashboardCard className="md:col-span-2 ring-0">
+      <WidgetHeader
+        title={t("foreignFlow.title")}
+        badge={
+          <span className="rounded border border-border/60 bg-secondary/40 px-2 py-0.5 type-secondary-label font-semibold uppercase text-foreground">
             {t("foreignFlow.today")}
           </span>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-0.5 rounded-md bg-secondary/60 p-0.5 ring-1 ring-border/50">
-            <button
-              type="button"
-              onClick={() => setMode("value")}
-              className={cn(
-                "rounded px-2 py-1 text-[10px] font-semibold transition-colors sm:text-[11px]",
-                mode === "value"
-                  ? "bg-card text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {t("foreignFlow.modeValue")}
-            </button>
-            <button
-              type="button"
-              onClick={() => setMode("volume")}
-              className={cn(
-                "rounded px-2 py-1 text-[10px] font-semibold transition-colors sm:text-[11px]",
-                mode === "volume"
-                  ? "bg-card text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {t("foreignFlow.modeVolume")}
-            </button>
+        }
+        action={
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-0.5 rounded-md bg-secondary/60 p-0.5 ring-1 ring-border/50">
+              <button
+                type="button"
+                onClick={() => setMode("value")}
+                className={cn(
+                  "rounded px-2 py-1 type-secondary-label font-semibold transition-colors",
+                  mode === "value"
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {t("foreignFlow.modeValue")}
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode("volume")}
+                className={cn(
+                  "rounded px-2 py-1 type-secondary-label font-semibold transition-colors",
+                  mode === "volume"
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {t("foreignFlow.modeVolume")}
+              </button>
+            </div>
           </div>
-        </div>
-      </CardHeader>
-      <CardContent className="px-3 py-3">
+        }
+      />
+      <DashboardCardBody className="px-3 py-3">
         {loading && !buyRows.length && !sellRows.length ? (
           <p className="text-xs text-muted-foreground">{t("heatmapDetail.chartLoading")}</p>
         ) : (
@@ -231,7 +232,7 @@ export function ForeignFlowChart({ buyRows, sellRows, loading }: ForeignFlowChar
             </div>
           </TooltipProvider>
         )}
-      </CardContent>
-    </Card>
+      </DashboardCardBody>
+    </DashboardCard>
   )
 }

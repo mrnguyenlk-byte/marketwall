@@ -2,7 +2,6 @@
 
 import { useMemo } from "react"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Tooltip,
   TooltipContent,
@@ -18,6 +17,8 @@ import {
   valueToBillionVnd,
 } from "@/lib/vietnam/proprietary-trading"
 import { cn } from "@/lib/utils"
+
+import { DashboardCard, WidgetHeader, DashboardCardBody } from "./shared"
 
 type ProprietaryTradingChartProps = {
   proprietary?: VietnamMarketAnalytics["proprietary"]
@@ -175,21 +176,23 @@ export function ProprietaryTradingChart({ proprietary, loading }: ProprietaryTra
   )
 
   return (
-    <Card className="gap-0 border-border/80 py-0 shadow-sm md:col-span-2">
-      <CardHeader className="flex flex-col gap-2 border-b border-border/60 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap items-center gap-2">
-          <CardTitle className="text-sm font-semibold">{t("proprietaryTrading.title")}</CardTitle>
-          <span className="rounded border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300">
+    <DashboardCard className="md:col-span-2 ring-0">
+      <WidgetHeader
+        title={t("proprietaryTrading.title")}
+        badge={
+          <span className="rounded border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 type-secondary-label font-medium text-amber-700 dark:text-amber-300">
             {t("proprietaryTrading.eodLabel")}
           </span>
-        </div>
-        {proprietary?.source ? (
-          <span className="text-[10px] text-muted-foreground">
-            {t("proprietaryTrading.source")}: {proprietary.source}
-          </span>
-        ) : null}
-      </CardHeader>
-      <CardContent className="px-3 py-3">
+        }
+        action={
+          proprietary?.source ? (
+            <span className="type-secondary-label text-muted-foreground">
+              {t("proprietaryTrading.source")}: {proprietary.source}
+            </span>
+          ) : undefined
+        }
+      />
+      <DashboardCardBody className="px-3 py-3">
         {loading && !proprietary?.available ? (
           <p className="text-xs text-muted-foreground">{t("heatmapDetail.chartLoading")}</p>
         ) : !proprietary?.available ? (
@@ -292,7 +295,7 @@ export function ProprietaryTradingChart({ proprietary, loading }: ProprietaryTra
             </div>
           </TooltipProvider>
         )}
-      </CardContent>
-    </Card>
+      </DashboardCardBody>
+    </DashboardCard>
   )
 }

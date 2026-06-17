@@ -1,7 +1,6 @@
 "use client"
 
 import { useMemo } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Tooltip,
   TooltipContent,
@@ -14,7 +13,7 @@ import type { VietnamDashboardRow } from "@/lib/providers/vietnam-market-provide
 import { buildHeatmapSymbolRecords } from "@/lib/symbol-heatmap-registry"
 import { cn } from "@/lib/utils"
 
-import { fmt, SectionHeading, signClass } from "./shared"
+import { fmt, SectionHeading, signClass, DashboardCard, WidgetHeader, DashboardCardBody } from "./shared"
 import { ForeignFlowChart } from "./foreign-flow-chart"
 import { ProprietaryTradingChart } from "./proprietary-trading-chart"
 
@@ -126,36 +125,34 @@ function LeaderboardCard({ title, rows, metric, loading }: LeaderboardProps) {
   const metricHeader = metric === "volume" ? "KL" : t("vnDashboard.tradingValue")
 
   return (
-    <Card className="gap-0 border-border/80 py-0 shadow-sm">
-      <CardHeader className="border-b border-border/60 px-2.5 py-1.5">
-        <CardTitle className="text-xs font-semibold">{title}</CardTitle>
-      </CardHeader>
-      <CardContent className="px-0 py-0">
+    <DashboardCard className="ring-0">
+      <WidgetHeader title={title} />
+      <DashboardCardBody>
         {loading && !rows.length ? (
-          <p className="px-2.5 py-3 text-[10px] text-muted-foreground">{t("heatmapDetail.chartLoading")}</p>
+          <p className="px-3 py-3 type-secondary-label text-muted-foreground">{t("heatmapDetail.chartLoading")}</p>
         ) : (
           <TooltipProvider delay={120}>
             <div className="overflow-x-auto">
               <div
-                className="grid min-w-[320px] text-xs leading-none"
+                className="grid min-w-[320px] type-table leading-none"
                 style={{ gridTemplateColumns: TABLE_COLS }}
               >
-                <span className="border-b border-border/50 bg-secondary/20 px-1.5 py-2 text-center text-xs font-medium text-muted-foreground">
+                <span className="border-b border-border/50 bg-secondary/20 px-1.5 py-2 text-center type-secondary-label font-medium text-muted-foreground">
                   #
                 </span>
-                <span className="border-b border-border/50 bg-secondary/20 px-1.5 py-2 text-xs font-medium text-muted-foreground">
+                <span className="border-b border-border/50 bg-secondary/20 px-1.5 py-2 type-secondary-label font-medium text-muted-foreground">
                   {t("label.symbol")}
                 </span>
-                <span className="border-b border-border/50 bg-secondary/20 px-1.5 py-2 text-right text-xs font-medium text-muted-foreground">
+                <span className="border-b border-border/50 bg-secondary/20 px-1.5 py-2 text-right type-secondary-label font-medium text-muted-foreground">
                   {t("label.last")}
                 </span>
-                <span className="border-b border-border/50 bg-secondary/20 px-1.5 py-2 text-right text-xs font-medium text-muted-foreground">
+                <span className="border-b border-border/50 bg-secondary/20 px-1.5 py-2 text-right type-secondary-label font-medium text-muted-foreground">
                   +/-
                 </span>
-                <span className="border-b border-border/50 bg-secondary/20 px-1.5 py-2 text-right text-xs font-medium text-muted-foreground">
+                <span className="border-b border-border/50 bg-secondary/20 px-1.5 py-2 text-right type-secondary-label font-medium text-muted-foreground">
                   %
                 </span>
-                <span className="border-b border-border/50 bg-secondary/20 px-1.5 py-2 text-right text-xs font-medium text-muted-foreground">
+                <span className="border-b border-border/50 bg-secondary/20 px-1.5 py-2 text-right type-secondary-label font-medium text-muted-foreground">
                   {metricHeader}
                 </span>
 
@@ -169,13 +166,13 @@ function LeaderboardCard({ title, rows, metric, loading }: LeaderboardProps) {
                             role="row"
                             className="contents cursor-default [&>*]:flex [&>*]:h-[30px] [&>*]:items-center [&>*]:border-b [&>*]:border-border/30 [&>*]:transition-colors hover:[&>*]:bg-secondary/25 sm:[&>*]:h-8"
                           >
-                            <span className="justify-center px-1 font-mono text-xs tabular-nums text-muted-foreground">
+                            <span className="justify-center px-1 font-mono type-table tabular-nums text-muted-foreground">
                               {row.rank}
                             </span>
-                            <span className="whitespace-nowrap px-1.5 text-xs font-bold tracking-tight text-foreground">
+                            <span className="whitespace-nowrap px-1.5 type-table font-bold tracking-tight text-foreground">
                               {row.symbol}
                             </span>
-                            <span className="justify-end px-1.5 font-mono text-xs tabular-nums text-foreground">
+                            <span className="justify-end px-1.5 font-mono type-table tabular-nums text-foreground">
                               {row.price != null ? fmt(row.price) : "—"}
                             </span>
                             <span className="justify-end px-1.5">
@@ -184,7 +181,7 @@ function LeaderboardCard({ title, rows, metric, loading }: LeaderboardProps) {
                             <span className="justify-end px-1">
                               <ChangeBadge value={row.changePercent} />
                             </span>
-                            <span className="justify-end px-1.5 font-mono text-xs font-semibold tabular-nums text-foreground">
+                            <span className="justify-end px-1.5 font-mono type-table font-semibold tabular-nums text-foreground">
                               {metric === "volume"
                                 ? fmt(volumeForRow(row), { notation: "compact" })
                                 : fmt(tradingValueForRow(row), { notation: "compact" })}
@@ -194,7 +191,7 @@ function LeaderboardCard({ title, rows, metric, loading }: LeaderboardProps) {
                       />
                       <TooltipContent
                         side="left"
-                        className="max-w-[220px] flex-col items-start gap-0.5 p-2 text-xs"
+                        className="max-w-[220px] flex-col items-start gap-0.5 p-2 type-table"
                       >
                         <p className="font-semibold">{row.symbol}</p>
                         {companyName ? (
@@ -209,8 +206,8 @@ function LeaderboardCard({ title, rows, metric, loading }: LeaderboardProps) {
             </div>
           </TooltipProvider>
         )}
-      </CardContent>
-    </Card>
+      </DashboardCardBody>
+    </DashboardCard>
   )
 }
 
@@ -228,7 +225,7 @@ export function VietnamMarketDashboard() {
           {isLive ? t("vnDashboard.sourceVps") : t("vnDashboard.sourceMock")}
         </span>
       </div>
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+      <div className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-2">
         <LeaderboardCard
           title={t("vnDashboard.topVolume")}
           rows={dashboard?.topVolume ?? []}

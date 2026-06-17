@@ -4,8 +4,6 @@ import { useMemo } from "react"
 
 import { ArrowUpRight, BarChart3, Bitcoin, Globe, Newspaper, TrendingUp } from "lucide-react"
 
-import { Card, CardContent } from "@/components/ui/card"
-
 import { Button } from "@/components/ui/button"
 
 import { clientDebug, features } from "@/lib/config/features"
@@ -15,7 +13,7 @@ import type { MarketNewsItem } from "@/lib/market-types"
 
 import { NewsListSkeleton } from "./data-skeletons"
 
-import { SectionHeading } from "./shared"
+import { DashboardCard, DashboardCardBody, SectionHeading } from "./shared"
 
 const iconMap = {
   markets: TrendingUp,
@@ -42,19 +40,19 @@ export function MarketNews({ fallbackItems }: { fallbackItems: MarketNewsItem[] 
   }, [fallbackItems, news.data])
 
   return (
-    <section aria-labelledby="news-title" className="flex h-[320px] flex-col">
+    <section aria-labelledby="news-title" className="flex min-w-0 h-[320px] flex-col">
       <SectionHeading
         id="news-title"
         title={t("sec.news")}
         action={
-          <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs text-primary">
+          <Button variant="ghost" size="sm" className="h-7 gap-1 type-table text-primary">
             {t("action.viewAll")}
             <ArrowUpRight className="size-3.5" />
           </Button>
         }
       />
-      <Card className="min-h-0 flex-1 border-border bg-card py-0">
-        <CardContent className="flex h-full flex-col px-0">
+      <DashboardCard className="min-h-0 flex-1 ring-0">
+        <DashboardCardBody className="flex h-full flex-col">
           {loading ? (
             <NewsListSkeleton count={fallbackItems.length || 5} />
           ) : (
@@ -74,10 +72,10 @@ export function MarketNews({ fallbackItems }: { fallbackItems: MarketNewsItem[] 
                         <Icon className="size-3.5" aria-hidden />
                       </span>
                       <div className="min-w-0 flex-1">
-                        <p className="line-clamp-2 text-xs font-medium leading-snug text-foreground group-hover:text-primary">
+                        <p className="line-clamp-2 type-table font-medium leading-snug text-foreground group-hover:text-primary">
                           {n.title[lang]}
                         </p>
-                        <span className="mt-1 block text-[10px] text-muted-foreground">
+                        <span className="mt-1 block type-secondary-label text-muted-foreground">
                           {n.time[lang]}
                         </span>
                       </div>
@@ -87,8 +85,8 @@ export function MarketNews({ fallbackItems }: { fallbackItems: MarketNewsItem[] 
               })}
             </ul>
           )}
-        </CardContent>
-      </Card>
+        </DashboardCardBody>
+      </DashboardCard>
     </section>
   )
 }

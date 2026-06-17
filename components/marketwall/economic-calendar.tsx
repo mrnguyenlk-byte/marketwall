@@ -4,8 +4,6 @@ import { useMemo } from "react"
 
 import { CalendarDays } from "lucide-react"
 
-import { Card, CardContent } from "@/components/ui/card"
-
 import { Badge } from "@/components/ui/badge"
 
 import { clientDebug, features } from "@/lib/config/features"
@@ -15,7 +13,7 @@ import type { EconomicEvent } from "@/lib/market-types"
 
 import { CalendarListSkeleton } from "./data-skeletons"
 
-import { SectionHeading } from "./shared"
+import { DashboardCard, DashboardCardBody, SectionHeading } from "./shared"
 
 import { cn } from "@/lib/utils"
 
@@ -55,18 +53,18 @@ export function EconomicCalendar({ fallbackEvents }: { fallbackEvents: EconomicE
   }, [fallbackEvents, calendar.data])
 
   return (
-    <section aria-labelledby="calendar-title" className="flex h-[320px] flex-col">
+    <section aria-labelledby="calendar-title" className="flex min-w-0 h-[320px] flex-col">
       <SectionHeading
         id="calendar-title"
         title={t("sec.calendar")}
         badge={
-          <Badge variant="secondary" className="gap-1 text-[10px]">
+          <Badge variant="secondary" className="gap-1 type-secondary-label">
             <CalendarDays className="size-3" /> {t("misc.today")}
           </Badge>
         }
       />
-      <Card className="min-h-0 flex-1 border-border bg-card py-0">
-        <CardContent className="px-0">
+      <DashboardCard className="min-h-0 flex-1 ring-0">
+        <DashboardCardBody>
           <div className="hidden grid-cols-[auto_1fr_auto_auto_auto] gap-x-3 border-b border-border px-4 py-2 text-[10px] font-medium uppercase tracking-wide text-muted-foreground sm:grid">
             <span>{t("label.time")}</span>
             <span>{t("label.event")}</span>
@@ -109,8 +107,8 @@ export function EconomicCalendar({ fallbackEvents }: { fallbackEvents: EconomicE
               ))}
             </ul>
           )}
-        </CardContent>
-      </Card>
+        </DashboardCardBody>
+      </DashboardCard>
     </section>
   )
 }

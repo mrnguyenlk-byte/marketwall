@@ -129,12 +129,14 @@ export function HeatmapTile({ asset, size, rect, onClick }: HeatmapTileProps) {
       }}
       aria-label={`${asset.symbol} ${up ? "+" : ""}${asset.changePercent.toFixed(2)}%`}
       className={cn(
-        "group/tile flex flex-col items-start justify-between overflow-hidden rounded-none border border-black/20 text-left",
-        size === "tiny" ? "min-h-0 min-w-0 p-0" : "min-w-0 p-0.5 sm:p-1",
+        "group/tile flex w-full min-w-0 flex-col items-start justify-between overflow-hidden rounded-none border border-black/20 text-left",
+        size === "tiny" ? "min-h-0 p-0" : "p-0.5 sm:p-1",
         !rect && classes.grid,
       )}
     >
-      {tileBody}
+      <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col items-start justify-between overflow-hidden">
+        {tileBody}
+      </div>
     </button>
   )
 

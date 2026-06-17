@@ -6,7 +6,6 @@ import { useSession } from "next-auth/react"
 import { Plus, Star, X } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
 import { clientDebug, features } from "@/lib/config/features"
 import { useLang } from "@/lib/i18n"
 import {
@@ -18,7 +17,7 @@ import { useWatchlist } from "@/lib/use-watchlist"
 import { WATCHLIST_CATALOG, type WatchlistSymbol } from "@/lib/watchlist"
 import { buildWatchlistQuoteMap, getWatchlistQuote, type WatchlistQuote } from "@/lib/watchlist-quotes"
 
-import { ChangePill, Sparkline, SectionHeading, fmt } from "./shared"
+import { ChangePill, Sparkline, SectionHeading, fmt, DashboardCard, DashboardCardBody } from "./shared"
 import { SymbolLogo } from "./symbol-logo"
 
 function WatchlistRow({
@@ -101,9 +100,9 @@ export function Watchlist() {
         badge={<Star className="size-3.5 text-warn" aria-hidden />}
       />
 
-      <Card className="py-0">
-        <CardContent className="px-0 pb-3">
-          <p className="border-b border-border px-3 py-2 text-[11px] leading-snug text-muted-foreground">
+      <DashboardCard className="ring-0">
+        <DashboardCardBody className="pb-3">
+          <p className="border-b border-border px-3 py-2 type-secondary-label leading-snug text-muted-foreground">
             {status === "authenticated" ? t("watchlist.synced") : t("watchlist.privacy")}
           </p>
 
@@ -146,8 +145,8 @@ export function Watchlist() {
               </div>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </DashboardCardBody>
+      </DashboardCard>
     </section>
   )
 }

@@ -23,7 +23,13 @@ import { useSymbolDetail } from "@/lib/symbol-detail-context"
 import { useHeatmapMarket, useMarketsLoading, useVietnamMarkets } from "@/lib/swr/use-market-apis"
 import type { HeatmapMarket, HeatmapTile, VnExchangeId } from "@/lib/market-types"
 import type { MarketType } from "@/types/market"
-import { SectionHeading, heatStyle } from "./shared"
+import {
+  DashboardCard,
+  DashboardCardFooter,
+  SectionHeading,
+  WidgetHeader,
+  heatStyle,
+} from "./shared"
 import { HeatmapGridSkeleton } from "./data-skeletons"
 import { cn } from "@/lib/utils"
 
@@ -70,12 +76,12 @@ function ControlGroup({ children }: { children: React.ReactNode }) {
 }
 
 const HEATMAP_VIEWPORT_CLASS =
-  "h-[clamp(420px,42vh,480px)] max-h-[480px] min-h-[420px]"
+  "h-[clamp(420px,42vh,480px)] max-h-[480px] min-h-[420px] min-w-0"
 
 function HeatmapViewport({ children }: { children: ReactNode }) {
   return (
-    <div className={cn("overflow-hidden bg-chart-bg p-px", HEATMAP_VIEWPORT_CLASS)}>
-      <div className="h-full w-full">{children}</div>
+    <div className={cn("min-w-0 overflow-hidden bg-chart-bg p-px", HEATMAP_VIEWPORT_CLASS)}>
+      <div className="h-full min-w-0 w-full">{children}</div>
     </div>
   )
 }
@@ -248,14 +254,17 @@ function HeatmapDetailSection() {
     <section aria-labelledby="heatmap-title" className="min-w-0">
       <SectionHeading id="heatmap-title" title={t("sec.heatmaps")} />
 
-      <div className="overflow-hidden rounded-lg border border-border bg-card/40 shadow-sm ring-1 ring-border/80">
-        <div className="flex flex-col gap-2 border-b border-border bg-gradient-to-r from-card/90 to-card/60 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
-            <span aria-hidden>{activeTab.flag}</span>
-            {t(activeTab.labelKey)}
-          </div>
-
-          <div className="flex shrink-0 flex-wrap items-center gap-2">
+      <DashboardCard>
+        <WidgetHeader
+          className="sm:flex-nowrap"
+          leading={
+            <span className="flex min-w-0 items-center gap-1.5 type-widget-title text-foreground">
+              <span aria-hidden>{activeTab.flag}</span>
+              {t(activeTab.labelKey)}
+            </span>
+          }
+          action={
+            <div className="flex w-full shrink-0 flex-wrap items-center gap-2 sm:ml-auto sm:w-auto">
             {activeMarket === "vn" && (
               <>
                 <ControlGroup>
@@ -379,13 +388,14 @@ function HeatmapDetailSection() {
                 </span>
               ))}
             </div>
-          </div>
-        </div>
+            </div>
+          }
+        />
 
         <div
           role="tablist"
           aria-label="Market"
-          className="flex flex-wrap items-center gap-1 border-b border-border bg-card/50 px-3 py-1.5"
+          className="flex min-w-0 flex-wrap items-center gap-1 border-b border-border bg-card/50 px-3 py-1.5"
         >
           {DETAIL_MARKET_TABS.map((tab) => (
             <button
@@ -424,18 +434,18 @@ function HeatmapDetailSection() {
           )}
         </HeatmapViewport>
 
-        <div className="flex items-center justify-between gap-3 border-t border-border bg-card/60 px-3 py-2 text-[10px] text-muted-foreground">
+        <DashboardCardFooter>
           <span>{t("misc.delayed")}</span>
           <Button
             variant="link"
             size="sm"
-            className="ml-auto h-auto shrink-0 gap-0.5 p-0 text-[10px] text-primary"
+            className="ml-auto h-auto shrink-0 gap-0.5 p-0 type-secondary-label text-primary"
           >
             {t("action.viewFullHeatmap")}
             <ArrowUpRight className="size-3" aria-hidden />
           </Button>
-        </div>
-      </div>
+        </DashboardCardFooter>
+      </DashboardCard>
     </section>
   )
 }
@@ -475,7 +485,7 @@ function LegacyHeatmapSection({ markets }: { markets: HeatmapMarket[] }) {
     return (
       <section aria-labelledby="heatmap-title" className="min-w-0">
         <SectionHeading id="heatmap-title" title={t("sec.vnHeatmap")} />
-        <div className="h-[clamp(420px,42vh,480px)] max-h-[480px] min-h-[420px] rounded-lg border border-border bg-card/40 p-px">
+        <div className={cn("min-w-0 overflow-hidden rounded-lg border border-border bg-card/40 p-px", HEATMAP_VIEWPORT_CLASS)}>
           <HeatmapGridSkeleton />
         </div>
       </section>
@@ -489,49 +499,52 @@ function LegacyHeatmapSection({ markets }: { markets: HeatmapMarket[] }) {
     <section aria-labelledby="heatmap-title" className="min-w-0">
       <SectionHeading id="heatmap-title" title={t("sec.vnHeatmap")} />
 
-      <div className="overflow-hidden rounded-lg border border-border bg-card/40 shadow-sm ring-1 ring-border/80">
-        <div className="flex flex-col gap-2 border-b border-border bg-gradient-to-r from-card/90 to-card/60 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
-            <span aria-hidden>{vnMarket.flag}</span>
-            {t(vnMarket.labelKey)}
-          </div>
-
-          <div className="flex shrink-0 items-center gap-2">
-            <div className="flex items-center gap-0.5 rounded-md bg-secondary/60 p-0.5 ring-1 ring-border/50">
-              {timeframes.map((tf) => (
-                <button
-                  key={tf}
-                  type="button"
-                  onClick={() => setTimeframe(tf)}
-                  className={cn(
-                    "rounded px-2.5 py-1 text-[11px] font-semibold transition-colors",
-                    timeframe === tf
-                      ? "bg-card text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  {tf}
-                </button>
-              ))}
+      <DashboardCard>
+        <WidgetHeader
+          leading={
+            <span className="flex min-w-0 items-center gap-1.5 type-widget-title text-foreground">
+              <span aria-hidden>{vnMarket.flag}</span>
+              {t(vnMarket.labelKey)}
+            </span>
+          }
+          action={
+            <div className="flex shrink-0 items-center gap-2">
+              <div className="flex items-center gap-0.5 rounded-md bg-secondary/60 p-0.5 ring-1 ring-border/50">
+                {timeframes.map((tf) => (
+                  <button
+                    key={tf}
+                    type="button"
+                    onClick={() => setTimeframe(tf)}
+                    className={cn(
+                      "rounded px-2.5 py-1 text-[11px] font-semibold transition-colors",
+                      timeframe === tf
+                        ? "bg-card text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {tf}
+                  </button>
+                ))}
+              </div>
+              <div className="hidden items-center gap-1 sm:flex">
+                {["-3%", "0%", "+3%"].map((label) => (
+                  <span
+                    key={label}
+                    className="rounded px-2 py-0.5 type-secondary-label font-medium text-muted-foreground ring-1 ring-border/50"
+                  >
+                    {label}
+                  </span>
+                ))}
+              </div>
             </div>
-            <div className="hidden items-center gap-1 sm:flex">
-              {["-3%", "0%", "+3%"].map((label) => (
-                <span
-                  key={label}
-                  className="rounded px-2 py-0.5 text-[10px] font-medium text-muted-foreground ring-1 ring-border/50"
-                >
-                  {label}
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
+          }
+        />
 
         {vnExchanges.length > 0 && (
           <div
             role="tablist"
             aria-label="Exchange"
-            className="flex flex-wrap items-center gap-1 border-b border-border bg-card/50 px-3 py-1.5"
+            className="flex min-w-0 flex-wrap items-center gap-1 border-b border-border bg-card/50 px-3 py-1.5"
           >
             {vnExchanges.map((ex) => (
               <button
@@ -557,18 +570,18 @@ function LegacyHeatmapSection({ markets }: { markets: HeatmapMarket[] }) {
           {loading ? <HeatmapGridSkeleton /> : <HeatGrid tiles={activeTiles} />}
         </HeatmapViewport>
 
-        <div className="flex items-center justify-between gap-3 border-t border-border bg-card/60 px-3 py-2 text-[10px] text-muted-foreground">
+        <DashboardCardFooter>
           <span>{t("misc.delayed")}</span>
           <Button
             variant="link"
             size="sm"
-            className="ml-auto h-auto shrink-0 gap-0.5 p-0 text-[10px] text-primary"
+            className="ml-auto h-auto shrink-0 gap-0.5 p-0 type-secondary-label text-primary"
           >
             {t("action.viewFullHeatmap")}
             <ArrowUpRight className="size-3" aria-hidden />
           </Button>
-        </div>
-      </div>
+        </DashboardCardFooter>
+      </DashboardCard>
     </section>
   )
 }

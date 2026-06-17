@@ -5,9 +5,6 @@ import { useMemo, useState } from "react"
 import { ArrowRight } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-
-import { Card } from "@/components/ui/card"
-
 import { clientDebug, features } from "@/lib/config/features"
 import { useQuotes } from "@/hooks/useQuotes"
 import { mergeCryptoAssetsIntoOverview } from "@/lib/crypto-market-merge"
@@ -27,7 +24,7 @@ import type { OverviewCategory, OverviewListItem } from "@/lib/market-types"
 
 import { OverviewListSkeleton } from "./data-skeletons"
 
-import { ChangePill, Sparkline, fmt } from "./shared"
+import { ChangePill, Sparkline, fmt, DashboardCard, WidgetHeader } from "./shared"
 
 import { SymbolLogo } from "./symbol-logo"
 
@@ -142,20 +139,16 @@ export function MarketOverview({
     marketQuotes.data?.unavailable === true
 
   return (
-    <Card className="flex h-[600px] w-full max-w-[300px] flex-col gap-0 overflow-hidden border-border bg-card p-0">
-      <div className="shrink-0 border-b border-border px-3 py-2.5">
-        <h2 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-foreground">
-          <span className="h-3.5 w-0.5 rounded-full bg-primary" aria-hidden />
-          {t("sec.overview")}
-        </h2>
-        <div className="flex gap-0.5 rounded-md bg-secondary/60 p-0.5">
+    <DashboardCard className="flex h-[600px] w-full max-w-full flex-col gap-0 overflow-hidden p-0 ring-0">
+      <WidgetHeader title={t("sec.overview")} className="flex-col items-stretch">
+        <div className="flex w-full basis-full gap-0.5 rounded-md bg-secondary/60 p-0.5">
           {TABS.map((id) => (
             <button
               key={id}
               type="button"
               onClick={() => setTab(id)}
               className={cn(
-                "flex-1 rounded px-1.5 py-1 text-[10px] font-semibold transition-colors",
+                "flex-1 rounded px-1.5 py-1 type-secondary-label font-semibold transition-colors",
                 tab === id
                   ? "bg-card text-primary shadow-sm"
                   : "text-muted-foreground hover:text-foreground",
@@ -165,12 +158,12 @@ export function MarketOverview({
             </button>
           ))}
         </div>
-      </div>
+      </WidgetHeader>
 
       {loading ? (
         <OverviewListSkeleton count={items.length || 12} />
       ) : dataUnavailable ? (
-        <p className="px-3 py-4 text-xs text-muted-foreground">{t("error.marketDataUnavailable")}</p>
+        <p className="px-3 py-4 type-table text-muted-foreground">{t("error.marketDataUnavailable")}</p>
       ) : (
         <ul className="min-h-0 flex-1 divide-y divide-border overflow-y-auto">
           {items.map((item) => (
@@ -185,11 +178,11 @@ export function MarketOverview({
       )}
 
       <div className="shrink-0 border-t border-border p-2">
-        <Button variant="ghost" size="sm" className="h-8 w-full gap-1 text-xs text-primary">
+        <Button variant="ghost" size="sm" className="h-8 w-full gap-1 type-table text-primary">
           {t("action.viewMore")}
           <ArrowRight className="size-3" aria-hidden />
         </Button>
       </div>
-    </Card>
+    </DashboardCard>
   )
 }

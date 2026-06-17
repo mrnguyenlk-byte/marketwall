@@ -1,5 +1,6 @@
 "use client"
 
+import type { ReactNode } from "react"
 import { ArrowDown, ArrowUp } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -105,6 +106,102 @@ export function Sparkline({
   )
 }
 
+/** Unified dashboard card shell — radius, border, shadow, min-w-0. */
+export function DashboardCard({
+  className,
+  children,
+  ...props
+}: React.ComponentProps<"div">) {
+  return (
+    <div
+      className={cn(
+        "min-w-0 overflow-hidden rounded-lg border border-border bg-card shadow-sm ring-1 ring-border/80",
+        className,
+      )}
+      {...props}
+    >
+      {children}
+    </div>
+  )
+}
+
+export function DashboardCardBody({
+  className,
+  children,
+  ...props
+}: React.ComponentProps<"div">) {
+  return (
+    <div className={cn("min-w-0", className)} {...props}>
+      {children}
+    </div>
+  )
+}
+
+export function DashboardCardFooter({
+  className,
+  children,
+  ...props
+}: React.ComponentProps<"div">) {
+  return (
+    <div
+      className={cn(
+        "flex min-w-0 items-center justify-between gap-3 border-t border-border bg-card/60 px-3 py-2 type-secondary-label text-muted-foreground",
+        className,
+      )}
+      {...props}
+    >
+      {children}
+    </div>
+  )
+}
+
+/** In-card widget header — fixed height band, title + optional action. */
+export function WidgetHeader({
+  title,
+  id,
+  badge,
+  action,
+  leading,
+  children,
+  className,
+}: {
+  title?: string
+  id?: string
+  badge?: ReactNode
+  action?: ReactNode
+  /** Custom title row content (replaces title string). */
+  leading?: ReactNode
+  children?: ReactNode
+  className?: string
+}) {
+  const hasTitleRow = title || badge || leading
+
+  return (
+    <div
+      className={cn(
+        "flex min-h-9 min-w-0 flex-wrap items-center justify-between gap-2 border-b border-border bg-gradient-to-r from-card/90 to-card/60 px-3 py-2",
+        className,
+      )}
+    >
+      {hasTitleRow ? (
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="h-3.5 w-0.5 shrink-0 rounded-full bg-primary" aria-hidden />
+          {leading ?? (
+            title ? (
+              <h2 id={id} className="type-widget-title truncate tracking-tight text-foreground">
+                {title}
+              </h2>
+            ) : null
+          )}
+          {badge}
+        </div>
+      ) : null}
+      {action}
+      {children}
+    </div>
+  )
+}
+
 export function SectionHeading({
   title,
   badge,
@@ -112,17 +209,17 @@ export function SectionHeading({
   id,
 }: {
   title: string
-  badge?: React.ReactNode
-  action?: React.ReactNode
+  badge?: ReactNode
+  action?: ReactNode
   id?: string
 }) {
   return (
-    <div className="mb-1.5 flex items-center justify-between gap-2">
-      <div className="flex items-center gap-2">
-        <span className="h-4 w-1 rounded-full bg-primary" aria-hidden />
+    <div className="mb-1.5 flex min-w-0 items-center justify-between gap-2">
+      <div className="flex min-w-0 items-center gap-2">
+        <span className="h-3.5 w-0.5 shrink-0 rounded-full bg-primary" aria-hidden />
         <h2
           id={id}
-          className="text-sm font-semibold tracking-tight text-foreground sm:text-base"
+          className="type-widget-title truncate tracking-tight text-foreground"
         >
           {title}
         </h2>
