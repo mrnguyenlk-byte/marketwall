@@ -33,6 +33,9 @@ export type Broker = {
   withdrawalTime: Bi
   badges: BrokerBadge[]
   featured?: boolean
+  rebatePerLot?: Bi
+  priceTolerance?: Bi
+  promotions?: Bi[]
 }
 
 export const brokerPageStats = {
@@ -212,6 +215,13 @@ export const brokers: Broker[] = [
     region: { en: "Global", vi: "Toàn cầu" },
     accountType: { en: "Standard · ECN", vi: "Standard · ECN" },
     offer: { en: "0% commission · Instant withdrawal", vi: "0% hoa hồng · Rút tiền tức thì" },
+    rebatePerLot: { en: "Up to $7/lot (partner)", vi: "Lên đến $7/lot (đối tác)" },
+    priceTolerance: { en: "Slippage protection on major pairs", vi: "Bảo vệ trượt giá trên cặp chính" },
+    promotions: [
+      { en: "Zero spread account", vi: "Tài khoản spread 0" },
+      { en: "Cashback on volume", vi: "Hoàn tiền theo khối lượng" },
+      { en: "Free VPS for active traders", vi: "VPS miễn phí cho trader active" },
+    ],
     licenseTags: ["ASIC", "FCA", "CySEC"],
     platformTags: ["MT4", "MT5", "Web"],
     minDepositValue: 10,
@@ -236,6 +246,12 @@ export const brokers: Broker[] = [
     region: { en: "Global", vi: "Toàn cầu" },
     accountType: { en: "ECN", vi: "ECN" },
     offer: { en: "Raw spread from 0.0 pips", vi: "Spread thô từ 0.0 pips" },
+    rebatePerLot: { en: "$2–$3/lot ECN", vi: "$2–$3/lot ECN" },
+    priceTolerance: { en: "No requotes on ECN", vi: "Không requote trên ECN" },
+    promotions: [
+      { en: "Raw spread ECN account", vi: "Tài khoản ECN spread thô" },
+      { en: "cTrader commission discount", vi: "Giảm hoa hồng cTrader" },
+    ],
     licenseTags: ["ASIC", "CySEC"],
     platformTags: ["MT4", "MT5", "cTrader"],
     minDepositValue: 200,
@@ -260,6 +276,13 @@ export const brokers: Broker[] = [
     region: { en: "Global", vi: "Toàn cầu" },
     accountType: { en: "Standard · Islamic", vi: "Standard · Islamic" },
     offer: { en: "Bonus up to $10,000", vi: "Thưởng lên đến $10,000" },
+    rebatePerLot: { en: "Up to $15/lot (IB)", vi: "Lên đến $15/lot (IB)" },
+    priceTolerance: { en: "Negative balance protection", vi: "Bảo vệ số dư âm" },
+    promotions: [
+      { en: "Deposit bonus up to $10,000", vi: "Thưởng nạp lên đến $10,000" },
+      { en: "Loyalty points program", vi: "Chương trình điểm thưởng" },
+      { en: "Zero-fee deposits", vi: "Nạp tiền không phí" },
+    ],
     licenseTags: ["CySEC", "ASIC"],
     platformTags: ["MT4", "MT5", "Web"],
     minDepositValue: 5,
@@ -284,6 +307,12 @@ export const brokers: Broker[] = [
     region: { en: "Global", vi: "Toàn cầu" },
     accountType: { en: "Standard · ECN", vi: "Standard · ECN" },
     offer: { en: "No minimum deposit", vi: "Không yêu cầu nạp tối thiểu" },
+    rebatePerLot: { en: "$1.50/lot Razor", vi: "$1.50/lot Razor" },
+    priceTolerance: { en: "Smart Trader tools included", vi: "Công cụ Smart Trader miễn phí" },
+    promotions: [
+      { en: "Razor raw spread account", vi: "Tài khoản Razor spread thô" },
+      { en: "Active trader rebates", vi: "Hoàn phí trader active" },
+    ],
     licenseTags: ["FCA", "ASIC", "CySEC"],
     platformTags: ["MT4", "MT5", "cTrader"],
     minDepositValue: 0,
@@ -307,6 +336,13 @@ export const brokers: Broker[] = [
     region: { en: "Asia", vi: "Châu Á" },
     accountType: { en: "Standard · ECN", vi: "Standard · ECN" },
     offer: { en: "Deposit bonus 100%", vi: "Thưởng nạp 100%" },
+    rebatePerLot: { en: "Up to $10/lot (partner)", vi: "Lên đến $10/lot (đối tác)" },
+    priceTolerance: { en: "Fixed spread option", vi: "Tùy chọn spread cố định" },
+    promotions: [
+      { en: "100% deposit bonus", vi: "Thưởng nạp 100%" },
+      { en: "Cashback loyalty", vi: "Hoàn tiền loyalty" },
+      { en: "Level-up VIP rewards", vi: "Thưởng VIP theo cấp" },
+    ],
     licenseTags: ["CySEC", "FSC"],
     platformTags: ["MT4", "MT5", "Web"],
     minDepositValue: 1,
@@ -339,8 +375,15 @@ export const brokers: Broker[] = [
   },
 ]
 
-export const vnStockPlatforms = brokers.filter((b) => b.category === "vn")
-export const globalPlatforms = brokers.filter((b) => b.category === "global")
+const PLATFORM_LIST_LIMIT = 5
+
+export const vnStockPlatforms = brokers
+  .filter((b) => b.category === "vn")
+  .slice(0, PLATFORM_LIST_LIMIT)
+
+export const globalPlatforms = brokers
+  .filter((b) => b.category === "global")
+  .slice(0, PLATFORM_LIST_LIMIT)
 export const featuredPlatforms = brokers.filter((b) => b.featured)
 
 export type BrokerComparison = {

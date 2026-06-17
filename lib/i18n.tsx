@@ -537,9 +537,17 @@ const dict: Dict = {
     vi: "Nền tảng chứng khoán Việt Nam",
     en: "Vietnam Stock Platforms",
   },
+  "platforms.vnSectionDesc": {
+    vi: "So sánh phí môi giới, ưu đãi và giấy phép giữa các CTCK Việt Nam.",
+    en: "Compare brokerage fees, offers, and licenses across Vietnamese securities firms.",
+  },
   "platforms.globalSection": {
     vi: "Nền tảng giao dịch toàn cầu",
     en: "Global Trading Platforms",
+  },
+  "platforms.globalSectionDesc": {
+    vi: "So sánh spread, hoàn phí, ưu đãi chịu giá và chương trình khuyến mãi.",
+    en: "Compare spread, rebates, price tolerance benefits, and promotional programs.",
   },
   "label.brokerageFee": { vi: "Phí môi giới", en: "Brokerage fee" },
   "brokers.stat.regulated": { vi: "Nền tảng được cấp phép", en: "Regulated Platforms" },
@@ -579,6 +587,9 @@ const dict: Dict = {
   "label.execution": { vi: "Loại khớp lệnh", en: "Execution Type" },
   "misc.review": { vi: "Đánh giá", en: "Review" },
   "label.offer": { vi: "Ưu đãi", en: "Offer" },
+  "label.promotions": { vi: "Ưu đãi", en: "Promotions" },
+  "label.rebatePerLot": { vi: "Mức hoàn phí trên lot", en: "Rebate per lot" },
+  "label.priceTolerance": { vi: "Ưu đãi chịu giá", en: "Price tolerance benefit" },
   "brokers.compare.vs": { vi: "vs", en: "vs" },
   "brokers.filter.region": { vi: "Khu vực", en: "Region" },
   "brokers.filter.license": { vi: "Giấy phép", en: "License" },

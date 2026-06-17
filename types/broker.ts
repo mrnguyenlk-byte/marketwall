@@ -37,6 +37,12 @@ export type BrokerRecord = {
   withdrawalTime: Bi
   badges: BrokerBadge[]
   featured?: boolean
+  /** Global FX: rebate returned per standard lot traded. */
+  rebatePerLot?: Bi
+  /** Global FX: slippage / price tolerance benefit for order execution. */
+  priceTolerance?: Bi
+  /** Global FX: promotional programs (may differ from primary offer). */
+  promotions?: Bi[]
 }
 
 export type BrokerClickLog = {
