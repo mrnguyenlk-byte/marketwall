@@ -352,11 +352,63 @@ function layoutWeightBandsVertical<T>(
   return nodes
 }
 
+/** Split sorted items into bands with roughly equal item count (preserves order). */
+function partitionByCount<T>(
+  items: Array<{ data: T; value: number }>,
+  numBands: number,
+): Array<Array<{ data: T; value: number }>> {
+  if (numBands <= 1 || items.length <= 1) return [items]
+
+  const bands: Array<Array<{ data: T; value: number }>> = []
+  const n = items.length
+  const base = Math.floor(n / numBands)
+  const extra = n % numBands
+  let idx = 0
+
+  for (let b = 0; b < numBands; b++) {
+    const count = base + (b < extra ? 1 : 0)
+    if (count > 0) {
+      bands.push(items.slice(idx, idx + count))
+      idx += count
+    }
+  }
+
+  return bands.length ? bands : [items]
+}
+
+/** Merge single-item bands into a neighbor so horizontal rows are never one tile wide. */
+function mergeSingletonBands<T>(
+  bands: Array<Array<{ data: T; value: number }>>,
+): Array<Array<{ data: T; value: number }>> {
+  if (bands.length <= 1) return bands
+
+  const merged = bands.map((band) => [...band])
+  let i = 0
+  while (i < merged.length) {
+    if (merged[i].length === 1) {
+      if (i < merged.length - 1) {
+        merged[i + 1] = [...merged[i], ...merged[i + 1]]
+        merged.splice(i, 1)
+      } else if (i > 0) {
+        merged[i - 1] = [...merged[i - 1], ...merged[i]]
+        merged.splice(i, 1)
+        i--
+      } else {
+        i++
+      }
+    } else {
+      i++
+    }
+  }
+
+  return merged.length ? merged : bands
+}
+
 /**
  * Weight-proportional grid fallback — tile area ∝ value, metric order preserved.
  * Tries horizontal and vertical band counts to minimize worst aspect ratio.
  */
-export function weightedBalancedGridFallback<T>(
+function weightedBalancedGridFallback<T>(
   inner: TreemapRect,
   items: Array<{ data: T; value: number }>,
   gap = FLAT_LAYOUT_GAP,
@@ -373,23 +425,10 @@ export function weightedBalancedGridFallback<T>(
   let bestWorst = Infinity
 
   for (let bands = minBands; bands <= maxBands; bands++) {
-    const partitioned = partitionByWeight(sorted, bands)
+    const weightBands = mergeSingletonBands(partitionByWeight(sorted, bands))
+    const countBands = partitionByCount(sorted, bands)
 
-    for (const layout of [
-      layoutWeightBandsHorizontal(inner, partitioned, gap),
-      layoutWeightBandsVertical(inner, partitioned, gap),
-    ]) {
-      const score = worstAspect(layout.map((node) => node.rect))
-      if (score < bestWorst) {
-        bestWorst = score
-        bestNodes = layout
-      }
-    }
-  }
-
-  if (bestWorst > FLAT_ASPECT_FALLBACK_LIMIT) {
-    for (let bands = 1; bands <= n; bands++) {
-      const partitioned = partitionByWeight(sorted, bands)
+    for (const partitioned of [weightBands, countBands]) {
       for (const layout of [
         layoutWeightBandsHorizontal(inner, partitioned, gap),
         layoutWeightBandsVertical(inner, partitioned, gap),
@@ -399,7 +438,27 @@ export function weightedBalancedGridFallback<T>(
           bestWorst = score
           bestNodes = layout
         }
-        if (bestWorst <= FLAT_ASPECT_FALLBACK_LIMIT) return bestNodes
+      }
+    }
+  }
+
+  if (bestWorst > FLAT_ASPECT_FALLBACK_LIMIT) {
+    for (let bands = 1; bands <= n; bands++) {
+      const weightBands = mergeSingletonBands(partitionByWeight(sorted, bands))
+      const countBands = partitionByCount(sorted, bands)
+
+      for (const partitioned of [weightBands, countBands]) {
+        for (const layout of [
+          layoutWeightBandsHorizontal(inner, partitioned, gap),
+          layoutWeightBandsVertical(inner, partitioned, gap),
+        ]) {
+          const score = worstAspect(layout.map((node) => node.rect))
+          if (score < bestWorst) {
+            bestWorst = score
+            bestNodes = layout
+          }
+          if (bestWorst <= FLAT_ASPECT_FALLBACK_LIMIT) return bestNodes
+        }
       }
     }
   }
@@ -412,6 +471,8 @@ export type PackSquarifiedOptions = {
   allowEqualGridFallback?: boolean
   /** Squarify → weighted grid when worst aspect exceeds this (default 10). Set 0 to disable. */
   aspectFallbackLimit?: number
+  /** Always use weighted grid when squarify aspect exceeds limit (crypto flat). */
+  forceWeightedFallback?: boolean
 }
 
 /** Squarified pack — weighted grid when aspect too high; equal grid only for invalid metrics. */
@@ -437,7 +498,7 @@ export function packSquarified<T>(
   if (aspectLimit > 0 && worst > aspectLimit) {
     const weightedGrid = weightedBalancedGridFallback(rect, weighted)
     const gridWorst = worstAspect(weightedGrid.map((node) => node.rect))
-    if (gridWorst < worst) return weightedGrid
+    if (options?.forceWeightedFallback || gridWorst < worst) return weightedGrid
   }
 
   if (!allowEqualGrid) return packed
@@ -456,6 +517,7 @@ export type FlatMetricTreemapOptions = {
   power?: number
   allowEqualGridFallback?: boolean
   aspectFallbackLimit?: number
+  forceWeightedFallback?: boolean
 }
 
 /** Flat squarified treemap — tile size from normalized/capped weights, never slice bars. */
@@ -483,6 +545,7 @@ export function buildFlatMetricTreemap<T>(
     allowEqualGridFallback:
       options?.allowEqualGridFallback ?? allMetricsInvalid(rawForInvalid),
     aspectFallbackLimit: options?.aspectFallbackLimit,
+    forceWeightedFallback: options?.forceWeightedFallback,
   })
 }
 

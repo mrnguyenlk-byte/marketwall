@@ -160,6 +160,7 @@ export function buildFlatMarketHeatmapLayout(
     leaves: buildFlatMetricTreemap(assets, metric, rect, {
       allowEqualGridFallback: false,
       power,
+      forceWeightedFallback: marketType === "crypto",
     }),
   }
 }
