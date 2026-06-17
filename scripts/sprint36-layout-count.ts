@@ -16,7 +16,7 @@ async function main() {
     "vn",
     "tradingValue",
   )
-  const layout = buildVietnamSectorTreemapLayout(assets, "tradingValue")
+  const layout = buildVietnamSectorTreemapLayout(assets, "volume")
   const counts = countVnSectorTreemapTiles(layout)
   const analysis = analyzeVnSectorTreemapLayout(layout)
 

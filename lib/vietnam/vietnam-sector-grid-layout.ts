@@ -23,6 +23,9 @@ const SECTOR_IMPORTANCE: Record<VnSectorGroupId, number> = {
   other: 0.7,
 }
 
+/** Volume mode: cap dominant sectors (e.g. Khác bucket) for readable 2D blocks. */
+const VOLUME_MAX_SECTOR_SHARE = 0.32
+const VOLUME_MIN_SECTOR_SHARE = 0.018
 const METRIC_BLEND = 0.7
 const IMPORTANCE_BLEND = 0.3
 /** Soft cap: largest tile ≤ 12% of sector inner area (weight share). */
@@ -31,10 +34,10 @@ const MAX_TILE_RETRY = 0.08
 const MIN_TILE_IN_SECTOR = 0.02
 const HARD_ASPECT_LIMIT = 3
 const PREFERRED_ASPECT_MAX = 2.5
-const SECTOR_HEADER_RATIO = 0.05
-/** Normalized header bounds (~16–24px at 1080px viewport height). */
-const SECTOR_HEADER_MIN = 16 / 1080
-const SECTOR_HEADER_MAX = 24 / 1080
+/** Match VietnamSectorGridHeatmap header: min(7%, 22px) with min-h 18px. */
+const SECTOR_HEADER_RATIO = 0.07
+const SECTOR_HEADER_MIN = 18 / 1080
+const SECTOR_HEADER_MAX = 22 / 1080
 const SECTOR_GAP = 0.002
 const MIN_SQRT_VALUE = 0.0001
 
@@ -86,9 +89,9 @@ function aspectRatio(rect: TreemapRect): number {
 }
 
 function textTierForSectorShare(share: number): VnTileTextTier {
-  if (share >= 0.045) return "large"
-  if (share >= 0.02) return "medium"
-  if (share >= 0.008) return "small"
+  if (share >= 0.04) return "large"
+  if (share >= 0.015) return "medium"
+  if (share >= 0.006) return "small"
   return "tiny"
 }
 
@@ -240,15 +243,23 @@ function trySquarifyInner(
   inner: TreemapRect,
   baseItems: SectorSquarifyItem[],
   maxShare: number,
+  volumeMode = false,
 ): Array<{ item: SectorSquarifyItem; rect: TreemapRect }> {
-  const attempts: Array<{ flatten: number; horizontal: boolean }> = [
-    { flatten: 0, horizontal: inner.w >= inner.h },
-    { flatten: 0, horizontal: inner.w < inner.h },
-    { flatten: 0.25, horizontal: inner.w >= inner.h },
-    { flatten: 0.25, horizontal: inner.w < inner.h },
-    { flatten: 0.5, horizontal: inner.w >= inner.h },
-    { flatten: 0.65, horizontal: inner.w < inner.h },
-  ]
+  const attempts: Array<{ flatten: number; horizontal: boolean }> = volumeMode
+    ? [
+        { flatten: 0, horizontal: inner.w >= inner.h },
+        { flatten: 0, horizontal: inner.w < inner.h },
+        { flatten: 0.15, horizontal: inner.w >= inner.h },
+        { flatten: 0.15, horizontal: inner.w < inner.h },
+      ]
+    : [
+        { flatten: 0, horizontal: inner.w >= inner.h },
+        { flatten: 0, horizontal: inner.w < inner.h },
+        { flatten: 0.25, horizontal: inner.w >= inner.h },
+        { flatten: 0.25, horizontal: inner.w < inner.h },
+        { flatten: 0.5, horizontal: inner.w >= inner.h },
+        { flatten: 0.65, horizontal: inner.w < inner.h },
+      ]
 
   let best: {
     placements: Array<{ item: SectorSquarifyItem; rect: TreemapRect }>
@@ -284,6 +295,7 @@ function layoutSectorTreemap(
   stocks: WeightedStock[],
   otherSymbols: string[],
   otherWeight: number,
+  volumeMode = false,
 ): { tiles: VnSectorTileLayout[]; other?: VnSectorOtherBucket } {
   if ((!stocks.length && !otherSymbols.length) || inner.w <= 0 || inner.h <= 0) {
     return { tiles: [] }
@@ -302,9 +314,9 @@ function layoutSectorTreemap(
     })
   }
 
-  let chosen = trySquarifyInner(inner, baseItems, MAX_TILE_IN_SECTOR)
+  let chosen = trySquarifyInner(inner, baseItems, MAX_TILE_IN_SECTOR, volumeMode)
   if (worstAspect(chosen) > HARD_ASPECT_LIMIT) {
-    chosen = trySquarifyInner(inner, baseItems, MAX_TILE_RETRY)
+    chosen = trySquarifyInner(inner, baseItems, MAX_TILE_RETRY, volumeMode)
   }
   if (worstAspect(chosen) > HARD_ASPECT_LIMIT || aspectRatio(inner) > HARD_ASPECT_LIMIT) {
     chosen = balancedGridFallback(inner, baseItems)
@@ -354,6 +366,7 @@ function layoutSectorBlock(
     visible,
     other.map((a) => a.symbol),
     otherWeight,
+    sizing === "volume",
   )
 
   return {
@@ -365,20 +378,41 @@ function layoutSectorBlock(
   }
 }
 
+function clampNormalizedShares(values: number[], minShare: number, maxShare: number): number[] {
+  if (!values.length) return values
+  let clamped = values.map((v) => Math.min(Math.max(v, minShare), maxShare))
+  let sum = clamped.reduce((s, v) => s + v, 0) || 1
+  clamped = clamped.map((v) => v / sum)
+
+  for (let pass = 0; pass < 4; pass++) {
+    const capped = clamped.map((v) => Math.min(Math.max(v, minShare), maxShare))
+    sum = capped.reduce((s, v) => s + v, 0) || 1
+    clamped = capped.map((v) => v / sum)
+  }
+  return clamped
+}
+
 function rootSectorValues(
   present: VnSectorGroupId[],
   weights: Map<VnSectorGroupId, number>,
   flatten: number,
+  useLinearSquarifyValues: boolean,
 ): number[] {
   const raw = present.map((id) => Math.max(weights.get(id) ?? MIN_SQRT_VALUE, MIN_SQRT_VALUE))
   const sum = raw.reduce((s, w) => s + w, 0) || 1
-  const normalized = raw.map((w) => w / sum)
-  if (flatten <= 0) return normalized.map((w) => Math.sqrt(w))
-  const uniform = 1 / present.length
-  return normalized.map((w) => {
-    const blended = w * (1 - flatten) + uniform * flatten
-    return Math.sqrt(blended)
-  })
+  let normalized = raw.map((w) => w / sum)
+  if (useLinearSquarifyValues) {
+    normalized = clampNormalizedShares(
+      normalized,
+      VOLUME_MIN_SECTOR_SHARE,
+      VOLUME_MAX_SECTOR_SHARE,
+    )
+  }
+  if (flatten > 0) {
+    const uniform = 1 / present.length
+    normalized = normalized.map((w) => w * (1 - flatten) + uniform * flatten)
+  }
+  return normalized.map((w) => Math.sqrt(w))
 }
 
 function balancedRootSectors(
@@ -411,48 +445,77 @@ const ROOT_GRID_FALLBACK_ASPECT = 10
 function layoutRootSectors(
   present: VnSectorGroupId[],
   weights: Map<VnSectorGroupId, number>,
+  sizing: VnHeatmapSizingMode,
 ): Array<{ id: VnSectorGroupId; rect: TreemapRect }> {
   const root: TreemapRect = { x: 0, y: 0, w: 1, h: 1 }
-  const flatAttempts = [0, 0.15, 0.3, 0.45]
+  const volumeMode = sizing === "volume"
+  const flatAttempts = volumeMode ? [0, 0.12] : [0, 0.15, 0.3, 0.45]
 
   let best: Array<{ id: VnSectorGroupId; rect: TreemapRect }> | null = null
   let bestMaxAspect = Infinity
 
-  for (const flatten of flatAttempts) {
-    const values = rootSectorValues(present, weights, flatten)
-    const nodes = squarify(
-      present.map((id, index) => ({
-        data: id,
-        value: values[index],
-      })),
-      root,
-      MIN_SQRT_VALUE,
-    )
-    const placements = nodes.map((node) => ({
+  const tryLayout = (values: number[], horizontal?: boolean) => {
+    const items = present.map((id, index) => ({
+      data: id,
+      value: values[index],
+    }))
+    const nodes =
+      horizontal === undefined
+        ? squarify(items, root, MIN_SQRT_VALUE)
+        : squarifyWithOrientation(items, root, horizontal, MIN_SQRT_VALUE)
+    return nodes.map((node) => ({
       id: node.data,
       rect: insetRect(node.rect, SECTOR_GAP),
     }))
-    const maxAr = Math.max(...placements.map((p) => aspectRatio(p.rect)), 0)
+  }
 
-    if (maxAr < bestMaxAspect) {
-      best = placements
-      bestMaxAspect = maxAr
+  for (const flatten of flatAttempts) {
+    const values = rootSectorValues(present, weights, flatten, volumeMode)
+    const orientations: Array<boolean | undefined> = volumeMode
+      ? [undefined, true, false]
+      : [undefined]
+
+    for (const horizontal of orientations) {
+      const placements = tryLayout(values, horizontal)
+      const maxAr = Math.max(...placements.map((p) => aspectRatio(p.rect)), 0)
+
+      if (maxAr < bestMaxAspect) {
+        best = placements
+        bestMaxAspect = maxAr
+      }
     }
   }
 
-  if (!best || bestMaxAspect > ROOT_GRID_FALLBACK_ASPECT) {
-    return balancedRootSectors(present)
+  if (best && (volumeMode || bestMaxAspect <= ROOT_GRID_FALLBACK_ASPECT)) {
+    return best
   }
-  return best
+  if (volumeMode && best) return best
+  return balancedRootSectors(present)
 }
 
-function blendedSectorWeights(
+function sectorRootWeights(
   buckets: Map<VnSectorGroupId, MarketAsset[]>,
   sizing: VnHeatmapSizingMode,
 ): Map<VnSectorGroupId, number> {
   const present = [...buckets.entries()].filter(([, list]) => list.length > 0)
-  const sqrtTotals = new Map<VnSectorGroupId, number>()
+  const weights = new Map<VnSectorGroupId, number>()
 
+  if (sizing === "volume") {
+    let grandSqrt = 0
+    const sqrtTotals = new Map<VnSectorGroupId, number>()
+    for (const [id, list] of present) {
+      const sum = list.reduce((s, asset) => s + Math.sqrt(metricFor(asset, sizing)), 0)
+      sqrtTotals.set(id, sum)
+      grandSqrt += sum
+    }
+    for (const [id] of present) {
+      const linear = grandSqrt > 0 ? (sqrtTotals.get(id) ?? 0) / grandSqrt : 1 / present.length
+      weights.set(id, linear)
+    }
+    return weights
+  }
+
+  const sqrtTotals = new Map<VnSectorGroupId, number>()
   let grandSqrt = 0
   for (const [id, list] of present) {
     const sum = list.reduce((s, asset) => s + Math.sqrt(metricFor(asset, sizing)), 0)
@@ -461,7 +524,6 @@ function blendedSectorWeights(
   }
 
   const importanceSum = present.reduce((s, [id]) => s + SECTOR_IMPORTANCE[id], 0) || 1
-  const weights = new Map<VnSectorGroupId, number>()
 
   for (const [id] of present) {
     const normalizedMetric = grandSqrt > 0 ? (sqrtTotals.get(id) ?? 0) / grandSqrt : 0
@@ -488,9 +550,9 @@ export function buildVietnamSectorTreemapLayout(
     buckets.get(id)?.push(asset)
   }
 
-  const weights = blendedSectorWeights(buckets, sizing)
+  const weights = sectorRootWeights(buckets, sizing)
   const present = VN_SECTOR_GROUP_ORDER.filter((id) => (buckets.get(id)?.length ?? 0) > 0)
-  const rootPlacements = layoutRootSectors(present, weights)
+  const rootPlacements = layoutRootSectors(present, weights, sizing)
 
   const sectors: VnSectorBlockLayout[] = rootPlacements.map(({ id, rect }) => {
     const list = buckets.get(id) ?? []
