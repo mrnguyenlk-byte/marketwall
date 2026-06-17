@@ -1,5 +1,8 @@
 import { vnTradingValueMetric } from "@/lib/treemap/heatmap-engine"
-import { buildFlatMetricTreemap } from "@/lib/treemap/treemap-builders"
+import {
+  buildFlatMetricTreemap,
+  TREEMAP_COMPRESSION_POWER,
+} from "@/lib/treemap/treemap-builders"
 import type { TreemapLayoutNode } from "@/lib/treemap/squarify"
 import { vpsLotToShares } from "@/lib/vietnam/volume-units"
 import type { MarketAsset } from "@/types/market"
@@ -117,12 +120,20 @@ export type VnFlatTreemapLayout = {
   leaves: TreemapLayoutNode<MarketAsset>[]
 }
 
+function vnFlatCompressionPower(mode: VnHeatmapMode): number {
+  return mode === "market-cap"
+    ? TREEMAP_COMPRESSION_POWER.VN_MARKET_CAP_FLAT
+    : TREEMAP_COMPRESSION_POWER.VN_FLOW_FLAT
+}
+
 export function buildFlatVnTreemapLayout(
   assets: MarketAsset[],
   metricFn: (asset: MarketAsset) => number,
+  options?: { power?: number },
 ): VnFlatTreemapLayout {
   const leaves = buildFlatMetricTreemap(assets, metricFn, undefined, {
     allowEqualGridFallback: false,
+    power: options?.power,
   })
   return { leaves }
 }
@@ -131,5 +142,9 @@ export function buildFlatVnTreemapLayoutForMode(
   assets: MarketAsset[],
   mode: VnHeatmapMode,
 ): VnFlatTreemapLayout {
-  return buildFlatVnTreemapLayout(assets, (asset) => vnHeatmapMetric(asset, mode))
+  return buildFlatVnTreemapLayout(
+    assets,
+    (asset) => vnHeatmapMetric(asset, mode),
+    { power: vnFlatCompressionPower(mode) },
+  )
 }
