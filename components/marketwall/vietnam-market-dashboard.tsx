@@ -15,8 +15,6 @@ import { buildHeatmapSymbolRecords } from "@/lib/symbol-heatmap-registry"
 import { cn } from "@/lib/utils"
 
 import { fmt, SectionHeading, signClass, DashboardCard, WidgetHeader, DashboardCardBody } from "./shared"
-import { ForeignFlowChart } from "./foreign-flow-chart"
-import { ProprietaryTradingChart } from "./proprietary-trading-chart"
 
 /** Display-only row cap for VN price leaderboards (Top KL / Top GTGD). */
 const VN_LEADERBOARD_DISPLAY_ROWS = 10
@@ -294,16 +292,6 @@ export function VietnamMarketDashboard() {
           metric="value"
           loading={isLoading}
         />
-        <div className="lg:col-span-2">
-          <ForeignFlowChart
-            buyRows={dashboard?.topForeignBuy ?? []}
-            sellRows={dashboard?.topForeignSell ?? []}
-            loading={isLoading}
-          />
-        </div>
-        <div className="lg:col-span-2">
-          <ProprietaryTradingChart proprietary={data?.analytics?.proprietary} loading={isLoading} />
-        </div>
       </div>
     </section>
   )

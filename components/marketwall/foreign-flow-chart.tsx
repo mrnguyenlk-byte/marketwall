@@ -158,6 +158,10 @@ export function ForeignFlowChart({ buyRows, sellRows, loading }: ForeignFlowChar
       <DashboardCardBody className="px-3 py-3">
         {loading && !buyRows.length && !sellRows.length ? (
           <p className="text-xs text-muted-foreground">{t("heatmapDetail.chartLoading")}</p>
+        ) : !buyRows.length && !sellRows.length ? (
+          <p className="rounded-md border border-dashed border-border/70 bg-secondary/10 px-3 py-6 text-center text-xs text-muted-foreground">
+            {t("vnAnalytics.foreignUnavailable")}
+          </p>
         ) : (
           <TooltipProvider delay={120}>
             <div className="relative">

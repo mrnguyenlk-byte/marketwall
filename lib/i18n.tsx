@@ -97,6 +97,8 @@ const dict: Dict = {
   "sec.usHeatmap": { vi: "Bản đồ nhiệt thị trường Mỹ", en: "US Market Heatmap" },
   "sec.vnHeatmap": { vi: "Bản đồ nhiệt thị trường Việt Nam", en: "Vietnam Market Heatmap" },
   "sec.vnDashboard": { vi: "Bảng giá thị trường Việt Nam", en: "Vietnam Market Dashboard" },
+  "sec.marketLiquidity": { vi: "Thanh khoản thị trường", en: "Market Liquidity" },
+  "sec.domesticFlow": { vi: "Dòng Tiền Trong Nước", en: "Domestic Flow" },
   "vnDashboard.topVolume": { vi: "Khối lượng cao nhất", en: "Top Volume" },
   "vnDashboard.topValue": { vi: "GTGD cao nhất", en: "Top Trading Value" },
   "vnDashboard.tradingValue": { vi: "GTGD", en: "Trading Value" },
@@ -130,8 +132,8 @@ const dict: Dict = {
   "vnAnalytics.foreignNetVal": { vi: "GT ròng NN", en: "Net foreign value" },
   "vnAnalytics.topNetForeign": { vi: "Top mua/bán ròng NN", en: "Top net foreign buy/sell" },
   "vnAnalytics.foreignUnavailable": {
-    vi: "Dữ liệu dòng tiền nước ngoài không khả dụng.",
-    en: "Foreign flow data is unavailable.",
+    vi: "Chưa có dữ liệu nước ngoài",
+    en: "No foreign flow data available",
   },
   "vnAnalytics.historicalForeignUnavailable": {
     vi: "Lịch sử dòng tiền nước ngoài không khả dụng",
@@ -152,6 +154,7 @@ const dict: Dict = {
     vi: "Không có dữ liệu thanh khoản theo thời gian trong phiên — hiển thị snapshot.",
     en: "Intraday liquidity buckets unavailable — showing session snapshot.",
   },
+  "vnAnalytics.gtgdBreakdown": { vi: "GTGD tăng / giảm / đứng giá", en: "GTGD up / down / flat" },
   "vnAnalytics.liquidityUnavailable": {
     vi: "Dữ liệu thanh khoản chỉ khả dụng khi có báo giá thời gian thực.",
     en: "Liquidity analytics require live quotes.",
@@ -182,6 +185,19 @@ const dict: Dict = {
   "proprietaryTrading.unitBillionVnd": { vi: "Đơn vị: tỷ VND", en: "Unit: billion VND" },
   "proprietaryTrading.source": { vi: "Nguồn", en: "Source" },
   "proprietaryTrading.eodLabel": { vi: "Cập nhật sau phiên", en: "Updated after session" },
+  "proprietaryTrading.cafefSourceBadge": { vi: "Nguồn: CafeF EOD", en: "Source: CafeF EOD" },
+  "proprietaryTrading.gtgdProxyBadge": {
+    vi: "Tự doanh: đang dùng GTGD proxy",
+    en: "Proprietary: using GTGD proxy",
+  },
+  "proprietaryTrading.gtgdProxyNote": {
+    vi: "Chưa có dữ liệu tự doanh trực tiếp",
+    en: "No direct proprietary data available",
+  },
+  "domesticFlow.proxyLiquidityHint": {
+    vi: "Ước lượng từ GTGD mã tăng/giảm trên toàn thị trường (HOSE + HNX + UPCOM).",
+    en: "Estimated from advancing/declining turnover across HOSE + HNX + UPCOM.",
+  },
   "foreignFlow.netSell": { vi: "Bán ròng", en: "Net Sell" },
   "foreignFlow.netBuy": { vi: "Mua ròng", en: "Net Buy" },
   "foreignFlow.modeValue": { vi: "Giá trị (tỷ)", en: "Value (B)" },

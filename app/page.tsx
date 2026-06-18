@@ -11,8 +11,11 @@ import { Header } from "@/components/marketwall/header"
 import { Sidebar } from "@/components/marketwall/sidebar"
 import { FearGreed } from "@/components/marketwall/fear-greed"
 import { DailyAnalysisPreview } from "@/components/marketwall/daily-analysis-preview"
+import { MarketLiquiditySection } from "@/components/marketwall/market-liquidity-section"
 import { HeatmapSection } from "@/components/marketwall/heatmap"
 import { VietnamMarketDashboard } from "@/components/marketwall/vietnam-market-dashboard"
+import { ForeignFlowSection } from "@/components/marketwall/foreign-flow-section"
+import { DomesticFlowSection } from "@/components/marketwall/domestic-flow-section"
 import { VietnamMarketAnalyticsPanel } from "@/components/marketwall/vietnam-market-analytics"
 import { CurrencyStrength } from "@/components/marketwall/currency-strength"
 import { EconomicCalendar } from "@/components/marketwall/economic-calendar"
@@ -62,11 +65,20 @@ export default async function Page() {
             <SectionErrorBoundary name="daily-analysis">
               <DailyAnalysisPreview />
             </SectionErrorBoundary>
-            <SectionErrorBoundary name="vn-dashboard">
-              <VietnamMarketDashboard />
+            <SectionErrorBoundary name="market-liquidity">
+              <MarketLiquiditySection />
             </SectionErrorBoundary>
             <SectionErrorBoundary name="heatmap">
               <HeatmapSection markets={dashboard.heatmapMarkets} />
+            </SectionErrorBoundary>
+            <SectionErrorBoundary name="vn-dashboard">
+              <VietnamMarketDashboard />
+            </SectionErrorBoundary>
+            <SectionErrorBoundary name="foreign-flow">
+              <ForeignFlowSection />
+            </SectionErrorBoundary>
+            <SectionErrorBoundary name="domestic-flow">
+              <DomesticFlowSection />
             </SectionErrorBoundary>
             <SectionErrorBoundary name="vn-analytics">
               <VietnamMarketAnalyticsPanel />
