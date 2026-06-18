@@ -15,7 +15,16 @@ import type {
 } from "@/lib/vietnam/market-analytics"
 import { cn } from "@/lib/utils"
 
+import {
+  DivergingFlowChart,
+  type DivergingFlowRow,
+  type DivergingFlowSide,
+} from "./diverging-flow-chart"
 import { fmt, signClass } from "./shared"
+import {
+  formatProprietaryBillions,
+  valueToBillionVnd,
+} from "@/lib/vietnam/proprietary-trading"
 
 export function formatTyVnd(value: number): string {
   const ty = value / 1_000_000_000
@@ -162,66 +171,46 @@ export function MoneyFlowBars({
   )
 }
 
-function NetForeignDiverging({
-  topNetBuy,
-  topNetSell,
-}: {
-  topNetBuy: VietnamForeignNetRow[]
-  topNetSell: VietnamForeignNetRow[]
-}) {
-  const { t } = useLang()
-  const limit = 8
-  const buy = topNetBuy.slice(0, limit)
-  const sell = topNetSell.slice(0, limit)
-  const maxMag = Math.max(
-    ...buy.map((r) => Math.abs(r.netValue)),
-    ...sell.map((r) => Math.abs(r.netValue)),
-    1,
-  )
+const DIVERGING_FLOW_LIMIT = 10
 
-  return (
-    <div className="space-y-1.5">
-      {Array.from({ length: limit }, (_, i) => {
-        const buyRow = buy[i]
-        const sellRow = sell[i]
-        const buyPct = buyRow ? (Math.abs(buyRow.netValue) / maxMag) * 100 : 0
-        const sellPct = sellRow ? (Math.abs(sellRow.netValue) / maxMag) * 100 : 0
-        return (
-          <div key={i} className="grid grid-cols-[1fr_28px_1fr] items-center gap-1 text-[11px]">
-            <div className="flex items-center justify-end gap-1">
-              {buyRow ? (
-                <>
-                  <span className="truncate text-gain">{buyRow.symbol}</span>
-                  <div className="h-2.5 w-24 overflow-hidden rounded-sm bg-secondary/30">
-                    <div className="ml-auto h-full rounded-sm bg-gain" style={{ width: `${buyPct}%` }} />
-                  </div>
-                </>
-              ) : (
-                <span className="text-muted-foreground/40">—</span>
-              )}
-            </div>
-            <span className="text-center font-mono text-[10px] text-muted-foreground">{i + 1}</span>
-            <div className="flex items-center gap-1">
-              {sellRow ? (
-                <>
-                  <div className="h-2.5 w-24 overflow-hidden rounded-sm bg-secondary/30">
-                    <div className="h-full rounded-sm bg-loss" style={{ width: `${sellPct}%` }} />
-                  </div>
-                  <span className="truncate text-loss">{sellRow.symbol}</span>
-                </>
-              ) : (
-                <span className="text-muted-foreground/40">—</span>
-              )}
-            </div>
-          </div>
-        )
-      })}
-      <div className="flex justify-between pt-1 text-[10px] text-muted-foreground">
-        <span>{t("foreignFlow.netBuy")}</span>
-        <span>{t("foreignFlow.netSell")}</span>
-      </div>
-    </div>
-  )
+function foreignRowToSide(row: VietnamForeignNetRow): DivergingFlowSide {
+  return {
+    symbol: row.symbol,
+    sector: row.sector,
+    rawValue: Math.abs(row.netValue),
+    displayValue: valueToBillionVnd(Math.abs(row.netValue)),
+  }
+}
+
+function proprietaryNetRowToSide(row: VietnamProprietaryNetRow): DivergingFlowSide {
+  return {
+    symbol: row.symbol,
+    sector: row.sector,
+    rawValue: Math.abs(row.netValue),
+    displayValue: valueToBillionVnd(Math.abs(row.netValue)),
+  }
+}
+
+function buildNetDivergingRows<T extends { symbol: string; sector: string; netValue: number }>(
+  topNetBuy: T[],
+  topNetSell: T[],
+  toSide: (row: T) => DivergingFlowSide,
+): DivergingFlowRow[] {
+  const buy = topNetBuy.slice(0, DIVERGING_FLOW_LIMIT)
+  const sell = topNetSell.slice(0, DIVERGING_FLOW_LIMIT)
+  const rows: DivergingFlowRow[] = []
+
+  for (let i = 0; i < DIVERGING_FLOW_LIMIT; i++) {
+    const buyRow = buy[i]
+    const sellRow = sell[i]
+    rows.push({
+      rank: i + 1,
+      buy: buyRow ? toSide(buyRow) : undefined,
+      sell: sellRow ? toSide(sellRow) : undefined,
+    })
+  }
+
+  return rows
 }
 
 export type ProprietaryViewMode = "cafef" | "proxy" | "empty"
@@ -282,16 +271,11 @@ function ProprietaryNetBars({
   topNetSell: VietnamProprietaryNetRow[]
 }) {
   const { t } = useLang()
-  const limit = 6
-  const buy = topNetBuy.slice(0, limit)
-  const sell = topNetSell.slice(0, limit)
-  const maxMag = Math.max(
-    ...buy.map((r) => Math.abs(r.netValue)),
-    ...sell.map((r) => Math.abs(r.netValue)),
-    1,
-  )
 
-  if (!buy.length && !sell.length) return null
+  if (!topNetBuy.length && !topNetSell.length) return null
+
+  const rows = buildNetDivergingRows(topNetBuy, topNetSell, proprietaryNetRowToSide)
+  const formatSide = (side: DivergingFlowSide) => formatProprietaryBillions(side.rawValue)
 
   return (
     <Card className="gap-0 border-border/80 py-0 shadow-sm">
@@ -300,42 +284,12 @@ function ProprietaryNetBars({
           {t("proprietaryTrading.topNetBuy")} / {t("proprietaryTrading.topNetSell")}
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-1.5 px-3 py-2.5">
-        {Array.from({ length: limit }, (_, i) => {
-          const buyRow = buy[i]
-          const sellRow = sell[i]
-          const buyPct = buyRow ? (Math.abs(buyRow.netValue) / maxMag) * 100 : 0
-          const sellPct = sellRow ? (Math.abs(sellRow.netValue) / maxMag) * 100 : 0
-          return (
-            <div key={i} className="grid grid-cols-[1fr_28px_1fr] items-center gap-1 text-[11px]">
-              <div className="flex items-center justify-end gap-1">
-                {buyRow ? (
-                  <>
-                    <span className="truncate text-gain">{buyRow.symbol}</span>
-                    <div className="h-2.5 w-20 overflow-hidden rounded-sm bg-secondary/30">
-                      <div className="ml-auto h-full rounded-sm bg-gain" style={{ width: `${buyPct}%` }} />
-                    </div>
-                  </>
-                ) : (
-                  <span className="text-muted-foreground/40">—</span>
-                )}
-              </div>
-              <span className="text-center font-mono text-[10px] text-muted-foreground">{i + 1}</span>
-              <div className="flex items-center gap-1">
-                {sellRow ? (
-                  <>
-                    <div className="h-2.5 w-20 overflow-hidden rounded-sm bg-secondary/30">
-                      <div className="h-full rounded-sm bg-loss" style={{ width: `${sellPct}%` }} />
-                    </div>
-                    <span className="truncate text-loss">{sellRow.symbol}</span>
-                  </>
-                ) : (
-                  <span className="text-muted-foreground/40">—</span>
-                )}
-              </div>
-            </div>
-          )
-        })}
+      <CardContent className="px-3 py-3">
+        <DivergingFlowChart
+          rows={rows}
+          formatValue={formatSide}
+          unitLabel={t("foreignFlow.unitBillionVnd")}
+        />
       </CardContent>
     </Card>
   )
@@ -543,9 +497,13 @@ export function ForeignTabContent({
         <CardHeader className="border-b border-border/60 px-3 py-2">
           <CardTitle className="text-xs font-semibold">{t("vnAnalytics.topNetForeign")}</CardTitle>
         </CardHeader>
-        <CardContent className="px-3 py-2.5">
+        <CardContent className="px-3 py-3">
           {f.topNetBuy.length || f.topNetSell.length ? (
-            <NetForeignDiverging topNetBuy={f.topNetBuy} topNetSell={f.topNetSell} />
+            <DivergingFlowChart
+              rows={buildNetDivergingRows(f.topNetBuy, f.topNetSell, foreignRowToSide)}
+              formatValue={(side) => formatProprietaryBillions(side.rawValue)}
+              unitLabel={t("foreignFlow.unitBillionVnd")}
+            />
           ) : (
             <p className="text-center text-xs text-muted-foreground">{t("vnAnalytics.foreignUnavailable")}</p>
           )}
