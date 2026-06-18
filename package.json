@@ -11,6 +11,7 @@
     "dev:safe": "node scripts/dev-safe.mjs",
     "heatmap:debug": "npx tsx scripts/heatmap-debug-report.ts",
     "heatmap:color-debug": "npx tsx scripts/vn-change-color-debug.ts",
+    "daily:test": "npx tsx scripts/test-daily-analysis.ts",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "postinstall": "prisma generate"
