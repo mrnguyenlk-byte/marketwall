@@ -11,19 +11,17 @@ import { SectionHeading } from "./shared"
 import {
   BreadthTabContent,
   ForeignTabContent,
-  LiquidityTabContent,
   ProprietaryFlowContent,
 } from "./vn-analytics-views"
 
-type AnalyticsTab = "breadth" | "foreign" | "proprietary" | "liquidity"
+type AnalyticsTab = "breadth" | "foreign" | "proprietary"
 
-const TABS: AnalyticsTab[] = ["breadth", "foreign", "proprietary", "liquidity"]
+const TABS: AnalyticsTab[] = ["breadth", "foreign", "proprietary"]
 
 const TAB_LABEL_KEYS: Record<AnalyticsTab, string> = {
   breadth: "vnAnalytics.tabBreadth",
   foreign: "vnAnalytics.tabForeign",
   proprietary: "vnAnalytics.tabProprietary",
-  liquidity: "vnAnalytics.tabLiquidity",
 }
 
 export function VietnamMarketAnalyticsPanel() {
@@ -41,8 +39,6 @@ export function VietnamMarketAnalyticsPanel() {
         return <ForeignTabContent analytics={analytics} loading={isLoading} />
       case "proprietary":
         return <ProprietaryFlowContent analytics={analytics} loading={isLoading} />
-      case "liquidity":
-        return <LiquidityTabContent analytics={analytics} loading={isLoading} />
     }
   }, [tab, analytics, isLoading])
 

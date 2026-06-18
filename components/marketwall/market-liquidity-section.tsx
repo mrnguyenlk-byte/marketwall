@@ -22,7 +22,7 @@ export function MarketLiquiditySection() {
       </div>
       <Card className="gap-0 border-border/80 py-0 shadow-sm">
         <CardContent className="min-h-[120px] px-3 py-3">
-          <LiquidityTabContent analytics={data?.analytics} loading={isLoading} showTopTable={false} />
+          <LiquidityTabContent analytics={data?.analytics} loading={isLoading} />
         </CardContent>
       </Card>
     </section>

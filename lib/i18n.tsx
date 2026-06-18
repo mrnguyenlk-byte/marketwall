@@ -97,7 +97,7 @@ const dict: Dict = {
   "sec.usHeatmap": { vi: "Bản đồ nhiệt thị trường Mỹ", en: "US Market Heatmap" },
   "sec.vnHeatmap": { vi: "Bản đồ nhiệt thị trường Việt Nam", en: "Vietnam Market Heatmap" },
   "sec.vnDashboard": { vi: "Bảng giá thị trường Việt Nam", en: "Vietnam Market Dashboard" },
-  "sec.marketLiquidity": { vi: "Thanh khoản thị trường", en: "Market Liquidity" },
+  "sec.marketLiquidity": { vi: "Thanh Khoản Thị Trường", en: "Market Liquidity" },
   "sec.domesticFlow": { vi: "Dòng Tiền Trong Nước", en: "Domestic Flow" },
   "vnDashboard.topVolume": { vi: "Khối lượng cao nhất", en: "Top Volume" },
   "vnDashboard.topValue": { vi: "GTGD cao nhất", en: "Top Trading Value" },

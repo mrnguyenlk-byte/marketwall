@@ -516,11 +516,9 @@ export function ForeignTabContent({
 export function LiquidityTabContent({
   analytics,
   loading,
-  showTopTable = true,
 }: {
   analytics?: VietnamMarketAnalytics
   loading: boolean
-  showTopTable?: boolean
 }) {
   const { t } = useLang()
   const l = analytics?.liquidity
@@ -587,42 +585,6 @@ export function LiquidityTabContent({
       {!l.intradayAvailable && (
         <p className="text-[10px] text-muted-foreground">{t("vnAnalytics.intradayUnavailable")}</p>
       )}
-
-      {showTopTable ? (
-        <Card className="gap-0 border-border/80 py-0 shadow-sm">
-          <CardHeader className="border-b border-border/60 px-3 py-2">
-            <CardTitle className="text-xs font-semibold">{t("vnAnalytics.topLiquidity")}</CardTitle>
-          </CardHeader>
-          <CardContent className="px-0 py-0">
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[280px] text-left text-xs">
-                <thead className="border-b border-border/50 bg-secondary/20 text-muted-foreground">
-                  <tr>
-                    <th className="px-3 py-2 font-medium">#</th>
-                    <th className="px-3 py-2 font-medium">{t("label.symbol")}</th>
-                    <th className="px-3 py-2 font-medium">{t("label.sector")}</th>
-                    <th className="px-3 py-2 text-right font-medium">{t("vnAnalytics.totalValue")}</th>
-                    <th className="px-3 py-2 text-right font-medium">{t("vnAnalytics.totalVolume")}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {l.topLiquidity.map((row, i) => (
-                    <tr key={row.symbol} className="border-b border-border/40 last:border-0">
-                      <td className="px-3 py-1.5 font-mono text-muted-foreground">{i + 1}</td>
-                      <td className="px-3 py-1.5 font-semibold">{row.symbol}</td>
-                      <td className="px-3 py-1.5 text-muted-foreground">{row.sector}</td>
-                      <td className="px-3 py-1.5 text-right font-mono tabular-nums">{formatTyVnd(row.value)}</td>
-                      <td className="px-3 py-1.5 text-right font-mono tabular-nums">
-                        {fmt(row.volume, { notation: "compact" })}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
-      ) : null}
     </div>
   )
 }
