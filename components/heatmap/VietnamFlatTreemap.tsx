@@ -14,10 +14,13 @@ import {
 import type { MarketAsset } from "@/types/market"
 import { cn } from "@/lib/utils"
 
+import type { ProprietaryHeatmapStatus } from "@/lib/proprietary/proprietary-status"
+
 type VietnamFlatTreemapProps = {
   assets: MarketAsset[]
   mode: VnHeatmapMode
   isProprietaryFallback?: boolean
+  proprietaryStatus?: ProprietaryHeatmapStatus
   onTileClick: (asset: MarketAsset) => void
 }
 
@@ -41,6 +44,7 @@ export function VietnamFlatTreemap({
   assets,
   mode,
   isProprietaryFallback = false,
+  proprietaryStatus,
   onTileClick,
 }: VietnamFlatTreemapProps) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -78,20 +82,30 @@ export function VietnamFlatTreemap({
   }, [])
 
   const showProprietarySource = mode === "proprietary-flow"
+  const showStaleBadge =
+    showProprietarySource &&
+    (proprietaryStatus?.isStale === true || isProprietaryFallback)
+  const sourceLabel =
+    proprietaryStatus?.proprietarySource === "cafef-eod" && !proprietaryStatus.isStale
+      ? "Nguồn: CafeF EOD"
+      : "Nguồn: GTGD proxy"
 
   return (
     <div className="relative flex h-full w-full flex-col">
-      {showProprietarySource && isProprietaryFallback && (
+      {showStaleBadge && (
         <div
-          className="absolute left-1 top-1 z-20 max-w-[min(100%,20rem)] rounded-md bg-amber-500/15 px-2 py-1 text-[10px] font-medium leading-snug text-amber-800 ring-1 ring-amber-500/30 dark:text-amber-200"
+          className="absolute left-1 top-1 z-20 max-w-[min(100%,22rem)] rounded-md bg-amber-500/15 px-2 py-1 text-[10px] font-medium leading-snug text-amber-800 ring-1 ring-amber-500/30 dark:text-amber-200"
           role="status"
         >
-          Chưa có dữ liệu tự doanh trực tiếp
+          Tự doanh: dữ liệu chưa cập nhật, đang dùng GTGD proxy
         </div>
       )}
       {showProprietarySource && (
         <div className="absolute bottom-1 left-1 z-20 rounded bg-card/90 px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground ring-1 ring-border/60">
-          {isProprietaryFallback ? "Nguồn: GTGD proxy" : "Nguồn: CafeF EOD"}
+          {sourceLabel}
+          {proprietaryStatus?.coverageCount != null && proprietaryStatus.coverageCount > 0
+            ? ` · ${proprietaryStatus.coverageCount} mã`
+            : ""}
         </div>
       )}
       <div className="absolute right-1 top-1 z-20 flex items-center gap-0.5 rounded-md bg-card/90 p-0.5 shadow-sm ring-1 ring-border/60">

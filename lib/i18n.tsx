@@ -42,7 +42,8 @@ type Dict = Record<string, { vi: string; en: string }>
 // Central dictionary. Each key maps to a Vietnamese + English string.
 const dict: Dict = {
   // Nav
-  "nav.dashboard": { vi: "Tổng quan", en: "Dashboard" },
+  "nav.dashboard": { vi: "Tổng Quan", en: "Dashboard" },
+  "nav.dailyAnalysis": { vi: "Phân Tích Hằng Ngày", en: "Daily Analysis" },
   "nav.markets": { vi: "Thị trường", en: "Markets" },
   "nav.heatmaps": { vi: "Bản đồ nhiệt", en: "Heatmaps" },
   "nav.events": { vi: "Sự kiện", en: "Events" },

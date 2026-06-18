@@ -204,26 +204,33 @@ export function WidgetHeader({
 
 export function SectionHeading({
   title,
+  subtitle,
   badge,
   action,
   id,
 }: {
   title: string
+  subtitle?: string
   badge?: ReactNode
   action?: ReactNode
   id?: string
 }) {
   return (
     <div className="mb-1.5 flex min-w-0 items-center justify-between gap-2">
-      <div className="flex min-w-0 items-center gap-2">
-        <span className="h-3.5 w-0.5 shrink-0 rounded-full bg-primary" aria-hidden />
-        <h2
-          id={id}
-          className="type-widget-title truncate tracking-tight text-foreground"
-        >
-          {title}
-        </h2>
-        {badge}
+      <div className="flex min-w-0 flex-col gap-0.5">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="h-3.5 w-0.5 shrink-0 rounded-full bg-primary" aria-hidden />
+          <h2
+            id={id}
+            className="type-widget-title truncate tracking-tight text-foreground"
+          >
+            {title}
+          </h2>
+          {badge}
+        </div>
+        {subtitle ? (
+          <p className="pl-[calc(0.5rem+2px)] text-xs text-muted-foreground">{subtitle}</p>
+        ) : null}
       </div>
       {action}
     </div>

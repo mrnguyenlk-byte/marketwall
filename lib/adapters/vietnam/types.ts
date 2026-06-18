@@ -50,6 +50,8 @@ export type NormalizedVietnamStock = {
   exchange: VietnamExchangeId
   sector: string
   price: number
+  /** Prior close in VND (VPS `r` / closePrice). */
+  referencePrice?: number
   change: number
   changePercent: number
   marketCap: number

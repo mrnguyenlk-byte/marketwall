@@ -45,6 +45,14 @@ export async function GET(_request: Request, context: RouteContext) {
         itemCount: payload.itemCount,
         livePriceCount: payload.livePriceCount,
         seedCount: payload.seedCount,
+        ...(market === "vn" && payload.proprietaryStatus
+          ? {
+              proprietarySource: payload.proprietaryStatus.proprietarySource,
+              lastUpdatedAt: payload.proprietaryStatus.lastUpdatedAt,
+              coverageCount: payload.proprietaryStatus.coverageCount,
+              proprietaryStale: payload.proprietaryStatus.isStale,
+            }
+          : {}),
       }),
     )
   } catch {

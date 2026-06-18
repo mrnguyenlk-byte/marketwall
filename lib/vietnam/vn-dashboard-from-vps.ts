@@ -97,6 +97,7 @@ export function vnHeatmapStockToAsset(stock: VietnamHeatmapStock): import("@/typ
     symbol: stock.symbol,
     name: stock.name.en,
     price: stock.price,
+    referencePrice: stock.referencePrice,
     changePercent: stock.changePercent,
     volume: vol.volumeLot,
     volumeLot: vol.volumeLot,

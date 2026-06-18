@@ -51,6 +51,8 @@ export type HeatmapAsset = {
   symbol: string
   name: string
   price: number
+  /** VN: prior close in VND for signed % color. */
+  referencePrice?: number
   changePercent: number
   volume: number
   sector: string

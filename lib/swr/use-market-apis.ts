@@ -53,6 +53,10 @@ export type HeatmapApiResponse = {
   fallback?: boolean
   unavailable?: boolean
   updatedAt?: string
+  proprietarySource?: "cafef-eod" | "gtgd-proxy"
+  lastUpdatedAt?: string | null
+  coverageCount?: number
+  proprietaryStale?: boolean
 }
 
 function useLiveSwr<T>(key: string | null) {

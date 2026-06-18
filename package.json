@@ -10,6 +10,7 @@
     "verify": "npm run build && npm run lint",
     "dev:safe": "node scripts/dev-safe.mjs",
     "heatmap:debug": "npx tsx scripts/heatmap-debug-report.ts",
+    "heatmap:color-debug": "npx tsx scripts/vn-change-color-debug.ts",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "postinstall": "prisma generate"

@@ -14,6 +14,7 @@ import { getData as getCryptoData, getMockData as getCryptoMock } from "@/lib/pr
 import {
   applyProprietaryOverlay,
   loadProprietaryHeatmapOverlay,
+  type ProprietaryHeatmapStatus,
 } from "@/lib/proprietary/heatmap-overlay"
 import { getData as getVietnamData, getMockData as getVietnamMock, type VietnamMarketData } from "@/lib/providers/vietnam-market-provider"
 import { fetchYahooStockQuotes } from "@/lib/providers/yahoo-finance"
@@ -31,6 +32,7 @@ type HeatmapRowResult = {
   itemCount: number
   livePriceCount: number
   seedCount: number
+  proprietaryStatus?: ProprietaryHeatmapStatus
 }
 
 const CACHE_BY_MARKET: Record<MarketType, string> = {
@@ -121,6 +123,7 @@ function buildHeatmapRowResult(
   items: HeatmapAsset[],
   source: "live" | "mock",
   seedCount: number,
+  proprietaryStatus?: ProprietaryHeatmapStatus,
 ): HeatmapRowResult {
   return {
     items,
@@ -128,6 +131,7 @@ function buildHeatmapRowResult(
     itemCount: items.length,
     livePriceCount: countLivePrices(items),
     seedCount,
+    proprietaryStatus,
   }
 }
 
@@ -147,6 +151,7 @@ async function fetchVietnamRows(): Promise<HeatmapRowResult> {
       return {
         ...row,
         price: live.price,
+        referencePrice: live.referencePrice ?? row.referencePrice,
         changePercent: live.changePercent,
         volume: live.volume || row.volume,
         volumeLot: live.volumeLot ?? live.volume ?? row.volumeLot,
@@ -176,9 +181,13 @@ async function fetchVietnamRows(): Promise<HeatmapRowResult> {
 
     items = finalizeHeatmapRows(items, "vn")
 
-    const proprietaryOverlay = await loadProprietaryHeatmapOverlay()
-    if (proprietaryOverlay.size > 0) {
-      items = items.map((row) => applyProprietaryOverlay(row, proprietaryOverlay))
+    const proprietaryLoad = await loadProprietaryHeatmapOverlay()
+    const useProprietaryOverlay =
+      proprietaryLoad.status.proprietarySource === "cafef-eod" &&
+      !proprietaryLoad.status.isStale &&
+      proprietaryLoad.overlay.size > 0
+    if (useProprietaryOverlay) {
+      items = items.map((row) => applyProprietaryOverlay(row, proprietaryLoad.overlay))
     }
 
     const livePriceCount = countLivePrices(items)
@@ -191,9 +200,9 @@ async function fetchVietnamRows(): Promise<HeatmapRowResult> {
           ? "live_prices_below_threshold"
           : "live"
     console.log(
-      `[heatmap:vn] items=${items.length} livePrices=${livePriceCount} upstream=${data.source} source=${source} reason=${sourceReason}`,
+      `[heatmap:vn] items=${items.length} livePrices=${livePriceCount} upstream=${data.source} source=${source} reason=${sourceReason} proprietary=${proprietaryLoad.status.proprietarySource} stale=${proprietaryLoad.status.isStale}`,
     )
-    return buildHeatmapRowResult(items, source, seedCount)
+    return buildHeatmapRowResult(items, source, seedCount, proprietaryLoad.status)
   } catch {
     console.log(`[heatmap:vn] items=${baseItems.length} livePrices=${countLivePrices(baseItems)}`)
     return buildHeatmapRowResult(baseItems, "mock", seedCount)
@@ -338,6 +347,14 @@ export async function serveHeatmapMarket(market: MarketType) {
         itemCount: payload.itemCount,
         livePriceCount: payload.livePriceCount,
         seedCount: payload.seedCount,
+        ...(market === "vn" && payload.proprietaryStatus
+          ? {
+              proprietarySource: payload.proprietaryStatus.proprietarySource,
+              lastUpdatedAt: payload.proprietaryStatus.lastUpdatedAt,
+              coverageCount: payload.proprietaryStatus.coverageCount,
+              proprietaryStale: payload.proprietaryStatus.isStale,
+            }
+          : {}),
       }),
     )
   } catch {

@@ -274,6 +274,18 @@ function HeatmapDetailSection() {
     return mergeHeatmapPriceWithRealtime(base, quoteBySymbol)
   }, [activeApi.data, activeMarket, quoteBySymbol])
 
+  const proprietaryStatus = useMemo(() => {
+    if (activeMarket !== "vn" || !activeApi.data) return undefined
+    const d = activeApi.data
+    if (!d.proprietarySource) return undefined
+    return {
+      proprietarySource: d.proprietarySource,
+      lastUpdatedAt: d.lastUpdatedAt ?? null,
+      coverageCount: d.coverageCount ?? 0,
+      isStale: d.proprietaryStale === true,
+    }
+  }, [activeApi.data, activeMarket])
+
   const activeTab = DETAIL_MARKET_TABS.find((tab) => tab.id === activeMarket) ?? DETAIL_MARKET_TABS[0]
 
   return (
@@ -349,6 +361,7 @@ function HeatmapDetailSection() {
               marketType={activeMarket}
               vnMode={activeMarket === "vn" ? vnMode : undefined}
               groupLabel={(key) => t(key)}
+              proprietaryStatus={proprietaryStatus}
               onTileClick={(asset) => openMarketAsset(asset)}
             />
           ) : (

@@ -21,6 +21,7 @@ import {
   type VnHeatmapMode,
 } from "@/lib/vietnam/vn-heatmap-modes"
 import type { Lang } from "@/lib/i18n"
+import type { ProprietaryHeatmapStatus } from "@/lib/proprietary/proprietary-status"
 import type { MarketAsset, MarketType } from "@/types/market"
 
 export type { HeatmapGroupingMode } from "@/lib/treemap/heatmap-engine"
@@ -31,6 +32,7 @@ type MarketHeatmapProps = {
   marketType: MarketType
   vnMode?: VnHeatmapMode
   groupLabel?: (key: string) => string
+  proprietaryStatus?: ProprietaryHeatmapStatus
   onTileClick: (asset: MarketAsset) => void
 }
 
@@ -48,6 +50,7 @@ export function MarketHeatmap({
   marketType,
   vnMode,
   groupLabel,
+  proprietaryStatus,
   onTileClick,
 }: MarketHeatmapProps) {
   const mode = vnMode ?? DEFAULT_VN_HEATMAP_MODE
@@ -108,6 +111,7 @@ export function MarketHeatmap({
         assets={limitedAssets}
         mode={mode}
         isProprietaryFallback={isProprietaryFallback}
+        proprietaryStatus={proprietaryStatus}
         onTileClick={onTileClick}
       />
     )

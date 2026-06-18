@@ -1,5 +1,5 @@
 import type { Bi } from "@/lib/market-utils"
-import { signVnChangeAmount, signVnChangePercent } from "@/lib/vietnam/vn-change-sign"
+import { resolveVnChangePercent, signVnChangeAmount } from "@/lib/vietnam/vn-change-sign"
 import type { HeatmapAsset, MarketAsset, MarketType } from "@/types/market"
 
 function biFromName(name: string): Bi {
@@ -14,7 +14,10 @@ export function heatmapRowsToMarketAssets(
   return rows.map((row) => {
     const changePercent =
       marketType === "vn" && row.price > 0
-        ? signVnChangePercent(row.price, row.changePercent)
+        ? resolveVnChangePercent(row.price, {
+            referencePrice: row.referencePrice,
+            rawChangePercent: row.changePercent,
+          })
         : row.changePercent
     const change =
       row.price > 0 ? signVnChangeAmount(row.price, changePercent) : 0

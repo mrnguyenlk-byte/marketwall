@@ -10,6 +10,7 @@ import { homeMetadata } from "@/lib/seo"
 import { Header } from "@/components/marketwall/header"
 import { Sidebar } from "@/components/marketwall/sidebar"
 import { FearGreed } from "@/components/marketwall/fear-greed"
+import { DailyAnalysisPreview } from "@/components/marketwall/daily-analysis-preview"
 import { HeatmapSection } from "@/components/marketwall/heatmap"
 import { VietnamMarketDashboard } from "@/components/marketwall/vietnam-market-dashboard"
 import { VietnamMarketAnalyticsPanel } from "@/components/marketwall/vietnam-market-analytics"
@@ -58,6 +59,9 @@ export default async function Page() {
           </aside>
 
           <section className="dashboard-center flex min-w-0 flex-col gap-4">
+            <SectionErrorBoundary name="daily-analysis">
+              <DailyAnalysisPreview />
+            </SectionErrorBoundary>
             <SectionErrorBoundary name="heatmap">
               <HeatmapSection markets={dashboard.heatmapMarkets} />
             </SectionErrorBoundary>

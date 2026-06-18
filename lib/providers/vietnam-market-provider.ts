@@ -58,6 +58,7 @@ export type VietnamHeatmapStock = {
   exchange: VnExchangeId
   sector: string
   price: number
+  referencePrice?: number
   change: number
   changePercent: number
   marketCap: number

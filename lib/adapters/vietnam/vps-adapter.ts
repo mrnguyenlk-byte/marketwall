@@ -5,6 +5,12 @@ import {
   HNX_SEEDS,
   UPCOM_SEEDS,
 } from "@/lib/vietnam-heatmap-seeds"
+import {
+  computeVnChangePercent,
+  resolveVnChangePercent,
+  signVnChangeAmount,
+  vpsPriceToVnd,
+} from "@/lib/vietnam/vn-change-sign"
 import type {
   AdapterFetchResult,
   NormalizedVietnamMarket,
@@ -23,6 +29,7 @@ type VpsQuoteRow = {
   lastPrice?: number
   closePrice?: string
   changePc?: string
+  r?: number
   lot?: number
   fBVol?: number
   fSVolume?: number
@@ -42,16 +49,18 @@ export function isVpsConfigured(): boolean {
   return process.env.VPS_ADAPTER_ENABLED !== "false"
 }
 
-function parseVpsPrice(row: VpsQuoteRow): number | null {
-  const close = row.closePrice != null ? Number(row.closePrice) : NaN
-  if (Number.isFinite(close) && close > 0) return close
+/** Current traded price — prefer lastPrice (not closePrice, which is reference close in VND). */
+function parseVpsCurrentPrice(row: VpsQuoteRow): number | null {
+  const fromLast = vpsPriceToVnd(row.lastPrice)
+  if (fromLast != null) return fromLast
+  return vpsPriceToVnd(row.closePrice)
+}
 
-  const last = row.lastPrice
-  if (last != null && Number.isFinite(last) && last > 0) {
-    return last >= 1000 ? last : last * 1000
-  }
-
-  return null
+/** Reference / prior close — VPS field `r` (thousands) or closePrice (VND). */
+function parseVpsReferencePrice(row: VpsQuoteRow): number | null {
+  const fromR = vpsPriceToVnd(row.r)
+  if (fromR != null) return fromR
+  return vpsPriceToVnd(row.closePrice)
 }
 
 function seedLookup() {
@@ -63,12 +72,24 @@ function normalizeVpsRow(row: VpsQuoteRow, seeds: ReturnType<typeof seedLookup>)
   const symbol = row.sym?.trim().toUpperCase()
   if (!symbol) return null
 
-  const price = parseVpsPrice(row)
+  const price = parseVpsCurrentPrice(row)
   if (price == null) return null
 
+  const referencePrice = parseVpsReferencePrice(row)
+  const rawChangePc = Number(row.changePc ?? NaN)
   const seed = seeds.get(symbol)
-  const changePercent = Number(row.changePc ?? seed?.changePercent ?? 0)
-  const change = Number(((price * changePercent) / 100).toFixed(2))
+  const unsignedChangePercent = Number.isFinite(rawChangePc)
+    ? rawChangePc
+    : seed?.changePercent != null
+      ? Math.abs(seed.changePercent)
+      : 0
+
+  const changePercent =
+    referencePrice != null
+      ? computeVnChangePercent(price, referencePrice)
+      : resolveVnChangePercent(price, { rawChangePercent: unsignedChangePercent })
+
+  const change = signVnChangeAmount(price, changePercent)
   const volume = row.lot ?? seed?.volume ?? 0
   const foreignBuyLots = row.fBVol ?? 0
   const foreignSellLots = row.fSVolume ?? 0
@@ -85,6 +106,7 @@ function normalizeVpsRow(row: VpsQuoteRow, seeds: ReturnType<typeof seedLookup>)
       : "hose",
     sector: seed?.sector ?? "Equity",
     price,
+    referencePrice: referencePrice ?? undefined,
     change,
     changePercent,
     marketCap: seed?.marketCap ?? 0,

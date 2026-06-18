@@ -350,6 +350,7 @@ function stockToHeatmapStock(stock: NormalizedVietnamStock): VietnamHeatmapStock
     exchange: stock.exchange,
     sector: stock.sector,
     price: stock.price,
+    referencePrice: stock.referencePrice,
     change: stock.change,
     changePercent: stock.changePercent,
     marketCap: stock.marketCap,
