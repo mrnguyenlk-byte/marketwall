@@ -14,9 +14,6 @@ import { DailyAnalysisPreview } from "@/components/marketwall/daily-analysis-pre
 import { MarketLiquiditySection } from "@/components/marketwall/market-liquidity-section"
 import { HeatmapSection } from "@/components/marketwall/heatmap"
 import { VietnamMarketDashboard } from "@/components/marketwall/vietnam-market-dashboard"
-import { ForeignFlowSection } from "@/components/marketwall/foreign-flow-section"
-import { DomesticFlowSection } from "@/components/marketwall/domestic-flow-section"
-import { VietnamMarketAnalyticsPanel } from "@/components/marketwall/vietnam-market-analytics"
 import { CurrencyStrength } from "@/components/marketwall/currency-strength"
 import { EconomicCalendar } from "@/components/marketwall/economic-calendar"
 import { MarketNews } from "@/components/marketwall/market-news"
@@ -73,15 +70,6 @@ export default async function Page() {
             </SectionErrorBoundary>
             <SectionErrorBoundary name="vn-dashboard">
               <VietnamMarketDashboard />
-            </SectionErrorBoundary>
-            <SectionErrorBoundary name="foreign-flow">
-              <ForeignFlowSection />
-            </SectionErrorBoundary>
-            <SectionErrorBoundary name="domestic-flow">
-              <DomesticFlowSection />
-            </SectionErrorBoundary>
-            <SectionErrorBoundary name="vn-analytics">
-              <VietnamMarketAnalyticsPanel />
             </SectionErrorBoundary>
             <RiskWarning />
           </section>
