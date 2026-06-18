@@ -3,14 +3,19 @@
 import Link from "next/link"
 import { ArrowUpRight } from "lucide-react"
 import { useLang } from "@/lib/i18n"
-import { DAILY_ANALYSIS_MOCK_CARDS } from "@/lib/daily-analysis/mock-data"
+import { DAILY_ANALYSIS_MOCK_CARDS, type DailyAnalysisCard } from "@/lib/daily-analysis/mock-data"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { DashboardCard, SectionHeading } from "./shared"
 import { DailyAnalysisArticleCard } from "./daily-analysis-card"
 
-export function DailyAnalysisPreview() {
+type DailyAnalysisPreviewProps = {
+  cards?: DailyAnalysisCard[]
+}
+
+export function DailyAnalysisPreview({ cards }: DailyAnalysisPreviewProps) {
   const { t } = useLang()
+  const displayCards = cards?.length ? cards : DAILY_ANALYSIS_MOCK_CARDS
 
   return (
     <section id="daily-analysis" aria-labelledby="daily-analysis-title" className="min-w-0 scroll-mt-20">
@@ -30,7 +35,7 @@ export function DailyAnalysisPreview() {
       />
       <DashboardCard className="p-4">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          {DAILY_ANALYSIS_MOCK_CARDS.map((card) => (
+          {displayCards.map((card) => (
             <DailyAnalysisArticleCard key={card.id} card={card} variant="preview" />
           ))}
         </div>

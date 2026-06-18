@@ -1,12 +1,17 @@
 "use client"
 
 import { useLang } from "@/lib/i18n"
-import { DAILY_ANALYSIS_MOCK_CARDS } from "@/lib/daily-analysis/mock-data"
+import { DAILY_ANALYSIS_MOCK_CARDS, type DailyAnalysisCard } from "@/lib/daily-analysis/mock-data"
 import { DailyAnalysisArticleCard } from "./daily-analysis-card"
 import { DailyAnalysisHero } from "./daily-analysis-hero"
 
-export function DailyAnalysisPageContent() {
+type DailyAnalysisPageContentProps = {
+  cards?: DailyAnalysisCard[]
+}
+
+export function DailyAnalysisPageContent({ cards }: DailyAnalysisPageContentProps) {
   const { t } = useLang()
+  const displayCards = cards?.length ? cards : DAILY_ANALYSIS_MOCK_CARDS
 
   return (
     <div className="mx-auto max-w-5xl space-y-5">
@@ -18,8 +23,8 @@ export function DailyAnalysisPageContent() {
       </header>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        {DAILY_ANALYSIS_MOCK_CARDS.map((card) => (
-          <DailyAnalysisArticleCard key={card.id} card={card} variant="full" />
+        {displayCards.map((card) => (
+          <DailyAnalysisArticleCard key={card.id + card.date} card={card} variant="full" />
         ))}
       </div>
     </div>

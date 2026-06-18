@@ -257,6 +257,8 @@ const dict: Dict = {
   "dailyAnalysis.goldResistance": { vi: "2.380 – 2.395 USD/oz", en: "2,380 – 2,395 USD/oz" },
   "dailyAnalysis.goldSupport": { vi: "2.320 – 2.335 USD/oz", en: "2,320 – 2,335 USD/oz" },
   "dailyAnalysis.readMore": { vi: "Đọc Thêm →", en: "Read More →" },
+  "dailyAnalysis.usMacro": { vi: "Vĩ mô Mỹ", en: "US Macro" },
+  "dailyAnalysis.ctaHeading": { vi: "Khuyến nghị", en: "Outlook" },
   "dailyAnalysis.hero.title": {
     vi: "🚨 Cảnh Báo Sớm Dòng Tiền Lớn",
     en: "🚨 Early Warning: Large Money Flow",

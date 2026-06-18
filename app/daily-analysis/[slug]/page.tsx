@@ -1,0 +1,50 @@
+import { notFound } from "next/navigation"
+
+import { Header } from "@/components/marketwall/header"
+import { Footer } from "@/components/marketwall/footer"
+import { DailyAnalysisDetailContent } from "@/components/marketwall/daily-analysis-detail"
+import { getDailyAnalysisBySlug, getDailyAnalysisList } from "@/lib/daily-analysis/storage"
+import { buildPageMetadata } from "@/lib/seo"
+
+export async function generateStaticParams() {
+  const articles = await getDailyAnalysisList()
+  return articles.map((article) => ({ slug: article.slug }))
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>
+}) {
+  const { slug } = await params
+  const article = await getDailyAnalysisBySlug(slug)
+  if (!article) return {}
+
+  return buildPageMetadata({
+    title: `${article.title} | BTrading Market Insights`,
+    description: article.summary,
+    path: `/daily-analysis/${article.slug}`,
+  })
+}
+
+export default async function DailyAnalysisSlugPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>
+}) {
+  const { slug } = await params
+  const article = await getDailyAnalysisBySlug(slug)
+  if (!article) notFound()
+
+  return (
+    <div className="min-h-screen w-full bg-background">
+      <Header />
+
+      <main className="w-full px-3 py-5 sm:px-4 lg:px-6 xl:px-8">
+        <DailyAnalysisDetailContent article={article} />
+      </main>
+
+      <Footer />
+    </div>
+  )
+}

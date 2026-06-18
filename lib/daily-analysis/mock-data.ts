@@ -3,10 +3,15 @@ export type DailyAnalysisCard = {
   badgeKey: string
   symbol: string
   date: string
-  titleKey: string
-  summaryKey: string
-  fullSummaryKey: string
-  bullets: { labelKey: string; textKey: string }[]
+  titleKey?: string
+  summaryKey?: string
+  fullSummaryKey?: string
+  title?: string
+  summary?: string
+  fullSummary?: string
+  imageUrl?: string
+  href?: string
+  bullets: { labelKey: string; textKey?: string; text?: string }[]
   chartColor: string
 }
 
