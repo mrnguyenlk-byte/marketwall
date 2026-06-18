@@ -10,6 +10,7 @@ import { marketPagePath } from "@/lib/symbol-detail"
 const STABLE_ROUTES = [
   { path: "/", changeFrequency: "hourly" as const, priority: 1 },
   { path: "/brokers", changeFrequency: "weekly" as const, priority: 0.8 },
+  { path: "/daily-analysis", changeFrequency: "daily" as const, priority: 0.85 },
   { path: "/contact", changeFrequency: "monthly" as const, priority: 0.6 },
   { path: "/legal/terms", changeFrequency: "yearly" as const, priority: 0.4 },
   { path: "/legal/privacy", changeFrequency: "yearly" as const, priority: 0.4 },

@@ -213,9 +213,17 @@ const dict: Dict = {
     vi: "Thị trường trong nước tiếp tục được hỗ trợ bởi dòng tiền nội địa và nhóm ngân hàng dẫn dắt.",
     en: "The local market continues to be supported by domestic liquidity and leading banks.",
   },
+  "dailyAnalysis.vnSummaryFull": {
+    vi: "Thị trường trong nước tiếp tục được hỗ trợ bởi dòng tiền nội địa và nhóm ngân hàng dẫn dắt. Thanh khoản duy trì ổn định, VN-Index giữ nhịp tăng ngắn hạn với các nhịp điều chỉnh lành mạnh quanh vùng hỗ trợ. Nhà đầu tư nên theo dõi diễn biến khối ngoại và nhóm dẫn dắt trước khi mở rộng vị thế.",
+    en: "The local market continues to be supported by domestic liquidity and leading banks. Liquidity remains steady as VN-Index holds a short-term uptrend with healthy pullbacks near support. Watch foreign flows and leading sectors before adding exposure.",
+  },
   "dailyAnalysis.goldSummary": {
     vi: "Giá vàng dao động trong biên hẹp khi nhà đầu tư theo dõi dữ liệu lạm phát và định hướng lãi suất.",
     en: "Gold trades in a tight range as investors watch inflation data and rate guidance.",
+  },
+  "dailyAnalysis.goldSummaryFull": {
+    vi: "Giá vàng dao động trong biên hẹp khi nhà đầu tư theo dõi dữ liệu lạm phát và định hướng lãi suất. Xu hướng sideway vẫn chi phối trong ngắn hạn; các mức kháng cự và hỗ trợ gần đây đóng vai trò quan trọng cho kịch bản giao dịch trong phiên.",
+    en: "Gold trades in a tight range as investors watch inflation data and rate guidance. The sideways bias persists near-term, with recent resistance and support levels shaping the session's trading scenarios.",
   },
   "dailyAnalysis.trend": { vi: "Xu hướng", en: "Trend" },
   "dailyAnalysis.resistance": { vi: "Kháng cự", en: "Resistance" },

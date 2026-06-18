@@ -14,7 +14,7 @@ import { LiveNavLink } from "./live-nav-link"
 
 const NAV_ITEMS: { key: string; href: string; match?: string }[] = [
   { key: "nav.dashboard", href: "/" },
-  { key: "nav.dailyAnalysis", href: "/#daily-analysis" },
+  { key: "nav.dailyAnalysis", href: "/daily-analysis", match: "/daily-analysis" },
   { key: "nav.brokers", href: "/brokers", match: "/brokers" },
   { key: "nav.contact", href: "/contact", match: "/contact" },
 ]

@@ -103,3 +103,10 @@ export const contactMetadata = buildPageMetadata({
     "Contact BTrading Market Insights for support, partnerships, and general inquiries.",
   path: "/contact",
 })
+
+export const dailyAnalysisMetadata = buildPageMetadata({
+  title: "Daily Analysis | BTrading Market Insights",
+  description:
+    "Daily market analysis covering VN-Index, gold, and key macro views with trend, support, and resistance levels.",
+  path: "/daily-analysis",
+})
