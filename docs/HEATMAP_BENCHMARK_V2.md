@@ -105,10 +105,7 @@ Sector count: **9** (no Khác bucket). Top-left tile y ≈ **0.0348** (= 22px he
 
 | Path | Description |
 |------|-------------|
-| `docs/heatmap-polish-before-sector-header.png` | Pre-fix: sector titles overlapped by tiles |
-| `docs/heatmap-polish-after-sector-header.png` | Post-fix: 22px header band visible |
-| `docs/heatmap-polish-after-red-stocks.png` | Post-fix: red tiles on down names |
-| `docs/heatmap-polish-after-leaders.png` | Post-fix: VCB/FPT/VHM/VIC/HPG ring emphasis |
+| `docs/heatmap-polish-after-deploy.png` | Production snapshot post-push (deploy may lag CI; verify sector headers + red tiles after build completes) |
 
 ---
 

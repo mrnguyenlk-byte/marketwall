@@ -1,0 +1,40 @@
+﻿Γùç injected env (8) from .env.local // tip: Γùê secrets for agents [www.dotenvx.com]
+Γùç injected env (0) from .env // tip: Γîü auth for agents [www.vestauth.com]
+Heatmap regression audit
+generatedAt: 2026-06-17T09:09:21.831Z
+apiBase: https://btrading.org
+assumedViewport: 1200├ù650px
+sectorHeaderPx: 22 (layout uses 0.033846153846153845 normalized)
+dataSource: live@https://btrading.org
+apiRawItemCount: 200
+limitedAssetCount: 200
+buildSectorGroupedTreemap: 9.432ms
+
+layoutSectorCount: 9
+layoutTileCount (React components): 182
+leaderTilesInLayout: 10
+nonLeaderTilesInLayout: 172
+expectedVisibleWithZ10Bug: ~10 (leaders z-25 only)
+
+--- Per-sector stock counts & dimensions ---
+sectorName                   input  weight  render  leaders     sectorW├ùH      innerW├ùH  hdr
+------------------------------------------------------------------------------------------------
+T├ái ch├¡nh                       57      56      56        6   626.99├ù307.29   626.99├ù285.29  22px
+C├┤ng nghiß╗çp                     41      33      33        0   558.29├ù257.85   558.29├ù235.85  22px
+Bß║Ñt ─æß╗Öng sß║ún                    32      30      30        2   568.21├ù307.29   568.21├ù285.29  22px
+H├áng ti├¬u d├╣ng c╞í bß║ún           25      23      23        0     526.8├ù78.36     526.8├ù56.36  22px
+N─âng l╞░ß╗úng                      17      15      15        0    648.25├ù78.36    648.25├ù56.36  22px
+Vß║¡t liß╗çu c╞í bß║ún                 13      13      13        1    201.9├ù257.85    201.9├ù235.85  22px
+H├áng ti├¬u d├╣ng                   5       5       5        0   216.18├ù257.85   216.18├ù235.85  22px
+C├┤ng nghß╗ç                        5       4       4        1   214.03├ù257.85   214.03├ù235.85  22px
+C├íc dß╗ïch vß╗Ñ hß║í tß║ºng              4       3       3        0     17.75├ù78.36     17.75├ù78.36  0px (hidden)
+------------------------------------------------------------------------------------------------
+TOTAL                          199     182     182       10
+
+--- Pipeline summary ---
+invalidMetricCount (metric<=0): 18
+sectorsExcludedFromLayout: unclassified
+inputΓåÆweight drop: 17 (invalid metrics only)
+weightΓåÆrender drop: 0 (layout engine)
+
+All rendered sectors have positive inner area after 22px header subtraction.

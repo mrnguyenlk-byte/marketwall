@@ -1,0 +1,623 @@
+﻿
+> my-project@0.2.0-beta heatmap:debug
+> npx tsx scripts/heatmap-debug-report.ts
+
+Γùç injected env (8) from .env.local // tip: Γîÿ enable debugging { debug: true }
+Γùç injected env (0) from .env // tip: Γùê encrypted .env [www.dotenvx.com]
+Heatmap debug report
+generatedAt: 2026-06-17T06:06:29.941Z
+branch: heatmap-rewrite
+
+================================================================================
+VN sector (sector-volume grouped)
+================================================================================
+MODE: VN sector (sector-volume grouped)
+dataSource: live@http://127.0.0.1:3000
+itemCount: 200
+sectorCount: 10
+metricField: tradingValue (vnTradingValueMetric)
+totalMetric: 7.57T
+invalidMetricCount: 20
+
+--- Top 10 root sectors by raw metric ---
+  1. banking      sector.banking           2.06T
+  2. realEstate   sector.realEstate        1.45T
+  3. securities   sector.securities        1.17T
+  4. industrial   sector.industrial        848.32B
+  5. other        sector.other             699.98B
+  6. technology   sector.technology        415.00B
+  7. retail       sector.retail            384.95B
+  8. oilGas       sector.oilGas            338.34B
+  9. steel        sector.steel             187.23B
+  10. utilities    sector.utilities         10.28B
+
+--- Top 10 root sector area shares ---
+  1. banking (sector.banking)     22.00%
+  2. realEstate (sector.realEstate) 17.62%
+  3. securities (sector.securities) 14.94%
+  4. industrial (sector.industrial) 11.76%
+  5. other (sector.other)         10.18%
+  6. technology (sector.technology) 6.88%
+  7. retail (sector.retail)       6.50%
+  8. oilGas (sector.oilGas)       5.90%
+  9. steel (sector.steel)         3.79%
+  10. utilities (sector.utilities) 0.43%
+
+--- Sample inner stocks (sector: banking / sector.banking) ---
+  Top by raw metric:
+    1. SHB      331.30B
+    2. ACB      267.80B
+    3. TCB      226.29B
+    4. VIB      186.27B
+    5. VPB      142.86B
+    6. VCB      140.27B
+    7. MBB      139.62B
+    8. HDB      118.35B
+    9. BID      95.44B
+    10. CTG      85.23B
+  Top by final area share:
+    1. SHB      12.32%
+    2. ACB      10.62%
+    3. TCB      9.44%
+    4. VIB      8.24%
+    5. VPB      6.84%
+    6. VCB      6.75%
+    7. MBB      6.73%
+    8. HDB      6.00%
+    9. BID      5.16%
+    10. CTG      4.76%
+
+maxRootSectorShare: 22.00%
+maxInnerTileShare: 46.00% (layout rect / sector inner area)
+layoutTileCount: 147
+maxSectorAspect: 5.730
+maxStockAspect: 5.804
+worstSector: realEstate (sector.realEstate) aspect=5.730
+worstStock: HHS in realEstate aspect=5.804
+layoutMaxAspectRatio: 5.804
+
+--- Per-sector diagnostics (sorted by sector aspect desc) ---
+  realEstate   share=17.38% w=0.1742 h=0.9980 sectorAspect=5.730 maxInner=5.804 (HHS)
+  utilities    share=0.40% w=0.0283 h=0.1395 sectorAspect=4.921 maxInner=1.640 (NT2)
+  technology   share=6.74% w=0.1213 h=0.5558 sectorAspect=4.581 maxInner=2.030 (FPT)
+  banking      share=21.76% w=0.2180 h=0.9980 sectorAspect=4.578 maxInner=4.960 (TPB)
+  industrial   share=11.60% w=0.6018 h=0.1928 sectorAspect=3.122 maxInner=1.185 (GEX)
+  other        share=10.03% w=0.1805 h=0.5558 sectorAspect=3.079 maxInner=2.281 (PVI)
+  securities   share=14.77% w=0.6018 h=0.2454 sectorAspect=2.452 maxInner=1.017 (VIX)
+  steel        share=3.71% w=0.2656 h=0.1395 sectorAspect=1.904 maxInner=2.569 (HSG)
+  oilGas       share=5.80% w=0.2960 h=0.1961 sectorAspect=1.509 maxInner=4.891 (GAS)
+  retail       share=6.40% w=0.2960 h=0.2162 sectorAspect=1.369 maxInner=2.932 (VRE)
+
+================================================================================
+VN market-cap
+================================================================================
+MODE: VN market-cap
+dataSource: live@http://127.0.0.1:3000
+itemCount: 200
+metricField: marketCap (vnMarketCapMetric)
+totalMetric: 6.89M
+invalidMetricCount: 0
+
+--- Top 10 by raw metric ---
+  1. VCB      420.00K
+  2. VIC      395.00K
+  3. VHM      360.00K
+  4. BID      310.00K
+  5. CTG      295.00K
+  6. HPG      270.00K
+  7. GAS      245.00K
+  8. FPT      230.00K
+  9. MWG      210.00K
+  10. ACB      198.00K
+
+--- Top 10 final area shares ---
+  1. VCB      4.79%
+  2. VIC      4.55%
+  3. VHM      4.20%
+  4. BID      3.70%
+  5. CTG      3.55%
+  6. HPG      3.29%
+  7. GAS      3.03%
+  8. FPT      2.87%
+  9. MWG      2.66%
+  10. ACB      2.53%
+
+maxTileShare: 4.79%
+layoutTileCount: 200
+worstTile: HHV aspect=6.790 share=0.12% w=0.0133 h=0.0901
+layoutMaxAspectRatio: 6.790
+
+--- Per-tile diagnostics (sorted by aspect desc) ---
+  HHV      metric=5.60K      share=0.12%   w=0.0133 h=0.0901 aspect=6.790
+  PVB      metric=5.60K      share=0.12%   w=0.0133 h=0.0901 aspect=6.790
+  LDG      metric=5.80K      share=0.13%   w=0.0137 h=0.0901 aspect=6.591
+  CRC      metric=5.80K      share=0.13%   w=0.0137 h=0.0901 aspect=6.591
+  VTX      metric=6.00K      share=0.13%   w=0.0141 h=0.0901 aspect=6.404
+  DGW      metric=6.00K      share=0.13%   w=0.0141 h=0.0901 aspect=6.404
+  HAI      metric=6.00K      share=0.13%   w=0.0141 h=0.0901 aspect=6.404
+  PVG      metric=6.00K      share=0.13%   w=0.0141 h=0.0901 aspect=6.404
+  DCM      metric=6.20K      share=0.13%   w=0.0145 h=0.0901 aspect=6.228
+  VIS      metric=6.20K      share=0.13%   w=0.0145 h=0.0901 aspect=6.228
+  VCA      metric=6.40K      share=0.14%   w=0.0149 h=0.0901 aspect=6.062
+  KDC      metric=6.40K      share=0.14%   w=0.0149 h=0.0901 aspect=6.062
+  EID      metric=6.40K      share=0.14%   w=0.0149 h=0.0901 aspect=6.062
+  VEF      metric=6.50K      share=0.14%   w=0.0151 h=0.0901 aspect=5.982
+  TCH      metric=6.60K      share=0.14%   w=0.0153 h=0.0901 aspect=5.905
+  PPC      metric=6.60K      share=0.14%   w=0.0153 h=0.0901 aspect=5.905
+  EVF      metric=6.80K      share=0.14%   w=0.0157 h=0.0901 aspect=5.757
+  THD      metric=6.80K      share=0.14%   w=0.0157 h=0.0901 aspect=5.757
+  SZC      metric=6.80K      share=0.14%   w=0.0157 h=0.0901 aspect=5.757
+  VPI      metric=7.00K      share=0.15%   w=0.0160 h=0.0901 aspect=5.617
+  MCH      metric=7.00K      share=0.15%   w=0.0160 h=0.0901 aspect=5.617
+  DSC      metric=7.00K      share=0.15%   w=0.0160 h=0.0901 aspect=5.617
+  VCB      metric=420.00K    share=4.79%   w=0.5130 h=0.0915 aspect=5.604
+  BSI      metric=7.20K      share=0.15%   w=0.0164 h=0.0901 aspect=5.484
+  VHC      metric=7.20K      share=0.15%   w=0.0164 h=0.0901 aspect=5.484
+  VNR      metric=7.20K      share=0.15%   w=0.0164 h=0.0901 aspect=5.484
+  CTS      metric=7.40K      share=0.15%   w=0.0168 h=0.0901 aspect=5.358
+  ANV      metric=7.40K      share=0.15%   w=0.0168 h=0.0901 aspect=5.358
+  VIC      metric=395.00K    share=4.55%   w=0.4870 h=0.0915 aspect=5.319
+  BVS      metric=7.50K      share=0.16%   w=0.0170 h=0.0901 aspect=5.297
+  CMR      metric=7.50K      share=0.16%   w=0.0170 h=0.0901 aspect=5.297
+  BWE      metric=7.60K      share=0.16%   w=0.0172 h=0.0901 aspect=5.238
+  TVS      metric=7.60K      share=0.16%   w=0.0172 h=0.0901 aspect=5.238
+  CII      metric=7.80K      share=0.16%   w=0.0176 h=0.0901 aspect=5.124
+  IVS      metric=7.80K      share=0.16%   w=0.0176 h=0.0901 aspect=5.124
+  TPP      metric=8.00K      share=0.17%   w=0.0180 h=0.0901 aspect=5.015
+  PC1      metric=8.00K      share=0.17%   w=0.0180 h=0.0901 aspect=5.015
+  SBS      metric=8.00K      share=0.17%   w=0.0180 h=0.0901 aspect=5.015
+  TVB      metric=8.00K      share=0.17%   w=0.0180 h=0.0901 aspect=5.015
+  VDS      metric=8.20K      share=0.17%   w=0.0184 h=0.0901 aspect=4.910
+  PHR      metric=8.20K      share=0.17%   w=0.0184 h=0.0901 aspect=4.910
+  PVD      metric=8.40K      share=0.17%   w=0.0187 h=0.0901 aspect=4.811
+  ORS      metric=8.40K      share=0.17%   w=0.0187 h=0.0901 aspect=4.811
+  VTL      metric=8.50K      share=0.17%   w=0.0189 h=0.0901 aspect=4.763
+  SHN      metric=8.50K      share=0.17%   w=0.0189 h=0.0901 aspect=4.763
+  OIL      metric=8.60K      share=0.18%   w=0.0191 h=0.0901 aspect=4.716
+  SAS      metric=8.60K      share=0.18%   w=0.0191 h=0.0901 aspect=4.716
+  NT2      metric=8.80K      share=0.18%   w=0.0195 h=0.0901 aspect=4.624
+  PET      metric=9.00K      share=0.18%   w=0.0199 h=0.0901 aspect=4.537
+  NAB      metric=9.00K      share=0.18%   w=0.0199 h=0.0901 aspect=4.537
+  DRH      metric=9.00K      share=0.18%   w=0.0199 h=0.0901 aspect=4.537
+  BRS      metric=9.00K      share=0.18%   w=0.0199 h=0.0901 aspect=4.537
+  HAH      metric=9.20K      share=0.19%   w=0.0202 h=0.0901 aspect=4.453
+  TAL      metric=9.40K      share=0.19%   w=0.0206 h=0.0901 aspect=4.372
+  VCR      metric=9.50K      share=0.19%   w=0.0208 h=0.0901 aspect=4.333
+  GEX      metric=9.50K      share=0.19%   w=0.0208 h=0.0901 aspect=4.333
+  APS      metric=9.50K      share=0.19%   w=0.0208 h=0.0901 aspect=4.333
+  VIX      metric=9.80K      share=0.20%   w=0.0214 h=0.0901 aspect=4.220
+  NBB      metric=9.80K      share=0.20%   w=0.0214 h=0.0901 aspect=4.220
+  SJF      metric=10.00K     share=0.20%   w=0.0216 h=0.0908 aspect=4.206
+  MBS      metric=10.00K     share=0.20%   w=0.0216 h=0.0908 aspect=4.206
+  VPH      metric=10.00K     share=0.20%   w=0.0217 h=0.0901 aspect=4.148
+  HQC      metric=10.20K     share=0.20%   w=0.0219 h=0.0908 aspect=4.136
+  HCM      metric=10.50K     share=0.21%   w=0.0225 h=0.0908 aspect=4.035
+  HPG      metric=270.00K    share=3.29%   w=0.3580 h=0.0901 aspect=3.972
+  ITA      metric=10.80K     share=0.21%   w=0.0230 h=0.0908 aspect=3.940
+  LAI      metric=11.00K     share=0.22%   w=0.0234 h=0.0908 aspect=3.879
+  NKG      metric=11.00K     share=0.22%   w=0.0234 h=0.0908 aspect=3.879
+  SCR      metric=11.00K     share=0.22%   w=0.0234 h=0.0908 aspect=3.879
+  IJC      metric=11.20K     share=0.22%   w=0.0238 h=0.0908 aspect=3.820
+  HSG      metric=11.50K     share=0.23%   w=0.0243 h=0.0908 aspect=3.735
+  AAA      metric=1.80K      share=0.05%   w=0.0111 h=0.0412 aspect=3.715
+  GAS      metric=245.00K    share=3.03%   w=0.3296 h=0.0901 aspect=3.658
+  VAB      metric=11.80K     share=0.23%   w=0.0248 h=0.0908 aspect=3.654
+  OCB      metric=12.00K     share=0.23%   w=0.0252 h=0.0908 aspect=3.602
+  PVI      metric=12.00K     share=0.23%   w=0.0252 h=0.0908 aspect=3.602
+  HVT      metric=12.00K     share=0.23%   w=0.0252 h=0.0908 aspect=3.602
+  EIB      metric=12.50K     share=0.24%   w=0.0261 h=0.0908 aspect=3.479
+  FPT      metric=230.00K    share=2.87%   w=0.3124 h=0.0901 aspect=3.466
+  BVB      metric=12.60K     share=0.24%   w=0.0263 h=0.0908 aspect=3.456
+  GEG      metric=2.00K      share=0.05%   w=0.0121 h=0.0412 aspect=3.396
+  MSR      metric=13.00K     share=0.25%   w=0.0270 h=0.0908 aspect=3.365
+  TIG      metric=13.00K     share=0.25%   w=0.0270 h=0.0908 aspect=3.365
+  VLA      metric=13.00K     share=0.25%   w=0.0270 h=0.0908 aspect=3.365
+  KLB      metric=13.20K     share=0.25%   w=0.0273 h=0.0908 aspect=3.322
+  VHM      metric=360.00K    share=4.20%   w=0.3670 h=0.1123 aspect=3.269
+  VCI      metric=14.00K     share=0.27%   w=0.0287 h=0.0908 aspect=3.160
+  ART      metric=14.00K     share=0.27%   w=0.0287 h=0.0908 aspect=3.160
+  HUT      metric=14.00K     share=0.27%   w=0.0287 h=0.0908 aspect=3.160
+  VFS      metric=2.20K      share=0.06%   w=0.0131 h=0.0412 aspect=3.132
+  VSA      metric=2.20K      share=0.06%   w=0.0131 h=0.0412 aspect=3.132
+  PGB      metric=14.80K     share=0.28%   w=0.0301 h=0.0908 aspect=3.014
+  QST      metric=15.00K     share=0.28%   w=0.0305 h=0.0908 aspect=2.980
+  IDC      metric=15.00K     share=0.28%   w=0.0305 h=0.0908 aspect=2.980
+  KBC      metric=15.00K     share=0.28%   w=0.0305 h=0.0908 aspect=2.980
+  ABB      metric=15.20K     share=0.29%   w=0.0308 h=0.0908 aspect=2.946
+  AGR      metric=2.40K      share=0.06%   w=0.0141 h=0.0412 aspect=2.909
+  LSS      metric=2.40K      share=0.06%   w=0.0141 h=0.0412 aspect=2.909
+  CNG      metric=2.40K      share=0.06%   w=0.0141 h=0.0412 aspect=2.909
+  BID      metric=310.00K    share=3.70%   w=0.3232 h=0.1123 aspect=2.879
+  NLG      metric=16.00K     share=0.30%   w=0.0322 h=0.0908 aspect=2.821
+  MWG      metric=210.00K    share=2.66%   w=0.2708 h=0.0962 aspect=2.814
+  CTG      metric=295.00K    share=3.55%   w=0.3098 h=0.1123 aspect=2.760
+  VE4      metric=16.50K     share=0.31%   w=0.0330 h=0.0908 aspect=2.748
+  NTP      metric=16.50K     share=0.31%   w=0.0330 h=0.0908 aspect=2.748
+  HPW      metric=2.60K      share=0.06%   w=0.0151 h=0.0412 aspect=2.718
+  BAB      metric=2.60K      share=0.06%   w=0.0151 h=0.0412 aspect=2.718
+  HAC      metric=2.60K      share=0.06%   w=0.0151 h=0.0412 aspect=2.718
+  NVB      metric=16.80K     share=0.31%   w=0.0335 h=0.0908 aspect=2.706
+  DIG      metric=17.00K     share=0.31%   w=0.0339 h=0.0908 aspect=2.679
+  ACB      metric=198.00K    share=2.53%   w=0.2576 h=0.0962 aspect=2.677
+  HDG      metric=17.50K     share=0.32%   w=0.0347 h=0.0908 aspect=2.614
+  VGT      metric=18.00K     share=0.33%   w=0.0356 h=0.0908 aspect=2.552
+  PAN      metric=18.00K     share=0.33%   w=0.0356 h=0.0908 aspect=2.552
+  FTS      metric=2.80K      share=0.07%   w=0.0161 h=0.0412 aspect=2.552
+  DRL      metric=2.80K      share=0.07%   w=0.0161 h=0.0412 aspect=2.552
+  VHG      metric=2.80K      share=0.07%   w=0.0161 h=0.0412 aspect=2.552
+  LPB      metric=158.00K    share=2.09%   w=0.2279 h=0.0898 aspect=2.539
+  TCB      metric=185.00K    share=2.39%   w=0.2431 h=0.0962 aspect=2.526
+  VC3      metric=18.00K     share=0.33%   w=0.0362 h=0.0892 aspect=2.462
+  BBS      metric=3.00K      share=0.07%   w=0.0171 h=0.0412 aspect=2.406
+  BSR      metric=3.00K      share=0.07%   w=0.0171 h=0.0412 aspect=2.406
+  PTB      metric=3.00K      share=0.07%   w=0.0171 h=0.0412 aspect=2.406
+  MBB      metric=172.00K    share=2.24%   w=0.2285 h=0.0962 aspect=2.375
+  SSB      metric=145.00K    share=1.94%   w=0.2119 h=0.0898 aspect=2.360
+  DHG      metric=19.00K     share=0.34%   w=0.0379 h=0.0892 aspect=2.352
+  VTP      metric=3.20K      share=0.08%   w=0.0181 h=0.0412 aspect=2.278
+  TLH      metric=3.20K      share=0.08%   w=0.0181 h=0.0412 aspect=2.278
+  APC      metric=3.20K      share=0.08%   w=0.0181 h=0.0412 aspect=2.278
+  SBT      metric=20.00K     share=0.36%   w=0.0396 h=0.0892 aspect=2.252
+  LAS      metric=20.00K     share=0.36%   w=0.0396 h=0.0892 aspect=2.252
+  MSN      metric=132.00K    share=1.79%   w=0.1956 h=0.0898 aspect=2.179
+  VTS      metric=3.40K      share=0.08%   w=0.0190 h=0.0412 aspect=2.163
+  HHS      metric=3.40K      share=0.08%   w=0.0190 h=0.0412 aspect=2.163
+  TVN      metric=3.40K      share=0.08%   w=0.0190 h=0.0412 aspect=2.163
+  DPM      metric=21.00K     share=0.38%   w=0.0413 h=0.0892 aspect=2.160
+  VNM      metric=125.00K    share=1.71%   w=0.1868 h=0.0898 aspect=2.080
+  DGC      metric=22.00K     share=0.39%   w=0.0429 h=0.0892 aspect=2.076
+  NBC      metric=22.00K     share=0.39%   w=0.0429 h=0.0892 aspect=2.076
+  VNC      metric=3.60K      share=0.08%   w=0.0200 h=0.0412 aspect=2.061
+  HAG      metric=3.60K      share=0.08%   w=0.0200 h=0.0412 aspect=2.061
+  VRC      metric=3.60K      share=0.08%   w=0.0200 h=0.0412 aspect=2.061
+  PLX      metric=118.00K    share=1.63%   w=0.1778 h=0.0898 aspect=1.981
+  VCG      metric=3.80K      share=0.09%   w=0.0209 h=0.0412 aspect=1.968
+  LGL      metric=3.80K      share=0.09%   w=0.0209 h=0.0412 aspect=1.968
+  DDG      metric=24.00K     share=0.42%   w=0.0462 h=0.0892 aspect=1.928
+  CMG      metric=24.00K     share=0.42%   w=0.0462 h=0.0892 aspect=1.928
+  YEG      metric=4.00K      share=0.09%   w=0.0218 h=0.0412 aspect=1.884
+  BMS      metric=4.00K      share=0.09%   w=0.0218 h=0.0412 aspect=1.884
+  VGP      metric=4.00K      share=0.09%   w=0.0218 h=0.0412 aspect=1.884
+  DNP      metric=4.20K      share=0.10%   w=0.0228 h=0.0412 aspect=1.808
+  PSE      metric=4.20K      share=0.10%   w=0.0228 h=0.0412 aspect=1.808
+  VSC      metric=4.20K      share=0.10%   w=0.0228 h=0.0412 aspect=1.808
+  FRT      metric=26.00K     share=0.45%   w=0.0495 h=0.0892 aspect=1.801
+  VIG      metric=26.00K     share=0.45%   w=0.0495 h=0.0892 aspect=1.801
+  TV2      metric=4.40K      share=0.10%   w=0.0237 h=0.0412 aspect=1.738
+  TIS      metric=4.40K      share=0.10%   w=0.0237 h=0.0412 aspect=1.738
+  VMC      metric=4.50K      share=0.10%   w=0.0241 h=0.0412 aspect=1.705
+  SHS      metric=28.00K     share=0.48%   w=0.0527 h=0.0892 aspect=1.692
+  TPB      metric=28.00K     share=0.48%   w=0.0527 h=0.0892 aspect=1.692
+  VGS      metric=4.60K      share=0.10%   w=0.0246 h=0.0412 aspect=1.673
+  TRA      metric=4.60K      share=0.10%   w=0.0246 h=0.0412 aspect=1.673
+  TVG      metric=4.80K      share=0.11%   w=0.0255 h=0.0412 aspect=1.614
+  THS      metric=4.80K      share=0.11%   w=0.0255 h=0.0412 aspect=1.614
+  SJS      metric=4.80K      share=0.11%   w=0.0255 h=0.0412 aspect=1.614
+  VGC      metric=30.00K     share=0.51%   w=0.0559 h=0.0892 aspect=1.595
+  REE      metric=30.00K     share=0.51%   w=0.0559 h=0.0892 aspect=1.595
+  BPC      metric=5.00K      share=0.11%   w=0.0264 h=0.0412 aspect=1.559
+  SLS      metric=5.00K      share=0.11%   w=0.0264 h=0.0412 aspect=1.559
+  SAM      metric=5.00K      share=0.11%   w=0.0264 h=0.0412 aspect=1.559
+  GVR      metric=108.00K    share=1.51%   w=0.1512 h=0.0979 aspect=1.544
+  PDR      metric=32.00K     share=0.54%   w=0.0591 h=0.0892 aspect=1.510
+  PVC      metric=32.00K     share=0.54%   w=0.0591 h=0.0892 aspect=1.510
+  CTD      metric=5.20K      share=0.11%   w=0.0273 h=0.0412 aspect=1.508
+  DTD      metric=5.20K      share=0.11%   w=0.0273 h=0.0412 aspect=1.508
+  SAB      metric=102.00K    share=1.44%   w=0.1440 h=0.0979 aspect=1.471
+  NDN      metric=5.40K      share=0.12%   w=0.0282 h=0.0412 aspect=1.460
+  FMC      metric=5.40K      share=0.12%   w=0.0282 h=0.0412 aspect=1.460
+  ABT      metric=5.50K      share=0.12%   w=0.0286 h=0.0412 aspect=1.437
+  NVL      metric=34.00K     share=0.57%   w=0.0622 h=0.0892 aspect=1.434
+  PNJ      metric=96.00K     share=1.37%   w=0.1368 h=0.0979 aspect=1.397
+  DXG      metric=36.00K     share=0.59%   w=0.0653 h=0.0892 aspect=1.366
+  TNG      metric=36.00K     share=0.59%   w=0.0653 h=0.0892 aspect=1.366
+  BCM      metric=39.00K     share=0.64%   w=0.0685 h=0.0909 aspect=1.326
+  VCS      metric=40.00K     share=0.65%   w=0.0700 h=0.0909 aspect=1.298
+  GMD      metric=88.00K     share=1.27%   w=0.1270 h=0.0979 aspect=1.297
+  POW      metric=42.00K     share=0.68%   w=0.0730 h=0.0909 aspect=1.245
+  STB      metric=82.00K     share=1.20%   w=0.1196 h=0.0979 aspect=1.222
+  CEO      metric=44.00K     share=0.70%   w=0.0759 h=0.0909 aspect=1.197
+  VPB      metric=45.00K     share=0.72%   w=0.0774 h=0.0909 aspect=1.174
+  VIB      metric=64.00K     share=0.97%   w=0.1044 h=0.0909 aspect=1.149
+  VRE      metric=76.00K     share=1.12%   w=0.1122 h=0.0979 aspect=1.145
+  VND      metric=48.00K     share=0.76%   w=0.0818 h=0.0909 aspect=1.111
+  PVS      metric=48.00K     share=0.76%   w=0.0818 h=0.0909 aspect=1.111
+  VJC      metric=72.00K     share=1.07%   w=0.1071 h=0.0979 aspect=1.094
+  BVH      metric=60.00K     share=0.92%   w=0.0988 h=0.0909 aspect=1.088
+  KDH      metric=68.00K     share=1.02%   w=0.1020 h=0.0979 aspect=1.042
+  SHB      metric=52.00K     share=0.81%   w=0.0875 h=0.0909 aspect=1.038
+  HDB      metric=52.00K     share=0.81%   w=0.0875 h=0.0909 aspect=1.038
+  SSI      metric=56.00K     share=0.86%   w=0.0932 h=0.0909 aspect=1.026
+
+================================================================================
+VN foreign (foreign-flow)
+================================================================================
+MODE: VN foreign (foreign-flow)
+dataSource: live@http://127.0.0.1:3000
+itemCount: 200
+metricField: foreignNetValue|foreignTradingValue|shares├ùprice (vnForeignFlowMetric)
+totalMetric: 1.03T
+invalidMetricCount: 71
+
+--- Top 10 by raw metric ---
+  1. VHM      124.15B
+  2. FPT      94.72B
+  3. VIC      89.02B
+  4. TCB      86.13B
+  5. VCB      57.11B
+  6. CTG      41.90B
+  7. VPB      39.13B
+  8. SHB      32.71B
+  9. VRE      32.29B
+  10. VIB      32.29B
+
+--- Top 10 final area shares ---
+  1. VHM      8.04%
+  2. FPT      6.56%
+  3. VIC      6.27%
+  4. TCB      6.11%
+  5. VCB      4.49%
+  6. CTG      3.56%
+  7. VPB      3.38%
+  8. SHB      2.96%
+  9. VRE      2.93%
+  10. VIB      2.93%
+
+maxTileShare: 8.04%
+layoutTileCount: 129
+worstTile: TV2 aspect=5.610 share=0.11% w=0.0136 h=0.0763
+layoutMaxAspectRatio: 5.610
+
+--- Per-tile diagnostics (sorted by aspect desc) ---
+  TV2      metric=385.92M    share=0.11%   w=0.0136 h=0.0763 aspect=5.610
+  NAB      metric=386.45M    share=0.11%   w=0.0136 h=0.0763 aspect=5.605
+  VAB      metric=390.50M    share=0.11%   w=0.0137 h=0.0763 aspect=5.561
+  TCB      metric=86.13B     share=6.11%   w=0.5764 h=0.1039 aspect=5.550
+  DHG      metric=405.06M    share=0.11%   w=0.0141 h=0.0763 aspect=5.410
+  KLB      metric=409.96M    share=0.11%   w=0.0142 h=0.0763 aspect=5.362
+  VND      metric=417.74M    share=0.11%   w=0.0144 h=0.0763 aspect=5.287
+  VHC      metric=444.60M    share=0.12%   w=0.0151 h=0.0763 aspect=5.045
+  BSI      metric=453.59M    share=0.12%   w=0.0153 h=0.0763 aspect=4.970
+  HDG      metric=502.47M    share=0.13%   w=0.0166 h=0.0763 aspect=4.603
+  FTS      metric=513.08M    share=0.13%   w=0.0168 h=0.0763 aspect=4.531
+  NT2      metric=523.26M    share=0.13%   w=0.0171 h=0.0763 aspect=4.465
+  BVH      metric=524.00M    share=0.13%   w=0.0171 h=0.0763 aspect=4.460
+  HQC      metric=526.08M    share=0.13%   w=0.0172 h=0.0763 aspect=4.447
+  VRE      metric=32.29B     share=2.93%   w=0.3532 h=0.0812 aspect=4.348
+  VIB      metric=32.29B     share=2.93%   w=0.3532 h=0.0812 aspect=4.348
+  VCB      metric=57.11B     share=4.49%   w=0.4236 h=0.1039 aspect=4.078
+  SCR      metric=600.17M    share=0.15%   w=0.0189 h=0.0763 aspect=4.029
+  CTG      metric=41.90B     share=3.56%   w=0.3597 h=0.0970 aspect=3.709
+  VC3      metric=670.32M    share=0.16%   w=0.0206 h=0.0763 aspect=3.708
+  DCM      metric=25.25B     share=2.43%   w=0.2937 h=0.0812 aspect=3.615
+  BSR      metric=23.22B     share=2.29%   w=0.2827 h=0.0792 aspect=3.567
+  VPB      metric=39.13B     share=3.38%   w=0.3416 h=0.0970 aspect=3.523
+  PHR      metric=781.66M    share=0.18%   w=0.0231 h=0.0763 aspect=3.304
+  HCM      metric=378.76M    share=0.10%   w=0.0580 h=0.0176 aspect=3.295
+  DTD      metric=13.50M     share=0.01%   w=0.0056 h=0.0176 aspect=3.168
+  TIG      metric=12.06M     share=0.01%   w=0.0056 h=0.0176 aspect=3.168
+  VRC      metric=10.24M     share=0.01%   w=0.0056 h=0.0176 aspect=3.168
+  KDC      metric=5.00M      share=0.01%   w=0.0056 h=0.0176 aspect=3.168
+  SJS      metric=4.90M      share=0.01%   w=0.0056 h=0.0176 aspect=3.168
+  EIB      metric=4.24M      share=0.01%   w=0.0056 h=0.0176 aspect=3.168
+  TVB      metric=3.79M      share=0.01%   w=0.0056 h=0.0176 aspect=3.168
+  FMC      metric=3.56M      share=0.01%   w=0.0056 h=0.0176 aspect=3.168
+  HHV      metric=1.18M      share=0.01%   w=0.0056 h=0.0176 aspect=3.168
+  HPG      metric=19.82B     share=2.03%   w=0.2510 h=0.0792 aspect=3.168
+  TVN      metric=853.44M    share=0.19%   w=0.0247 h=0.0763 aspect=3.094
+  THD      metric=347.32M    share=0.10%   w=0.0544 h=0.0176 aspect=3.087
+  SHB      metric=32.71B     share=2.96%   w=0.2987 h=0.0970 aspect=3.080
+  APS      metric=17.75M     share=0.01%   w=0.0058 h=0.0176 aspect=3.013
+  CII      metric=18.28B     share=1.91%   w=0.2363 h=0.0792 aspect=2.982
+  SSI      metric=17.64B     share=1.86%   w=0.2300 h=0.0792 aspect=2.902
+  VDS      metric=308.46M    share=0.09%   w=0.0498 h=0.0176 aspect=2.825
+  CMG      metric=306.92M    share=0.09%   w=0.0496 h=0.0176 aspect=2.814
+  DIG      metric=980.76M    share=0.21%   w=0.0274 h=0.0763 aspect=2.787
+  ACB      metric=16.45B     share=1.77%   w=0.2191 h=0.0790 aspect=2.775
+  FRT      metric=15.25B     share=1.67%   w=0.2070 h=0.0790 aspect=2.622
+  OIL      metric=1.07B      share=0.23%   w=0.0292 h=0.0763 aspect=2.611
+  HSG      metric=1.12B      share=0.24%   w=0.0302 h=0.0763 aspect=2.525
+  TAL      metric=1.13B      share=0.24%   w=0.0303 h=0.0763 aspect=2.513
+  SBT      metric=263.18M    share=0.08%   w=0.0442 h=0.0176 aspect=2.507
+  PAN      metric=262.16M    share=0.08%   w=0.0440 h=0.0176 aspect=2.500
+  MBB      metric=14.31B     share=1.59%   w=0.1973 h=0.0790 aspect=2.499
+  IJC      metric=261.12M    share=0.08%   w=0.0439 h=0.0176 aspect=2.493
+  STB      metric=1.18B      share=0.25%   w=0.0315 h=0.0763 aspect=2.421
+  HDB      metric=13.49B     share=1.52%   w=0.1888 h=0.0790 aspect=2.392
+  GEX      metric=13.39B     share=1.51%   w=0.1878 h=0.0790 aspect=2.378
+  NTP      metric=244.51M    share=0.08%   w=0.0418 h=0.0176 aspect=2.373
+  OCB      metric=1.23B      share=0.25%   w=0.0324 h=0.0763 aspect=2.351
+  KBC      metric=1.28B      share=0.26%   w=0.0333 h=0.0763 aspect=2.289
+  GVR      metric=1.30B      share=0.26%   w=0.0339 h=0.0763 aspect=2.253
+  CTS      metric=1.31B      share=0.26%   w=0.0340 h=0.0763 aspect=2.245
+  LPB      metric=209.03M    share=0.07%   w=0.0372 h=0.0176 aspect=2.110
+  HHS      metric=1.43B      share=0.28%   w=0.0362 h=0.0763 aspect=2.105
+  TNG      metric=1.48B      share=0.29%   w=0.0373 h=0.0763 aspect=2.043
+  SZC      metric=199.75M    share=0.06%   w=0.0359 h=0.0176 aspect=2.039
+  IVS      metric=29.92M     share=0.02%   w=0.0086 h=0.0176 aspect=2.037
+  NVL      metric=12.44B     share=1.43%   w=0.1675 h=0.0837 aspect=2.001
+  CTD      metric=1.58B      share=0.30%   w=0.0391 h=0.0763 aspect=1.952
+  LDG      metric=184.68M    share=0.06%   w=0.0339 h=0.0176 aspect=1.922
+  PTB      metric=181.55M    share=0.06%   w=0.0334 h=0.0176 aspect=1.898
+  CRC      metric=180.75M    share=0.06%   w=0.0333 h=0.0176 aspect=1.892
+  VCG      metric=1.65B      share=0.31%   w=0.0404 h=0.0763 aspect=1.890
+  VHM      metric=124.15B    share=8.04%   w=0.3853 h=0.2044 aspect=1.884
+  YEG      metric=176.30M    share=0.06%   w=0.0327 h=0.0176 aspect=1.857
+  IDC      metric=11.19B     share=1.32%   w=0.1547 h=0.0837 aspect=1.848
+  PLX      metric=1.70B      share=0.32%   w=0.0413 h=0.0763 aspect=1.846
+  TCH      metric=10.98B     share=1.30%   w=0.1526 h=0.0837 aspect=1.822
+  ANV      metric=1.83B      share=0.34%   w=0.0437 h=0.0763 aspect=1.744
+  HAH      metric=158.63M    share=0.05%   w=0.0302 h=0.0176 aspect=1.715
+  AAA      metric=1.93B      share=0.35%   w=0.0454 h=0.0763 aspect=1.680
+  VCI      metric=1.93B      share=0.35%   w=0.0455 h=0.0763 aspect=1.678
+  DXG      metric=9.83B      share=1.20%   w=0.1404 h=0.0837 aspect=1.676
+  PVI      metric=38.90M     share=0.02%   w=0.0105 h=0.0176 aspect=1.673
+  HUT      metric=152.88M    share=0.05%   w=0.0294 h=0.0176 aspect=1.668
+  SSB      metric=151.47M    share=0.05%   w=0.0292 h=0.0176 aspect=1.657
+  MSR      metric=145.78M    share=0.05%   w=0.0284 h=0.0176 aspect=1.610
+  MWG      metric=9.24B      share=1.15%   w=0.1341 h=0.0837 aspect=1.601
+  VTP      metric=143.88M    share=0.05%   w=0.0281 h=0.0176 aspect=1.594
+  DGC      metric=43.47M     share=0.02%   w=0.0114 h=0.0176 aspect=1.539
+  FPT      metric=94.72B     share=6.56%   w=0.3145 h=0.2044 aspect=1.538
+  NVB      metric=135.89M    share=0.05%   w=0.0269 h=0.0176 aspect=1.527
+  TPB      metric=8.61B      share=1.09%   w=0.1271 h=0.0837 aspect=1.518
+  SHS      metric=2.21B      share=0.39%   w=0.0503 h=0.0763 aspect=1.517
+  PPC      metric=132.75M    share=0.05%   w=0.0264 h=0.0176 aspect=1.501
+  DPM      metric=7.81B      share=1.01%   w=0.1218 h=0.0812 aspect=1.500
+  BID      metric=7.69B      share=1.00%   w=0.1204 h=0.0812 aspect=1.483
+  VSC      metric=8.30B      share=1.06%   w=0.1236 h=0.0837 aspect=1.477
+  MSN      metric=7.63B      share=0.99%   w=0.1197 h=0.0812 aspect=1.474
+  VIC      metric=89.02B     share=6.26%   w=0.3002 h=0.2044 aspect=1.468
+  CEO      metric=2.34B      share=0.41%   w=0.0525 h=0.0763 aspect=1.454
+  MBS      metric=2.48B      share=0.43%   w=0.0547 h=0.0764 aspect=1.398
+  PDR      metric=2.48B      share=0.43%   w=0.0547 h=0.0764 aspect=1.397
+  SAM      metric=50.22M     share=0.02%   w=0.0128 h=0.0176 aspect=1.381
+  VIX      metric=2.55B      share=0.44%   w=0.0559 h=0.0764 aspect=1.368
+  BCM      metric=2.66B      share=0.45%   w=0.0577 h=0.0764 aspect=1.325
+  PC1      metric=6.47B      share=0.88%   w=0.1058 h=0.0812 aspect=1.303
+  SAB      metric=108.02M    share=0.04%   w=0.0227 h=0.0176 aspect=1.286
+  VJC      metric=2.87B      share=0.48%   w=0.0610 h=0.0764 aspect=1.252
+  VCS      metric=2.99B      share=0.49%   w=0.0630 h=0.0764 aspect=1.214
+  VGC      metric=5.89B      share=0.82%   w=0.0986 h=0.0812 aspect=1.214
+  AGR      metric=59.80M     share=0.03%   w=0.0145 h=0.0176 aspect=1.212
+  VPI      metric=5.85B      share=0.81%   w=0.0981 h=0.0812 aspect=1.208
+  GEG      metric=60.08M     share=0.03%   w=0.0146 h=0.0176 aspect=1.208
+  NKG      metric=97.63M     share=0.04%   w=0.0210 h=0.0176 aspect=1.192
+  POW      metric=3.10B      share=0.51%   w=0.0647 h=0.0764 aspect=1.181
+  VNM      metric=5.44B      share=0.77%   w=0.0929 h=0.0812 aspect=1.144
+  PNJ      metric=3.31B      share=0.53%   w=0.0680 h=0.0764 aspect=1.124
+  GAS      metric=3.31B      share=0.53%   w=0.0680 h=0.0764 aspect=1.123
+  KDH      metric=3.37B      share=0.54%   w=0.0689 h=0.0764 aspect=1.110
+  MCH      metric=3.54B      share=0.56%   w=0.0716 h=0.0764 aspect=1.068
+  BWE      metric=84.08M     share=0.03%   w=0.0188 h=0.0176 aspect=1.065
+  DGW      metric=4.91B      share=0.71%   w=0.0860 h=0.0812 aspect=1.059
+  VFS      metric=82.39M     share=0.03%   w=0.0185 h=0.0176 aspect=1.049
+  PVD      metric=4.27B      share=0.64%   w=0.0775 h=0.0812 aspect=1.048
+  PVS      metric=4.12B      share=0.62%   w=0.0801 h=0.0764 aspect=1.047
+  HAG      metric=4.39B      share=0.66%   w=0.0791 h=0.0812 aspect=1.027
+  EVF      metric=3.98B      share=0.61%   w=0.0781 h=0.0764 aspect=1.022
+  GMD      metric=3.91B      share=0.60%   w=0.0770 h=0.0764 aspect=1.007
+  NLG      metric=3.88B      share=0.60%   w=0.0766 h=0.0764 aspect=1.002
+
+================================================================================
+VN proprietary (proprietary-flow)
+================================================================================
+MODE: VN proprietary (proprietary-flow)
+dataSource: live@http://127.0.0.1:3000
+itemCount: 200
+metricField: proprietaryNetValue|proprietaryTradingValue|buy/sell (vnProprietaryFlowMetric)
+totalMetric: 1.56T
+invalidMetricCount: 124
+
+--- Top 10 by raw metric ---
+  1. TCB      1.03T
+  2. HPG      103.71B
+  3. VIC      92.02B
+  4. VHM      39.80B
+  5. MBB      29.44B
+  6. MSN      28.89B
+  7. BSR      25.56B
+  8. VNM      25.47B
+  9. VPB      13.98B
+  10. VCB      11.78B
+
+--- Top 10 final area shares ---
+  1. TCB      18.00%
+  2. HPG      10.83%
+  3. VIC      9.90%
+  4. VHM      5.28%
+  5. MBB      4.21%
+  6. MSN      4.15%
+  7. BSR      3.79%
+  8. VNM      3.78%
+  9. VPB      2.41%
+  10. VCB      2.12%
+
+maxTileShare: 18.00%
+layoutTileCount: 76
+worstTile: MSN aspect=6.714 share=4.15% w=0.5229 h=0.0779
+layoutMaxAspectRatio: 6.714
+
+--- Proprietary fallback ---
+proprietaryDataAvailable: true
+fallbackMetric: none
+invalidProprietaryMetricCount: 124
+renderedWithFallback: false
+
+================================================================================
+US (dollar volume / liquidity)
+================================================================================
+MODE: US (dollar volume / liquidity)
+dataSource: live@http://127.0.0.1:3000
+itemCount: 40
+metricField: usHeatmapSizeMetric (tradingValue ΓåÆ dollarVolume ΓåÆ price├ùvolume ΓåÆ marketCap)
+totalMetric: 26.88K
+invalidMetricCount: 0
+
+--- Top 10 by raw metric ---
+  1. NVDA     3.25K
+  2. MSFT     3.18K
+  3. AAPL     3.05K
+  4. GOOGL    2.18K
+  5. AMZN     1.94K
+  6. META     1.31K
+  7. BRKB     910
+  8. AVGO     780
+  9. TSLA     780
+  10. WMT      680
+
+--- Top 10 final area shares ---
+  1. NVDA     9.00%
+  2. MSFT     8.85%
+  3. AAPL     8.58%
+  4. GOOGL    6.67%
+  5. AMZN     6.11%
+  6. META     4.55%
+  7. BRKB     3.46%
+  8. AVGO     3.09%
+  9. TSLA     3.09%
+  10. WMT      2.78%
+
+maxTileShare: 9.00%
+layoutTileCount: 40
+worstTile: NVDA aspect=2.852 share=9.00% w=0.5041 h=0.1768
+layoutMaxAspectRatio: 2.852
+
+================================================================================
+Crypto (24h volume)
+================================================================================
+MODE: Crypto (24h volume)
+dataSource: live@http://127.0.0.1:3000
+itemCount: 50
+metricField: cryptoHeatmapSizeMetric (quoteVolume ΓåÆ volume24h ΓåÆ price├ùvolume ΓåÆ marketCap)
+totalMetric: 1688.13T
+invalidMetricCount: 0
+
+--- Top 10 by raw metric ---
+  1. BTC      1659.68T
+  2. ETH      25.37T
+  3. XAUT     1.08T
+  4. BNB      602.20B
+  5. PAXG     467.60B
+  6. ZEC      334.75B
+  7. SOL      166.01B
+  8. HYPE     160.33B
+  9. TAO      75.04B
+  10. BCH      54.59B
+
+--- Top 10 final area shares ---
+  1. BTC      18.00%
+  2. ETH      18.00%
+  3. XAUT     17.39%
+  4. BNB      11.24%
+  5. PAXG     9.30%
+  6. ZEC      7.24%
+  7. SOL      4.28%
+  8. HYPE     4.17%
+  9. TAO      2.36%
+  10. BCH      1.86%
+
+maxTileShare: 18.00%
+layoutTileCount: 50
+worstTile: HBAR aspect=8.485 share=0.01% w=0.0034 h=0.0290
+layoutMaxAspectRatio: 8.485

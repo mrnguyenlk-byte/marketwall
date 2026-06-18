@@ -18,7 +18,9 @@ export function isVnHeatmapLeader(symbol: string): boolean {
   return VN_HEATMAP_LEADER_SYMBOLS.has(symbol.toUpperCase())
 }
 
-/** Subtle outer glow for leader tiles — no border/ring. */
+/** Subtle inner glow for leader tiles — no white border/ring. */
 export function vnHeatmapLeaderGlowStyle(): CSSProperties {
-  return { boxShadow: "0 0 8px rgba(255,255,255,0.25)" }
+  return {
+    boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.12)",
+  }
 }
