@@ -1,3 +1,4 @@
+import { compareHeatmapMetricDesc } from "@/lib/market/heatmap-sort"
 import { vnTradingValueMetric } from "@/lib/treemap/heatmap-engine"
 import {
   buildFlatMetricTreemap,
@@ -149,7 +150,9 @@ export function vnModeHasValidMetrics(assets: MarketAsset[], mode: VnHeatmapMode
 }
 
 export function sortByVnHeatmapMode(assets: MarketAsset[], mode: VnHeatmapMode): MarketAsset[] {
-  return [...assets].sort((a, b) => vnHeatmapMetric(b, mode) - vnHeatmapMetric(a, mode))
+  return [...assets].sort((a, b) =>
+    compareHeatmapMetricDesc(vnHeatmapMetric(a, mode), vnHeatmapMetric(b, mode), a, b),
+  )
 }
 
 export type VnFlatTreemapLayout = {
@@ -170,7 +173,9 @@ export function buildFlatVnTreemapLayout(
   options?: { power?: number },
 ): VnFlatTreemapLayout {
   const leaves = buildFlatMetricTreemap(
-    [...assets].sort((a, b) => metricFn(b) - metricFn(a)),
+    [...assets].sort((a, b) =>
+      compareHeatmapMetricDesc(metricFn(a), metricFn(b), a, b),
+    ),
     metricFn,
     undefined,
     {

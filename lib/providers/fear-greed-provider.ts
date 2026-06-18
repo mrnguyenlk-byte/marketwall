@@ -17,8 +17,8 @@ export type BuildFearGreedOptions = {
   usHeatmapItems?: HeatmapAsset[]
 }
 
-function fallbackItem(key: string, value: number): FearGreedItem {
-  return { key, value }
+function fallbackItem(key: string, value: number, reasons?: FearGreedItem["reasons"]): FearGreedItem {
+  return { key, value, reasons }
 }
 
 function staticFallback(key: string): FearGreedItem {
@@ -43,12 +43,14 @@ export async function buildFearGreedItems(
       computeVietnamFearGreed({
         heatmapStocks: vietnam.heatmapStocks,
         dashboard: vietnam.dashboard,
+        analytics: vietnam.analytics,
+        indices: vietnam.indices,
       }),
       computeUsFearGreed({ heatmapItems: usHeatmap.items }),
     ])
 
     return [
-      fallbackItem("fg.vnindex", vnBreakdown.composite),
+      fallbackItem("fg.vnindex", vnBreakdown.composite, vnBreakdown.reasons),
       fallbackItem("fg.crypto", cryptoValue ?? staticFallback("fg.crypto").value),
       fallbackItem("fg.usStocks", usBreakdown.composite),
     ]

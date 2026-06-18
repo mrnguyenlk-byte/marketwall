@@ -78,17 +78,13 @@ const HEATMAP_VIEWPORT_CLASS =
 function HeatmapViewport({ children }: { children: ReactNode }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const { height, startResize } = useResizableHeight()
-  const viewportHeight = height ?? HEATMAP_HEIGHT_DEFAULT
 
   return (
     <div ref={containerRef} className="relative min-w-0">
       <div
-        className={cn(
-          "min-w-0 overflow-hidden bg-chart-bg p-px",
-          height == null && HEATMAP_VIEWPORT_CLASS,
-        )}
+        className="min-w-0 overflow-hidden bg-chart-bg p-px"
         style={{
-          height: `${viewportHeight}px`,
+          height: `${height}px`,
           minHeight: HEATMAP_HEIGHT_MIN,
           maxHeight: HEATMAP_HEIGHT_MAX,
         }}

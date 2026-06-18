@@ -3,6 +3,7 @@ import {
   US_HEATMAP_LIMIT,
   VN_HEATMAP_LIMIT,
 } from "@/config/heatmap-symbols"
+import { compareHeatmapMetricDesc } from "@/lib/market/heatmap-sort"
 import {
   sortBySizeMetric,
   tradingValue,
@@ -32,14 +33,23 @@ export function sortHeatmapRows(
   market: MarketType,
 ): HeatmapAsset[] {
   if (market === "vn") {
-    return [...items].sort(
-      (a, b) => tradingValue(b.price, b.volume) - tradingValue(a.price, a.volume),
+    return [...items].sort((a, b) =>
+      compareHeatmapMetricDesc(
+        tradingValue(a.price, a.volume),
+        tradingValue(b.price, b.volume),
+        a,
+        b,
+      ),
     )
   }
   if (market === "us") {
-    return [...items].sort((a, b) => b.marketCap - a.marketCap)
+    return [...items].sort((a, b) =>
+      compareHeatmapMetricDesc(a.marketCap, b.marketCap, a, b),
+    )
   }
-  return [...items].sort((a, b) => b.volume - a.volume)
+  return [...items].sort((a, b) =>
+    compareHeatmapMetricDesc(a.volume, b.volume, a, b),
+  )
 }
 
 export function limitHeatmapRows(
@@ -60,18 +70,27 @@ export function sortHeatmapAssets(
   }
   if (marketType === "us") {
     if (sizing === "dollarVolume") {
-      return [...assets].sort((a, b) => {
-        const byDollar = dollarVolume(b.price, b.volume) - dollarVolume(a.price, a.volume)
-        if (byDollar !== 0) return byDollar
-        return b.marketCap - a.marketCap
-      })
+      return [...assets].sort((a, b) =>
+        compareHeatmapMetricDesc(
+          dollarVolume(a.price, a.volume),
+          dollarVolume(b.price, b.volume),
+          a,
+          b,
+        ),
+      )
     }
-    return [...assets].sort((a, b) => b.marketCap - a.marketCap)
+    return [...assets].sort((a, b) =>
+      compareHeatmapMetricDesc(a.marketCap, b.marketCap, a, b),
+    )
   }
   if (sizing === "marketCap") {
-    return [...assets].sort((a, b) => b.marketCap - a.marketCap)
+    return [...assets].sort((a, b) =>
+      compareHeatmapMetricDesc(a.marketCap, b.marketCap, a, b),
+    )
   }
-  return [...assets].sort((a, b) => b.volume - a.volume)
+  return [...assets].sort((a, b) =>
+    compareHeatmapMetricDesc(a.volume, b.volume, a, b),
+  )
 }
 
 export function limitHeatmapAssets(

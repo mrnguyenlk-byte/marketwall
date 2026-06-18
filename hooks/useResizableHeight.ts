@@ -42,12 +42,19 @@ function persistHeight(height: number) {
 }
 
 export function useResizableHeight() {
-  const [height, setHeight] = useState<number | null>(null)
-  const heightRef = useRef<number | null>(null)
+  const [height, setHeight] = useState<number>(() => {
+    if (typeof window === "undefined") return HEATMAP_HEIGHT_DEFAULT
+    return readStoredHeight() ?? HEATMAP_HEIGHT_DEFAULT
+  })
+  const heightRef = useRef<number>(height)
+
+  useEffect(() => {
+    heightRef.current = height
+  }, [height])
 
   useEffect(() => {
     const stored = readStoredHeight()
-    if (stored != null) {
+    if (stored != null && stored !== heightRef.current) {
       heightRef.current = stored
       setHeight(stored)
     }
@@ -55,8 +62,8 @@ export function useResizableHeight() {
 
   useEffect(() => {
     const onResize = () => {
-      if (heightRef.current == null) return
       const clamped = clampHeight(heightRef.current)
+      if (clamped === heightRef.current) return
       heightRef.current = clamped
       setHeight(clamped)
     }

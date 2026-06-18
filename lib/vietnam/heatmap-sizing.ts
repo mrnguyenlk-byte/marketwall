@@ -1,3 +1,4 @@
+import { compareHeatmapMetricDesc } from "@/lib/market/heatmap-sort"
 import type { MarketAsset } from "@/types/market"
 
 import { vpsTradingValue } from "./volume-units"
@@ -26,5 +27,7 @@ export function sortBySizeMetric(
   assets: MarketAsset[],
   mode: VnHeatmapSizingMode,
 ): MarketAsset[] {
-  return [...assets].sort((a, b) => sizeMetric(b, mode) - sizeMetric(a, mode))
+  return [...assets].sort((a, b) =>
+    compareHeatmapMetricDesc(sizeMetric(a, mode), sizeMetric(b, mode), a, b),
+  )
 }

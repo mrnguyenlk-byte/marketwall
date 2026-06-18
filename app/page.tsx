@@ -62,11 +62,11 @@ export default async function Page() {
             <SectionErrorBoundary name="daily-analysis">
               <DailyAnalysisPreview />
             </SectionErrorBoundary>
-            <SectionErrorBoundary name="heatmap">
-              <HeatmapSection markets={dashboard.heatmapMarkets} />
-            </SectionErrorBoundary>
             <SectionErrorBoundary name="vn-dashboard">
               <VietnamMarketDashboard />
+            </SectionErrorBoundary>
+            <SectionErrorBoundary name="heatmap">
+              <HeatmapSection markets={dashboard.heatmapMarkets} />
             </SectionErrorBoundary>
             <SectionErrorBoundary name="vn-analytics">
               <VietnamMarketAnalyticsPanel />

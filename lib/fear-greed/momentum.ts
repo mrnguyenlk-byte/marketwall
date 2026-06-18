@@ -26,9 +26,33 @@ function returnPercent(current: number, past: number): number | null {
 export async function fetchVnindexMomentum20d(
   symbol = "VNINDEX",
 ): Promise<number | null> {
+  const ctx = await fetchVnindexIndexContext(symbol)
+  return ctx?.momentum20d ?? null
+}
+
+export type VnindexIndexContext = {
+  momentum20d: number | null
+  ma20: number | null
+  ma50: number | null
+  lastClose: number | null
+  /** Intraday range as % of last close (high-low)/close. */
+  intradayRangePct: number | null
+}
+
+function simpleMa(closes: number[], period: number): number | null {
+  if (closes.length < period) return null
+  const slice = closes.slice(-period)
+  const sum = slice.reduce((acc, c) => acc + c, 0)
+  return sum / period
+}
+
+/** VNINDEX context: 20D momentum, MA20/MA50, intraday range. */
+export async function fetchVnindexIndexContext(
+  symbol = "VNINDEX",
+): Promise<VnindexIndexContext | null> {
   const end = new Date()
   const start = new Date(end)
-  start.setDate(start.getDate() - 45)
+  start.setDate(start.getDate() - 90)
 
   const url =
     `${KBS_BASE}/index/${symbol}/data_day` +
@@ -38,15 +62,40 @@ export async function fetchVnindexMomentum20d(
     const res = await fetchWithTimeout(url, { headers: kbsHeaders(), cache: "no-store" }, 15_000)
     if (!res.ok) return null
 
-    const json = (await res.json()) as { data_day?: Array<{ c?: number }> }
+    const json = (await res.json()) as {
+      data_day?: Array<{ c?: number; h?: number; l?: number }>
+    }
     const bars = json.data_day ?? []
-    if (bars.length <= MOMENTUM_LOOKBACK_BARS) return null
+    if (bars.length < 2) return null
 
-    const lastClose = bars[bars.length - 1]?.c
-    const pastClose = bars[bars.length - 1 - MOMENTUM_LOOKBACK_BARS]?.c
-    if (lastClose == null || pastClose == null) return null
+    const closes = bars
+      .map((b) => b.c)
+      .filter((c): c is number => c != null && Number.isFinite(c))
+    if (closes.length < 2) return null
 
-    return returnPercent(lastClose, pastClose)
+    const lastClose = closes[closes.length - 1]
+    const pastClose =
+      closes.length > MOMENTUM_LOOKBACK_BARS
+        ? closes[closes.length - 1 - MOMENTUM_LOOKBACK_BARS]
+        : null
+    const momentum20d =
+      pastClose != null ? returnPercent(lastClose, pastClose) : null
+
+    const lastBar = bars[bars.length - 1]
+    const high = lastBar?.h
+    const low = lastBar?.l
+    const intradayRangePct =
+      high != null && low != null && lastClose > 0
+        ? Number((((high - low) / lastClose) * 100).toFixed(2))
+        : null
+
+    return {
+      momentum20d,
+      ma20: simpleMa(closes, 20),
+      ma50: simpleMa(closes, 50),
+      lastClose,
+      intradayRangePct,
+    }
   } catch {
     return null
   }
