@@ -241,6 +241,25 @@ const dict: Dict = {
   "dailyAnalysis.goldResistance": { vi: "2.380 – 2.395 USD/oz", en: "2,380 – 2,395 USD/oz" },
   "dailyAnalysis.goldSupport": { vi: "2.320 – 2.335 USD/oz", en: "2,320 – 2,335 USD/oz" },
   "dailyAnalysis.readMore": { vi: "Đọc Thêm →", en: "Read More →" },
+  "dailyAnalysis.hero.title": {
+    vi: "🚨 Cảnh Báo Sớm Dòng Tiền Lớn",
+    en: "🚨 Early Warning: Large Money Flow",
+  },
+  "dailyAnalysis.hero.body": {
+    vi: "Điểm khác biệt của chúng tôi không nằm ở các chỉ báo kỹ thuật thông thường, mà ở hệ thống phân tích dòng tiền từ dữ liệu thực tế kết hợp chỉ báo dòng tiền chuyên sâu.",
+    en: "Our edge is not in conventional technical indicators, but in a real-data money flow analysis system combined with specialized flow indicators.",
+  },
+  "dailyAnalysis.hero.earlyDetection": { vi: "Phát hiện sớm", en: "Early detection" },
+  "dailyAnalysis.hero.bullet1": { vi: "Dòng tiền mua vào", en: "Inflow (buying pressure)" },
+  "dailyAnalysis.hero.bullet2": { vi: "Dòng tiền bán ra", en: "Outflow (selling pressure)" },
+  "dailyAnalysis.hero.bullet3": {
+    vi: "Dấu hiệu tích lũy hoặc phân phối của nhà đầu tư lớn",
+    en: "Signs of accumulation or distribution by large investors",
+  },
+  "dailyAnalysis.hero.cta": {
+    vi: "Tham gia cộng đồng để nhận tín hiệu và cảnh báo sớm mỗi ngày",
+    en: "Join the community for daily signals and early warnings",
+  },
   "sec.breadth": { vi: "Độ rộng thị trường", en: "Market Breadth" },
   "sec.topMovers": { vi: "Biến động mạnh nhất", en: "Top Movers" },
   "sec.watchlist": { vi: "Danh mục theo dõi", en: "Watchlist" },
