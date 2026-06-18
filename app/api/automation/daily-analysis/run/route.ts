@@ -1,6 +1,5 @@
-import { generateMockDailyAnalysis } from "@/lib/daily-analysis/generator"
+import { generateDailyAnalysis } from "@/lib/daily-analysis/generate"
 import { appendDailyAnalysisLog, saveDailyAnalysis } from "@/lib/daily-analysis/storage"
-import type { DailyAnalysis } from "@/lib/daily-analysis/types"
 
 export const dynamic = "force-dynamic"
 
@@ -10,6 +9,7 @@ type RunRequestBody = {
   date?: string
   vnindexImage?: string
   goldImage?: string
+  usMacroData?: string
   secret?: string
 }
 
@@ -45,16 +45,21 @@ export async function POST(request: Request) {
     )
   }
 
-  const article: DailyAnalysis = generateMockDailyAnalysis(
-    date,
-    body.vnindexImage,
-    body.goldImage,
-  )
+  const { article, source, fallbackUsed, model } = await generateDailyAnalysis(date, {
+    vnindexImage: body.vnindexImage,
+    goldImage: body.goldImage,
+    usMacroDataText: body.usMacroData,
+  })
 
   const saved = await saveDailyAnalysis(article)
 
   try {
-    await appendDailyAnalysisLog(date, `Generated mock daily analysis (slug=${saved.slug})`)
+    const modelNote = model ? ` model=${model}` : ""
+    const fallbackNote = fallbackUsed ? " (fallback mock)" : ""
+    await appendDailyAnalysisLog(
+      date,
+      `Generated daily analysis via ${source}${modelNote}${fallbackNote} (slug=${saved.slug})`,
+    )
   } catch {
     // Logging is optional; do not fail the request.
   }

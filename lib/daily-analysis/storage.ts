@@ -1,6 +1,6 @@
 import fs from "fs/promises"
 import path from "path"
-import type { DailyAnalysis } from "./types"
+import type { DailyAnalysis, DailyAnalysisOpenAiErrorLog } from "./types"
 
 const CONTENT_DIR = path.join(process.cwd(), "content", "daily-analysis")
 const LOGS_DIR = path.join(CONTENT_DIR, "logs")
@@ -53,4 +53,33 @@ export async function appendDailyAnalysisLog(date: string, message: string): Pro
   await fs.mkdir(LOGS_DIR, { recursive: true })
   const line = `[${new Date().toISOString()}] ${message}\n`
   await fs.appendFile(path.join(LOGS_DIR, `${date}.log`), line, "utf-8")
+}
+
+function openAiErrorLogPath(date: string): string {
+  return path.join(LOGS_DIR, `${date}.json`)
+}
+
+/** Append OpenAI failure entries to content/daily-analysis/logs/YYYY-MM-DD.json */
+export async function logDailyAnalysisOpenAiError(
+  date: string,
+  entry: DailyAnalysisOpenAiErrorLog,
+): Promise<void> {
+  await fs.mkdir(LOGS_DIR, { recursive: true })
+  const filePath = openAiErrorLogPath(date)
+
+  let existing: DailyAnalysisOpenAiErrorLog[] = []
+  try {
+    const raw = await fs.readFile(filePath, "utf-8")
+    const parsed = JSON.parse(raw) as unknown
+    if (Array.isArray(parsed)) {
+      existing = parsed as DailyAnalysisOpenAiErrorLog[]
+    } else if (parsed && typeof parsed === "object") {
+      existing = [parsed as DailyAnalysisOpenAiErrorLog]
+    }
+  } catch {
+    // New log file for this date.
+  }
+
+  existing.push(entry)
+  await fs.writeFile(filePath, JSON.stringify(existing, null, 2), "utf-8")
 }
