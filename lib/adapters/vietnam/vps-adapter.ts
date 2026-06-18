@@ -49,11 +49,11 @@ export function isVpsConfigured(): boolean {
   return process.env.VPS_ADAPTER_ENABLED !== "false"
 }
 
-/** Current traded price — prefer lastPrice (not closePrice, which is reference close in VND). */
+/** Current traded price — lastPrice/avePrice only (closePrice is prior close, not match). */
 function parseVpsCurrentPrice(row: VpsQuoteRow): number | null {
   const fromLast = vpsPriceToVnd(row.lastPrice)
   if (fromLast != null) return fromLast
-  return vpsPriceToVnd(row.closePrice)
+  return vpsPriceToVnd(row.avePrice)
 }
 
 /** Reference / prior close — VPS field `r` (thousands) or closePrice (VND). */
@@ -87,7 +87,10 @@ function normalizeVpsRow(row: VpsQuoteRow, seeds: ReturnType<typeof seedLookup>)
   const changePercent =
     referencePrice != null
       ? computeVnChangePercent(price, referencePrice)
-      : resolveVnChangePercent(price, { rawChangePercent: unsignedChangePercent })
+      : resolveVnChangePercent(price, {
+          rawChangePercent: unsignedChangePercent,
+          unsignedMagnitude: true,
+        })
 
   const change = signVnChangeAmount(price, changePercent)
   const volume = row.lot ?? seed?.volume ?? 0

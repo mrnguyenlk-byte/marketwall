@@ -44,12 +44,18 @@ function normalizeKbsStockRow(
   seeds: ReturnType<typeof seedLookup>,
 ): NormalizedVietnamStock {
   const seed = seeds.get(parsed.symbol)
+  const referencePrice =
+    parsed.change != null && Number.isFinite(parsed.change)
+      ? parsed.price - parsed.change
+      : undefined
+
   return {
     symbol: parsed.symbol,
     name: seed?.name ?? { vi: parsed.symbol, en: parsed.symbol },
     exchange: parsed.exchange,
     sector: seed?.sector ?? "Equity",
     price: parsed.price,
+    referencePrice: referencePrice != null && referencePrice > 0 ? referencePrice : undefined,
     change: parsed.change,
     changePercent: parsed.changePercent,
     marketCap: seed?.marketCap ?? 0,

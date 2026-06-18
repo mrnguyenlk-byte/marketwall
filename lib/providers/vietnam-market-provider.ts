@@ -256,6 +256,7 @@ function mergeHeatmapStockBucket(
     return {
       ...seed,
       price: liveStock.price,
+      referencePrice: liveStock.referencePrice ?? seed.referencePrice,
       change: liveStock.change,
       changePercent: liveStock.changePercent,
       volume: liveStock.volume,

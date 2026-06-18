@@ -42,12 +42,20 @@ export function signVnChangePercent(price: number, unsignedChangePercent: number
 /** Resolve signed % — prefer reference price; never Math.abs on the final value. */
 export function resolveVnChangePercent(
   price: number,
-  options: { referencePrice?: number | null; rawChangePercent?: number },
+  options: {
+    referencePrice?: number | null
+    rawChangePercent?: number
+    /** VPS `changePc` magnitude when reference price is unavailable. */
+    unsignedMagnitude?: boolean
+  },
 ): number {
   if (price > 0 && options.referencePrice != null && options.referencePrice > 0) {
     return computeVnChangePercent(price, options.referencePrice)
   }
   const raw = options.rawChangePercent ?? 0
+  if (!options.unsignedMagnitude) {
+    return Number(raw.toFixed(2))
+  }
   if (raw < 0) return Number(raw.toFixed(2))
   return signVnChangePercent(price, raw)
 }

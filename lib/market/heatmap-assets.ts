@@ -1,6 +1,16 @@
 import type { Bi } from "@/lib/market-utils"
-import { resolveVnChangePercent, signVnChangeAmount } from "@/lib/vietnam/vn-change-sign"
+import { computeVnChangePercent, signVnChangeAmount } from "@/lib/vietnam/vn-change-sign"
 import type { HeatmapAsset, MarketAsset, MarketType } from "@/types/market"
+
+/** Signed % for VN tiles — always from price vs reference when ref exists. */
+function vnHeatmapChangePercent(row: HeatmapAsset): number {
+  if (row.price <= 0) return row.changePercent
+  if (row.referencePrice != null && row.referencePrice > 0) {
+    return computeVnChangePercent(row.price, row.referencePrice)
+  }
+  // Upstream adapter already signed; do not re-run magnitude heuristic.
+  return row.changePercent
+}
 
 function biFromName(name: string): Bi {
   return { en: name, vi: name }
@@ -13,12 +23,7 @@ export function heatmapRowsToMarketAssets(
 ): MarketAsset[] {
   return rows.map((row) => {
     const changePercent =
-      marketType === "vn" && row.price > 0
-        ? resolveVnChangePercent(row.price, {
-            referencePrice: row.referencePrice,
-            rawChangePercent: row.changePercent,
-          })
-        : row.changePercent
+      marketType === "vn" ? vnHeatmapChangePercent(row) : row.changePercent
     const change =
       row.price > 0 ? signVnChangeAmount(row.price, changePercent) : 0
     const prevClose = row.price > 0 ? row.price - change : 0
