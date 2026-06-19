@@ -1,0 +1,1 @@
+export { getLatestDailyAnalysis } from "./storage"

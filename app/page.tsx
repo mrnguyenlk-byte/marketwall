@@ -20,6 +20,8 @@ import { MarketNews } from "@/components/marketwall/market-news"
 import { RiskWarning } from "@/components/marketwall/risk-warning"
 import { Footer } from "@/components/marketwall/footer"
 import { SectionErrorBoundary } from "@/components/marketwall/section-error-boundary"
+import { getLatestDailyAnalysis } from "@/lib/daily-analysis/latest"
+import { mapLatestToPreviewCards } from "@/lib/daily-analysis/map-to-card"
 
 export const metadata = homeMetadata
 
@@ -47,6 +49,10 @@ export default async function Page() {
   }
   const newsFallback = getNewsMock().items
   const calendarFallback = getCalendarMock().events
+  const latestDailyAnalysis = await getLatestDailyAnalysis()
+  const dailyAnalysisPreviewCards = latestDailyAnalysis
+    ? mapLatestToPreviewCards(latestDailyAnalysis)
+    : undefined
 
   return (
     <div className="min-h-screen w-full bg-background">
@@ -60,7 +66,7 @@ export default async function Page() {
 
           <section className="dashboard-center flex min-w-0 flex-col gap-4">
             <SectionErrorBoundary name="daily-analysis">
-              <DailyAnalysisPreview />
+              <DailyAnalysisPreview cards={dailyAnalysisPreviewCards} />
             </SectionErrorBoundary>
             <SectionErrorBoundary name="market-liquidity">
               <MarketLiquiditySection />

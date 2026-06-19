@@ -143,8 +143,8 @@ export function HeatmapTile({
       }}
       aria-label={`${asset.symbol} ${up ? "+" : ""}${asset.changePercent.toFixed(2)}%`}
       className={cn(
-        "group/tile flex w-full min-w-0 flex-col items-start justify-between overflow-hidden rounded-none border text-left",
-        "border-black/20",
+        "group/tile relative flex w-full min-w-0 flex-col items-start justify-between overflow-hidden rounded-none border text-left",
+        "border-black/20 transition-[filter] duration-150 hover:z-10 hover:brightness-[1.08]",
         size === "tiny" ? "min-h-0 p-0" : "p-0.5 sm:p-1",
         !rect && classes.grid,
       )}

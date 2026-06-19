@@ -1,0 +1,194 @@
+﻿
+> my-project@0.2.0-beta build
+> prisma generate && next build
+
+Γùç injected env (8) from .env.local // tip: Γîÿ enable debugging { debug: true }
+Γùç injected env (0) from .env // tip: Γîü auth for agents [www.vestauth.com]
+node.exe : Loaded Prisma config from prisma.config.ts.
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Loaded Prisma c...isma.config.ts.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+Prisma schema loaded from prisma\schema.prisma.
+
+Γ£ö Generated Prisma Client (7.8.0) to .\lib\generated\prisma in 69ms
+
+Γû▓ Next.js 16.2.6 (Turbopack)
+- Environments: .env.local
+
+  Creating an optimized production build ...
+Γ£ô Compiled successfully in 3.1s
+  Running TypeScript ...
+  Finished TypeScript in 5.8s ...
+  Collecting page data using 15 workers ...
+  Generating static pages using 15 workers (0/43) ...
+  Generating static pages using 15 workers (10/43) 
+  Generating static pages using 15 workers (21/43) 
+  Generating static pages using 15 workers (32/43) 
+[provider:vietnam:vps] error=Dynamic server usage: Route / couldn't be rendered statically because it used revalidate: 
+0 fetch https://bgapidatafeed.vps.com.vn/getliststockdata/VCB%2CVIC%2CVHM%2CBID%2CCTG%2CHPG%2CGAS%2CFPT%2CMWG%2CACB%2CT
+CB%2CMBB%2CLPB%2CSSB%2CMSN%2CVNM%2CPLX%2CGVR%2CSAB%2CPNJ%2CGMD%2CSTB%2CVRE%2CVJC%2CKDH%2CVIB%2CBVH%2CSSI%2CHDB%2CVND%2C
+VPB%2CPOW%2CBCM%2CDXG%2CNVL%2CPDR%2CREE%2CTPB%2CFRT%2CCMG /. See more info here: 
+https://nextjs.org/docs/messages/dynamic-server-error
+[provider:fallback] provider=coingecko reason=primary_returned_null
+[provider:vietnam:vps] error=Dynamic server usage: Route / couldn't be rendered statically because it used no-store 
+fetch https://bgapidatafeed.vps.com.vn/getliststockdata/DGC%2CDPM%2CSBT%2CDHG%2CPAN%2CDIG%2CNLG%2CKBC%2CVCI%2CMSR%2CEIB
+%2COCB%2CHSG%2CNKG%2CHCM%2CMBS%2CVIX%2CGEX%2CHAH%2CNAB%2CNT2%2COIL%2CPVD%2CPHR%2CPC1%2CCII%2CBWE%2CANV%2CVHC%2CVPI%2CSZ
+C%2CTCH%2CKDC%2CDCM%2CDGW%2CLDG%2CHHV%2CFMC%2CCTD%2CSAM /. See more info here: 
+https://nextjs.org/docs/messages/dynamic-server-error
+[provider:vietnam:vps] error=Dynamic server usage: Route / couldn't be rendered statically because it used no-store 
+fetch https://bgapidatafeed.vps.com.vn/getliststockdata/SJS%2CTRA%2CTV2%2CVSC%2CYEG%2CVCG%2CHAG%2CTVN%2CTLH%2CBSR%2CFTS
+%2CBAB%2CAGR%2CVFS%2CGEG%2CAAA%2CHDG%2CNVB%2CABB%2CPGB%2CKLB%2CBVB%2CVAB%2CIJC%2CITA%2CHQC%2CNBB%2CTAL%2CDRH%2CSAS%2COR
+S%2CVDS%2CSBS%2CIVS%2CTVS%2CCTS%2CBSI%2CDSC%2CEVF%2CPPC /. See more info here: 
+https://nextjs.org/docs/messages/dynamic-server-error
+[provider:vietnam:vps] error=Dynamic server usage: Route / couldn't be rendered statically because it used no-store 
+fetch https://bgapidatafeed.vps.com.vn/getliststockdata/VCA%2CVIS%2CPVG%2CCRC%2CSHB%2CPVS%2CCEO%2CVCS%2CTNG%2CPVC%2CVGC
+%2CSHS%2CVIG%2CDDG%2CNBC%2CLAS%2CVC3%2CNTP%2CIDC%2CHUT%2CTIG%2CPVI%2CSCR%2CVPH%2CAPS%2CPET%2CSHN%2CTVB%2CBVS%2CVNR%2CTH
+D%2CEID%2CVTX%2CPVB%2CNDN%2CDTD%2CSLS%2CTHS%2CVGS%2CTIS /. See more info here: 
+https://nextjs.org/docs/messages/dynamic-server-error
+[provider:vietnam:vps] error=Dynamic server usage: Route / couldn't be rendered statically because it used no-store 
+fetch https://bgapidatafeed.vps.com.vn/getliststockdata/PSE%2CBMS%2CVGT%2CVE4%2CQST%2CART%2CVLA%2CHVT%2CLAI%2CSJF%2CVCR
+%2CBRS%2CVTL%2CTPP%2CCMR%2CMCH%2CVEF%2CHAI%2CABT%2CBPC%2CTVG%2CVMC%2CDNP%2CVGP%2CLGL%2CVNC%2CVTS%2CAPC%2CBBS%2CDRL%2CHP
+W%2CLSS%2CVRC%2CHHS%2CVTP%2CPTB%2CVHG%2CHAC%2CCNG%2CVSA /. See more info here: 
+https://nextjs.org/docs/messages/dynamic-server-error
+[provider:vietnam:vps] status=error indices=0 stocks=0 message=VPS returned no stock quotes
+[provider:vietnam:kbs] status=error indices=0 stocks=0 message=Dynamic server usage: Route / couldn't be rendered 
+statically because it used no-store fetch https://kbbuddywts.kbsec.com.vn/iis-server/investment/stock/iss /. ΓÇª
+[provider:fallback] provider=yahoo-v8->yahoo-v7->stooq->merged reason=primary_returned_null
+[provider:vietnam:tcbs] ticker=VNINDEX error=Dynamic server usage: Route / couldn't be rendered statically because it 
+used no-store fetch https://apipubaws.tcbs.com.vn/quote/v1/ticker/VNINDEX/overview /. See more info here: 
+https://nextjs.org/docs/messages/dynamic-server-error
+[provider:vietnam:tcbs] ticker=VN30 error=Dynamic server usage: Route / couldn't be rendered statically because it 
+used no-store fetch https://apipubaws.tcbs.com.vn/quote/v1/ticker/VN30/overview /. See more info here: 
+https://nextjs.org/docs/messages/dynamic-server-error
+[provider:vietnam:tcbs] ticker=HNX error=Dynamic server usage: Route / couldn't be rendered statically because it used 
+no-store fetch https://apipubaws.tcbs.com.vn/quote/v1/ticker/HNX/overview /. See more info here: 
+https://nextjs.org/docs/messages/dynamic-server-error
+[provider:vietnam:tcbs] ticker=UPCOM error=Dynamic server usage: Route / couldn't be rendered statically because it 
+used no-store fetch https://apipubaws.tcbs.com.vn/quote/v1/ticker/UPCOM/overview /. See more info here: 
+https://nextjs.org/docs/messages/dynamic-server-error
+[provider:vietnam:tcbs] ticker=VCB error=Dynamic server usage: Route / couldn't be rendered statically because it used 
+no-store fetch https://apipubaws.tcbs.com.vn/quote/v1/ticker/VCB/overview /. See more info here: 
+https://nextjs.org/docs/messages/dynamic-server-error
+[provider:vietnam:tcbs] ticker=VIC error=Dynamic server usage: Route / couldn't be rendered statically because it used 
+no-store fetch https://apipubaws.tcbs.com.vn/quote/v1/ticker/VIC/overview /. See more info here: 
+https://nextjs.org/docs/messages/dynamic-server-error
+[provider:vietnam:tcbs] ticker=VHM error=Dynamic server usage: Route / couldn't be rendered statically because it used 
+no-store fetch https://apipubaws.tcbs.com.vn/quote/v1/ticker/VHM/overview /. See more info here: 
+https://nextjs.org/docs/messages/dynamic-server-error
+[provider:vietnam:tcbs] ticker=BID error=Dynamic server usage: Route / couldn't be rendered statically because it used 
+no-store fetch https://apipubaws.tcbs.com.vn/quote/v1/ticker/BID/overview /. See more info here: 
+https://nextjs.org/docs/messages/dynamic-server-error
+[provider:vietnam:tcbs] ticker=CTG error=Dynamic server usage: Route / couldn't be rendered statically because it used 
+no-store fetch https://apipubaws.tcbs.com.vn/quote/v1/ticker/CTG/overview /. See more info here: 
+https://nextjs.org/docs/messages/dynamic-server-error
+[provider:vietnam:tcbs] ticker=HPG error=Dynamic server usage: Route / couldn't be rendered statically because it used 
+no-store fetch https://apipubaws.tcbs.com.vn/quote/v1/ticker/HPG/overview /. See more info here: 
+https://nextjs.org/docs/messages/dynamic-server-error
+[provider:vietnam:tcbs] ticker=GAS error=Dynamic server usage: Route / couldn't be rendered statically because it used 
+no-store fetch https://apipubaws.tcbs.com.vn/quote/v1/ticker/GAS/overview /. See more info here: 
+https://nextjs.org/docs/messages/dynamic-server-error
+[provider:vietnam:tcbs] ticker=FPT error=Dynamic server usage: Route / couldn't be rendered statically because it used 
+no-store fetch https://apipubaws.tcbs.com.vn/quote/v1/ticker/FPT/overview /. See more info here: 
+https://nextjs.org/docs/messages/dynamic-server-error
+[provider:vietnam:tcbs] ticker=MWG error=Dynamic server usage: Route / couldn't be rendered statically because it used 
+no-store fetch https://apipubaws.tcbs.com.vn/quote/v1/ticker/MWG/overview /. See more info here: 
+https://nextjs.org/docs/messages/dynamic-server-error
+[provider:vietnam:tcbs] ticker=ACB error=Dynamic server usage: Route / couldn't be rendered statically because it used 
+no-store fetch https://apipubaws.tcbs.com.vn/quote/v1/ticker/ACB/overview /. See more info here: 
+https://nextjs.org/docs/messages/dynamic-server-error
+[provider:vietnam:tcbs] ticker=TCB error=Dynamic server usage: Route / couldn't be rendered statically because it used 
+no-store fetch https://apipubaws.tcbs.com.vn/quote/v1/ticker/TCB/overview /. See more info here: 
+https://nextjs.org/docs/messages/dynamic-server-error
+[provider:vietnam:tcbs] ticker=MBB error=Dynamic server usage: Route / couldn't be rendered statically because it used 
+no-store fetch https://apipubaws.tcbs.com.vn/quote/v1/ticker/MBB/overview /. See more info here: 
+https://nextjs.org/docs/messages/dynamic-server-error
+[provider:vietnam:tcbs] ticker=VNM error=Dynamic server usage: Route / couldn't be rendered statically because it used 
+no-store fetch https://apipubaws.tcbs.com.vn/quote/v1/ticker/VNM/overview /. See more info here: 
+https://nextjs.org/docs/messages/dynamic-server-error
+[provider:vietnam:tcbs] ticker=SSI error=Dynamic server usage: Route / couldn't be rendered statically because it used 
+no-store fetch https://apipubaws.tcbs.com.vn/quote/v1/ticker/SSI/overview /. See more info here: 
+https://nextjs.org/docs/messages/dynamic-server-error
+[provider:vietnam:tcbs] ticker=HDB error=Dynamic server usage: Route / couldn't be rendered statically because it used 
+no-store fetch https://apipubaws.tcbs.com.vn/quote/v1/ticker/HDB/overview /. See more info here: 
+https://nextjs.org/docs/messages/dynamic-server-error
+[provider:vietnam:tcbs] ticker=VPB error=Dynamic server usage: Route / couldn't be rendered statically because it used 
+no-store fetch https://apipubaws.tcbs.com.vn/quote/v1/ticker/VPB/overview /. See more info here: 
+https://nextjs.org/docs/messages/dynamic-server-error
+[provider:vietnam:tcbs] ticker=SHB error=Dynamic server usage: Route / couldn't be rendered statically because it used 
+no-store fetch https://apipubaws.tcbs.com.vn/quote/v1/ticker/SHB/overview /. See more info here: 
+https://nextjs.org/docs/messages/dynamic-server-error
+[provider:vietnam:tcbs] ticker=PVS error=Dynamic server usage: Route / couldn't be rendered statically because it used 
+no-store fetch https://apipubaws.tcbs.com.vn/quote/v1/ticker/PVS/overview /. See more info here: 
+https://nextjs.org/docs/messages/dynamic-server-error
+[provider:vietnam:tcbs] ticker=VGT error=Dynamic server usage: Route / couldn't be rendered statically because it used 
+no-store fetch https://apipubaws.tcbs.com.vn/quote/v1/ticker/VGT/overview /. See more info here: 
+https://nextjs.org/docs/messages/dynamic-server-error
+[provider:vietnam:tcbs] status=error indices=0 stocks=0 message=TCBS returned no market data
+[provider:vietnam-markets] adapters_failed status=error message=TCBS returned no market data
+[provider:fallback] provider=vietnam-markets reason=primary_returned_null
+[provider:yahoo] context=fetchStockQuotes requested=100 parsed=0
+[heatmap:us] items=40 livePrices=0 source=mock reason=yahoo_zero_live_prices
+Γ£ô Generating static pages using 15 workers (43/43) in 1112ms
+  Finalizing page optimization ...
+
+Route (app)
+Γöî ╞Æ /
+Γö£ Γùï /_not-found
+Γö£ ╞Æ /api/auth/[...nextauth]
+Γö£ ╞Æ /api/auth/register
+Γö£ ╞Æ /api/brokers/clicks
+Γö£ ╞Æ /api/brokers/redirect
+Γö£ ╞Æ /api/calendar
+Γö£ ╞Æ /api/crypto
+Γö£ ╞Æ /api/currency-strength
+Γö£ ╞Æ /api/events
+Γö£ ╞Æ /api/global-markets
+Γö£ ╞Æ /api/health
+Γö£ ╞Æ /api/heatmaps/[market]
+Γö£ ╞Æ /api/heatmaps/crypto
+Γö£ ╞Æ /api/heatmaps/us
+Γö£ ╞Æ /api/heatmaps/vietnam
+Γö£ ╞Æ /api/livestream/status
+Γö£ ╞Æ /api/market/quotes
+Γö£ ╞Æ /api/markets/[symbol]
+Γö£ ╞Æ /api/markets/overview
+Γö£ ╞Æ /api/news
+Γö£ ╞Æ /api/realtime/stream
+Γö£ ╞Æ /api/sync/proprietary-eod
+Γö£ ╞Æ /api/test/vnstock
+Γö£ ╞Æ /api/vietnam-markets
+Γö£ ╞Æ /api/vietnam/chart/[symbol]
+Γö£ ╞Æ /api/watchlist
+Γö£ Γùï /brokers
+Γö£ ΓùÅ /brokers/[slug]
+Γöé Γö£ /brokers/ssi
+Γöé Γö£ /brokers/vndirect
+Γöé Γö£ /brokers/tcbs
+Γöé Γöö [+9 more paths]
+Γö£ ΓùÅ /compare/[pair]
+Γöé Γö£ /compare/ssi-vs-vndirect
+Γöé Γö£ /compare/ssi-vs-tcbs
+Γöé Γö£ /compare/ssi-vs-exness
+Γöé Γöö [+12 more paths]
+Γö£ Γùï /contact
+Γö£ ΓùÅ /legal/[slug]
+Γöé Γö£ /legal/disclaimer
+Γöé Γö£ /legal/risk-disclosure
+Γöé Γö£ /legal/partner-disclosure
+Γöé Γöö [+3 more paths]
+Γö£ Γùï /login
+Γö£ ΓùÅ /markets/[symbol]
+Γö£ Γùï /platforms
+Γö£ Γùï /register
+Γö£ Γùï /robots.txt
+Γöö Γùï /sitemap.xml
+
+
+Γùï  (Static)   prerendered as static content
+ΓùÅ  (SSG)      prerendered as static HTML (uses generateStaticParams)
+╞Æ  (Dynamic)  server-rendered on demand
+
