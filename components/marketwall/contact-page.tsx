@@ -2,20 +2,13 @@
 
 import { useState } from "react"
 import { Mail, MapPin, Send } from "lucide-react"
+import { TelegramIcon, ZaloIcon } from "@/components/marketwall/social-icons"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useLang } from "@/lib/i18n"
-import { SITE_EMAIL, TELEGRAM_LINK } from "@/lib/contact"
+import { SITE_EMAIL, TELEGRAM_LINK, ZALO_LINK } from "@/lib/contact"
 import { cn } from "@/lib/utils"
-
-function TelegramIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" className={cn("fill-current", className)} aria-hidden>
-      <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
-    </svg>
-  )
-}
 
 type ContactCard = {
   icon: React.ComponentType<{ className?: string }>
@@ -29,9 +22,11 @@ type ContactCard = {
 export function ContactPageContent({
   email = SITE_EMAIL,
   telegramLink = TELEGRAM_LINK,
+  zaloLink = ZALO_LINK,
 }: {
   email?: string
   telegramLink?: string
+  zaloLink?: string | null
 } = {}) {
   const { t } = useLang()
   const [name, setName] = useState("")
@@ -76,6 +71,17 @@ export function ContactPageContent({
       href: `mailto:${email}`,
       fullCardLink: true,
     },
+    ...(zaloLink
+      ? [
+          {
+            icon: ZaloIcon,
+            label: t("contactFab.zalo"),
+            displayText: t("contactFab.zalo"),
+            href: zaloLink,
+            external: true,
+          } satisfies ContactCard,
+        ]
+      : []),
     {
       icon: TelegramIcon,
       label: t("contactFab.telegram"),
@@ -103,7 +109,16 @@ export function ContactPageContent({
         {contactCards.map((item) => {
           const cardBody = (
             <CardContent className="flex items-start gap-3 p-4">
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
+              <span
+                className={cn(
+                  "flex size-9 shrink-0 items-center justify-center rounded-lg",
+                  item.icon === ZaloIcon
+                    ? "bg-[#0068FF]/15 text-[#0068FF]"
+                    : item.icon === TelegramIcon
+                      ? "bg-[#229ED9]/15 text-[#229ED9]"
+                      : "bg-primary/15 text-primary",
+                )}
+              >
                 <item.icon className="size-4" aria-hidden />
               </span>
               <div className="min-w-0">

@@ -1,1 +1,1 @@
-export { TELEGRAM_LINK } from "./contact"
+export { TELEGRAM_LINK, ZALO_LINK } from "./contact"

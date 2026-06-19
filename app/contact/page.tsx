@@ -17,6 +17,7 @@ export default async function ContactPage() {
         <ContactPageContent
           email={settings.email}
           telegramLink={settings.telegramLink}
+          zaloLink={settings.zaloLink}
         />
       </main>
 

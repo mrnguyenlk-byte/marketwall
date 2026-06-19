@@ -17,4 +17,8 @@ node_modules
 .vercel
 data/broker-clicks.jsonl
 
+# TypeScript / deploy artifacts (generated locally)
+tsconfig.tsbuildinfo
+.deploy-*.html
+
 /lib/generated/prisma

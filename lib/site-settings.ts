@@ -1,6 +1,6 @@
 import "server-only"
 
-import { SITE_EMAIL, TELEGRAM_LINK } from "@/lib/contact"
+import { SITE_EMAIL, TELEGRAM_LINK, ZALO_LINK } from "@/lib/contact"
 import { prisma } from "@/lib/prisma"
 
 export type PublicSiteSettings = {
@@ -18,7 +18,7 @@ const DEFAULTS: PublicSiteSettings = {
   phone: null,
   telegramLink: TELEGRAM_LINK,
   facebookLink: null,
-  zaloLink: null,
+  zaloLink: ZALO_LINK,
   communityCta: null,
   footerContent: null,
 }
@@ -33,7 +33,7 @@ export async function getSiteSettings(): Promise<PublicSiteSettings> {
       phone: row.phone?.trim() || null,
       telegramLink: row.telegramLink?.trim() || DEFAULTS.telegramLink,
       facebookLink: row.facebookLink?.trim() || null,
-      zaloLink: row.zaloLink?.trim() || null,
+      zaloLink: row.zaloLink?.trim() || DEFAULTS.zaloLink,
       communityCta: row.communityCta?.trim() || null,
       footerContent: row.footerContent?.trim() || null,
     }

@@ -3,5 +3,5 @@ import { getSiteSettings } from "@/lib/site-settings"
 
 export async function ContactFab() {
   const settings = await getSiteSettings()
-  return <ContactFabClient telegramLink={settings.telegramLink} />
+  return <ContactFabClient telegramLink={settings.telegramLink} zaloLink={settings.zaloLink} />
 }
