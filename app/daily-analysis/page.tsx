@@ -6,8 +6,15 @@ import { mapArticleToListCard } from "@/lib/daily-analysis/map-to-card"
 import { dailyAnalysisMetadata } from "@/lib/seo"
 
 export const dynamic = "force-dynamic"
+export const revalidate = 0
 
 export const metadata = dailyAnalysisMetadata
+
+export function headers() {
+  return {
+    "Cache-Control": "no-store, no-cache, must-revalidate",
+  }
+}
 
 export default async function DailyAnalysisPage() {
   const articles = await getDailyAnalysisList()

@@ -7,6 +7,13 @@ import { getDailyAnalysisBySlug } from "@/lib/daily-analysis/storage"
 import { buildPageMetadata } from "@/lib/seo"
 
 export const dynamic = "force-dynamic"
+export const revalidate = 0
+
+export function headers() {
+  return {
+    "Cache-Control": "no-store, no-cache, must-revalidate",
+  }
+}
 
 export async function generateMetadata({
   params,

@@ -11,6 +11,7 @@ const DATE_FILE_PATTERN = /^\d{4}-\d{2}-\d{2}\.json$/
 const BLOB_ARTICLES_PREFIX = "daily-analysis/articles/"
 const BLOB_LOGS_PREFIX = "daily-analysis/logs/"
 const BLOB_OPENAI_ERRORS_SUFFIX = "-openai-errors.json"
+const VN_TIMEZONE = "Asia/Ho_Chi_Minh"
 
 export type StorageBackend = "local" | "blob"
 export type DailyAnalysisImageName = "vnindex.png" | "gold.png"
@@ -48,8 +49,27 @@ function blobArticlePathname(date: string): string {
   return `${BLOB_ARTICLES_PREFIX}${date}.json`
 }
 
-function blobImagePathname(date: string, filename: DailyAnalysisImageName): string {
-  return `daily-analysis/${date}/${filename}`
+/** YYYYMMDD-HHmmss in Asia/Ho_Chi_Minh — unique per upload to bust CDN cache. */
+function timestampImagePrefix(): string {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: VN_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date())
+
+  const pick = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? "00"
+
+  return `${pick("year")}${pick("month")}${pick("day")}-${pick("hour")}${pick("minute")}${pick("second")}`
+}
+
+function timestampedImageFilename(baseName: DailyAnalysisImageName): string {
+  return `${timestampImagePrefix()}-${baseName}`
 }
 
 function blobLogPathname(date: string): string {
@@ -58,10 +78,6 @@ function blobLogPathname(date: string): string {
 
 function blobOpenAiErrorLogPathname(date: string): string {
   return `${BLOB_LOGS_PREFIX}${date}${BLOB_OPENAI_ERRORS_SUFFIX}`
-}
-
-function localImageUrl(date: string, filename: DailyAnalysisImageName): string {
-  return `/uploads/daily-analysis/${date}/${filename}`
 }
 
 async function readLocalArticles(): Promise<DailyAnalysis[]> {
@@ -130,11 +146,12 @@ export async function saveDailyAnalysisImage(
 
   assertWritableStorage()
   const buffer = Buffer.from(await file.arrayBuffer())
+  const stampedFilename = timestampedImageFilename(filename)
   const backend = getStorageBackend()
 
   if (backend === "blob") {
     const token = blobToken()
-    const blob = await put(blobImagePathname(date, filename), buffer, {
+    const blob = await put(`daily-analysis/${date}/${stampedFilename}`, buffer, {
       access: "public",
       contentType: file.type,
       token,
@@ -144,10 +161,10 @@ export async function saveDailyAnalysisImage(
     return blob.url
   }
 
-  const destPath = path.join(UPLOADS_DIR, date, filename)
+  const destPath = path.join(UPLOADS_DIR, date, stampedFilename)
   await fs.mkdir(path.dirname(destPath), { recursive: true })
   await fs.writeFile(destPath, buffer)
-  return localImageUrl(date, filename)
+  return `/uploads/daily-analysis/${date}/${stampedFilename}`
 }
 
 export async function saveDailyAnalysis(article: DailyAnalysis): Promise<DailyAnalysis> {
