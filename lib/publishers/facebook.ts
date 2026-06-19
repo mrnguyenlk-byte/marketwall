@@ -6,10 +6,10 @@ const FACEBOOK_CAPTION_MAX = 63206
 const FACEBOOK_GRAPH_API = "https://graph.facebook.com/v25.0"
 
 export type FacebookPublishResult =
-  | { ok: true; postId?: string; photoId?: string }
+  | { ok: true; postId: string; photoIds: string[] }
   | { ok: false; error: string }
 
-type FacebookPhotoResponse = {
+type FacebookApiResponse = {
   id?: string
   post_id?: string
   error?: { message?: string }
@@ -68,41 +68,29 @@ function buildFacebookCaption(article: DailyAnalysis): string {
   return body
 }
 
-export async function publishDailyAnalysisToFacebook(
-  article: DailyAnalysis,
-): Promise<FacebookPublishResult> {
-  const env = facebookEnv()
-  if (!env) {
-    return { ok: false, error: "skipped: missing env" }
-  }
+function hasImage(image: string | undefined): boolean {
+  return Boolean(image?.trim())
+}
 
-  if (!article.vnindexImage?.trim()) {
-    return { ok: false, error: "No VNIndex image available to publish" }
-  }
-
-  const photoUrl = resolveTelegramPhotoUrl(article.vnindexImage)
-  const caption = buildFacebookCaption(article)
-
-  const body = new URLSearchParams()
-  body.set("url", photoUrl)
-  body.set("caption", caption)
-  body.set("access_token", env.accessToken)
-
+async function facebookApiPost(
+  path: string,
+  params: URLSearchParams,
+): Promise<{ ok: true; payload: FacebookApiResponse } | { ok: false; error: string }> {
   let response: Response
   try {
-    response = await fetch(`${FACEBOOK_GRAPH_API}/${env.pageId}/photos`, {
+    response = await fetch(`${FACEBOOK_GRAPH_API}/${path}`, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: body.toString(),
+      body: params.toString(),
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : "Facebook request failed"
     return { ok: false, error: message }
   }
 
-  let payload: FacebookPhotoResponse
+  let payload: FacebookApiResponse
   try {
-    payload = (await response.json()) as FacebookPhotoResponse
+    payload = (await response.json()) as FacebookApiResponse
   } catch {
     return { ok: false, error: `Facebook API returned HTTP ${response.status}` }
   }
@@ -112,13 +100,152 @@ export async function publishDailyAnalysisToFacebook(
     return { ok: false, error: detail }
   }
 
-  if (!payload.id) {
+  return { ok: true, payload }
+}
+
+async function uploadUnpublishedPhoto(
+  pageId: string,
+  accessToken: string,
+  photoUrl: string,
+): Promise<{ ok: true; photoId: string } | { ok: false; error: string }> {
+  const body = new URLSearchParams()
+  body.set("url", photoUrl)
+  body.set("published", "false")
+  body.set("access_token", accessToken)
+
+  const result = await facebookApiPost(`${pageId}/photos`, body)
+  if (!result.ok) return result
+
+  if (!result.payload.id) {
     return { ok: false, error: "Facebook API did not return a photo id" }
+  }
+
+  return { ok: true, photoId: result.payload.id }
+}
+
+async function createFeedPostWithMedia(
+  pageId: string,
+  accessToken: string,
+  message: string,
+  photoIds: string[],
+): Promise<{ ok: true; postId: string } | { ok: false; error: string }> {
+  const body = new URLSearchParams()
+  body.set("message", message)
+  body.set("access_token", accessToken)
+  for (let i = 0; i < photoIds.length; i++) {
+    body.set(`attached_media[${i}]`, JSON.stringify({ media_fbid: photoIds[i] }))
+  }
+
+  const result = await facebookApiPost(`${pageId}/feed`, body)
+  if (!result.ok) return result
+
+  const postId = result.payload.id ?? result.payload.post_id
+  if (!postId) {
+    return { ok: false, error: "Facebook API did not return a post id" }
+  }
+
+  return { ok: true, postId }
+}
+
+async function publishPublishedPhoto(
+  pageId: string,
+  accessToken: string,
+  photoUrl: string,
+  caption?: string,
+): Promise<{ ok: true; postId: string; photoId: string } | { ok: false; error: string }> {
+  const body = new URLSearchParams()
+  body.set("url", photoUrl)
+  body.set("published", "true")
+  body.set("access_token", accessToken)
+  if (caption) {
+    body.set("caption", caption)
+  }
+
+  const result = await facebookApiPost(`${pageId}/photos`, body)
+  if (!result.ok) return result
+
+  if (!result.payload.id) {
+    return { ok: false, error: "Facebook API did not return a photo id" }
+  }
+
+  const postId = result.payload.post_id ?? result.payload.id
+  return { ok: true, postId, photoId: result.payload.id }
+}
+
+export async function publishDailyAnalysisToFacebook(
+  article: DailyAnalysis,
+): Promise<FacebookPublishResult> {
+  const env = facebookEnv()
+  if (!env) {
+    return { ok: false, error: "skipped: missing env" }
+  }
+
+  const hasVnindex = hasImage(article.vnindexImage)
+  const hasGold = hasImage(article.goldImage)
+
+  if (!hasVnindex && !hasGold) {
+    return { ok: false, error: "No images available to publish" }
+  }
+
+  const caption = buildFacebookCaption(article)
+
+  if (hasVnindex && !hasGold) {
+    const photoUrl = resolveTelegramPhotoUrl(article.vnindexImage)
+    const result = await publishPublishedPhoto(env.pageId, env.accessToken, photoUrl, caption)
+    if (!result.ok) return result
+    return { ok: true, postId: result.postId, photoIds: [result.photoId] }
+  }
+
+  if (hasGold && !hasVnindex) {
+    const photoUrl = resolveTelegramPhotoUrl(article.goldImage)
+    const result = await publishPublishedPhoto(env.pageId, env.accessToken, photoUrl, caption)
+    if (!result.ok) return result
+    return { ok: true, postId: result.postId, photoIds: [result.photoId] }
+  }
+
+  const vnindexUrl = resolveTelegramPhotoUrl(article.vnindexImage)
+  const goldUrl = resolveTelegramPhotoUrl(article.goldImage)
+
+  const vnUpload = await uploadUnpublishedPhoto(env.pageId, env.accessToken, vnindexUrl)
+  if (!vnUpload.ok) return vnUpload
+
+  const goldUpload = await uploadUnpublishedPhoto(env.pageId, env.accessToken, goldUrl)
+  if (!goldUpload.ok) return goldUpload
+
+  const feedPost = await createFeedPostWithMedia(
+    env.pageId,
+    env.accessToken,
+    caption,
+    [vnUpload.photoId, goldUpload.photoId],
+  )
+
+  if (feedPost.ok) {
+    return {
+      ok: true,
+      postId: feedPost.postId,
+      photoIds: [vnUpload.photoId, goldUpload.photoId],
+    }
+  }
+
+  const vnFallback = await publishPublishedPhoto(
+    env.pageId,
+    env.accessToken,
+    vnindexUrl,
+    caption,
+  )
+  if (!vnFallback.ok) return vnFallback
+
+  const goldFallback = await publishPublishedPhoto(env.pageId, env.accessToken, goldUrl)
+  if (!goldFallback.ok) {
+    return {
+      ok: false,
+      error: `VNIndex posted (id ${vnFallback.postId}) but gold image failed: ${goldFallback.error}`,
+    }
   }
 
   return {
     ok: true,
-    photoId: payload.id,
-    postId: payload.post_id,
+    postId: vnFallback.postId,
+    photoIds: [vnFallback.photoId, goldFallback.photoId],
   }
 }

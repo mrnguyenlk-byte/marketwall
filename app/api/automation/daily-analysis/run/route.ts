@@ -69,7 +69,7 @@ async function saveWithTelegramPublish(article: DailyAnalysis): Promise<{
   const facebook = await publishDailyAnalysisToFacebook(updated)
   if (facebook.ok) {
     updated.facebookStatus = "sent"
-    updated.facebookPostId = facebook.postId ?? facebook.photoId
+    updated.facebookPostId = facebook.postId
   } else if (facebook.error.startsWith("skipped:")) {
     updated.facebookStatus = "skipped"
   } else {
@@ -139,7 +139,7 @@ async function handleMultipartRequest(request: Request) {
         : ` telegram=${saved.telegramStatus ?? "unknown"}`
     const facebookNote =
       facebook.ok
-        ? ` facebook=sent post=${facebook.postId ?? facebook.photoId ?? "unknown"}`
+        ? ` facebook=sent post=${facebook.postId}`
         : ` facebook=${saved.facebookStatus ?? "unknown"}`
     await appendDailyAnalysisLog(
       date,
@@ -197,7 +197,7 @@ async function handleJsonRequest(request: Request) {
         : ` telegram=${saved.telegramStatus ?? "unknown"}`
     const facebookNote =
       facebook.ok
-        ? ` facebook=sent post=${facebook.postId ?? facebook.photoId ?? "unknown"}`
+        ? ` facebook=sent post=${facebook.postId}`
         : ` facebook=${saved.facebookStatus ?? "unknown"}`
     await appendDailyAnalysisLog(
       date,
