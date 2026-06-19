@@ -14,6 +14,12 @@ type TelegramSendPhotoResponse = {
   description?: string
 }
 
+type TelegramSendMediaGroupResponse = {
+  ok: boolean
+  result?: Array<{ message_id: number }>
+  description?: string
+}
+
 function telegramEnv(): { token: string; channelId: string } | null {
   const token = process.env.TELEGRAM_BOT_TOKEN?.trim()
   const channelId = process.env.TELEGRAM_CHANNEL_ID?.trim()
@@ -34,6 +40,10 @@ export function resolveTelegramPhotoUrl(image: string): string {
     return `${SITE_DOMAIN}${image}`
   }
   return `${SITE_DOMAIN}/${image.replace(/^\//, "")}`
+}
+
+function hasImage(image: string | undefined): image is string {
+  return Boolean(image?.trim())
 }
 
 function truncateText(text: string, maxLen: number): string {
@@ -111,6 +121,94 @@ function resolveCaption(article: DailyAnalysis): string {
   return buildDailyAnalysisCaption(article)
 }
 
+async function telegramRequest<T>(
+  token: string,
+  method: string,
+  body: Record<string, unknown>,
+): Promise<{ response: Response; payload: T } | { error: string }> {
+  let response: Response
+  try {
+    response = await fetch(`${TELEGRAM_API_BASE}/bot${token}/${method}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Telegram request failed"
+    return { error: message }
+  }
+
+  let payload: T
+  try {
+    payload = (await response.json()) as T
+  } catch {
+    return { error: `Telegram API returned HTTP ${response.status}` }
+  }
+
+  return { response, payload }
+}
+
+async function sendPhoto(
+  token: string,
+  channelId: string,
+  photo: string,
+  caption?: string,
+): Promise<TelegramPublishResult> {
+  const body: Record<string, unknown> = {
+    chat_id: channelId,
+    photo,
+  }
+  if (caption) {
+    body.caption = caption
+  }
+
+  const result = await telegramRequest<TelegramSendPhotoResponse>(token, "sendPhoto", body)
+  if ("error" in result) {
+    return { ok: false, error: result.error }
+  }
+
+  const { response, payload } = result
+  if (!response.ok || !payload.ok || !payload.result?.message_id) {
+    const detail = payload.description ?? `HTTP ${response.status}`
+    return { ok: false, error: detail }
+  }
+
+  return { ok: true, messageId: payload.result.message_id }
+}
+
+async function sendMediaGroup(
+  token: string,
+  channelId: string,
+  vnindexPhoto: string,
+  goldPhoto: string,
+  caption: string,
+): Promise<TelegramPublishResult> {
+  const result = await telegramRequest<TelegramSendMediaGroupResponse>(
+    token,
+    "sendMediaGroup",
+    {
+      chat_id: channelId,
+      media: [
+        { type: "photo", media: vnindexPhoto, caption },
+        { type: "photo", media: goldPhoto },
+      ],
+    },
+  )
+
+  if ("error" in result) {
+    return { ok: false, error: result.error }
+  }
+
+  const { response, payload } = result
+  const firstMessageId = payload.result?.[0]?.message_id
+  if (!response.ok || !payload.ok || !firstMessageId) {
+    const detail = payload.description ?? `HTTP ${response.status}`
+    return { ok: false, error: detail }
+  }
+
+  return { ok: true, messageId: firstMessageId }
+}
+
 export async function publishDailyAnalysisToTelegram(
   article: DailyAnalysis,
 ): Promise<TelegramPublishResult> {
@@ -119,36 +217,47 @@ export async function publishDailyAnalysisToTelegram(
     return { ok: false, error: "skipped: missing env" }
   }
 
-  const photo = resolveTelegramPhotoUrl(article.vnindexImage)
+  const hasVnindex = hasImage(article.vnindexImage)
+  const hasGold = hasImage(article.goldImage)
   const caption = resolveCaption(article)
 
-  let response: Response
-  try {
-    response = await fetch(`${TELEGRAM_API_BASE}/bot${env.token}/sendPhoto`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        chat_id: env.channelId,
-        photo,
-        caption,
-      }),
-    })
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Telegram request failed"
-    return { ok: false, error: message }
+  if (!hasVnindex && !hasGold) {
+    return { ok: false, error: "No images available to publish" }
   }
 
-  let payload: TelegramSendPhotoResponse
-  try {
-    payload = (await response.json()) as TelegramSendPhotoResponse
-  } catch {
-    return { ok: false, error: `Telegram API returned HTTP ${response.status}` }
+  if (hasVnindex && hasGold) {
+    const vnindexPhoto = resolveTelegramPhotoUrl(article.vnindexImage)
+    const goldPhoto = resolveTelegramPhotoUrl(article.goldImage)
+
+    const mediaGroupResult = await sendMediaGroup(
+      env.token,
+      env.channelId,
+      vnindexPhoto,
+      goldPhoto,
+      caption,
+    )
+    if (mediaGroupResult.ok) {
+      return mediaGroupResult
+    }
+
+    const vnResult = await sendPhoto(env.token, env.channelId, vnindexPhoto, caption)
+    if (!vnResult.ok) {
+      return vnResult
+    }
+
+    const goldResult = await sendPhoto(env.token, env.channelId, goldPhoto)
+    if (!goldResult.ok) {
+      return {
+        ok: false,
+        error: `VNIndex sent (id ${vnResult.messageId}) but gold image failed: ${goldResult.error}`,
+      }
+    }
+
+    return vnResult
   }
 
-  if (!response.ok || !payload.ok || !payload.result?.message_id) {
-    const detail = payload.description ?? `HTTP ${response.status}`
-    return { ok: false, error: detail }
-  }
-
-  return { ok: true, messageId: payload.result.message_id }
+  const photo = resolveTelegramPhotoUrl(
+    hasVnindex ? article.vnindexImage : article.goldImage,
+  )
+  return sendPhoto(env.token, env.channelId, photo, caption)
 }
