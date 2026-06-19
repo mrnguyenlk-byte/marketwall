@@ -5,6 +5,8 @@ import { getDailyAnalysisList } from "@/lib/daily-analysis/storage"
 import { mapArticleToListCard } from "@/lib/daily-analysis/map-to-card"
 import { dailyAnalysisMetadata } from "@/lib/seo"
 
+export const dynamic = "force-dynamic"
+
 export const metadata = dailyAnalysisMetadata
 
 export default async function DailyAnalysisPage() {

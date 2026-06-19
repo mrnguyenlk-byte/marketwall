@@ -224,7 +224,7 @@ export async function appendDailyAnalysisLog(date: string, message: string): Pro
 }
 
 function openAiErrorLogPath(date: string): string {
-  return path.join(LOGS_DIR, `${date}.json`)
+  return path.join(LOGS_DIR, `${date}${BLOB_OPENAI_ERRORS_SUFFIX}`)
 }
 
 async function readBlobOpenAiErrors(date: string): Promise<DailyAnalysisOpenAiErrorLog[]> {

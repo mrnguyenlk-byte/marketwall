@@ -3,13 +3,10 @@ import { notFound } from "next/navigation"
 import { Header } from "@/components/marketwall/header"
 import { Footer } from "@/components/marketwall/footer"
 import { DailyAnalysisDetailContent } from "@/components/marketwall/daily-analysis-detail"
-import { getDailyAnalysisBySlug, getDailyAnalysisList } from "@/lib/daily-analysis/storage"
+import { getDailyAnalysisBySlug } from "@/lib/daily-analysis/storage"
 import { buildPageMetadata } from "@/lib/seo"
 
-export async function generateStaticParams() {
-  const articles = await getDailyAnalysisList()
-  return articles.map((article) => ({ slug: article.slug }))
-}
+export const dynamic = "force-dynamic"
 
 export async function generateMetadata({
   params,
