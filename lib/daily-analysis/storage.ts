@@ -139,6 +139,7 @@ export async function saveDailyAnalysisImage(
       contentType: file.type,
       token,
       addRandomSuffix: false,
+      allowOverwrite: true,
     })
     return blob.url
   }
@@ -160,6 +161,7 @@ export async function saveDailyAnalysis(article: DailyAnalysis): Promise<DailyAn
       contentType: "application/json",
       token,
       addRandomSuffix: false,
+      allowOverwrite: true,
     })
     return article
   }
@@ -206,6 +208,7 @@ async function appendBlobText(pathname: string, line: string): Promise<void> {
     contentType: "text/plain",
     token,
     addRandomSuffix: false,
+    allowOverwrite: true,
   })
 }
 
@@ -264,6 +267,7 @@ export async function logDailyAnalysisOpenAiError(
       contentType: "application/json",
       token,
       addRandomSuffix: false,
+      allowOverwrite: true,
     })
     return
   }
