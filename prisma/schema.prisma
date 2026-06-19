@@ -10,6 +10,11 @@ datasource db {
   provider = "postgresql"
 }
 
+enum UserRole {
+  user
+  admin
+}
+
 /// Auth-ready user (watchlist + alerts when features are enabled).
 model User {
   id            String    @id @default(cuid())
@@ -18,6 +23,7 @@ model User {
   name          String?
   image         String?
   passwordHash  String?
+  role          UserRole  @default(user)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -114,7 +120,7 @@ model Alert {
   @@index([symbol])
 }
 
-/// Mirrors `BrokerRecord` in `types/broker.ts` — seed from static catalog in a future sprint.
+/// Mirrors `BrokerRecord` in `types/broker.ts` — admin CMS can seed/sync from static catalog.
 model Broker {
   slug            String   @id
   name            String
@@ -122,6 +128,10 @@ model Broker {
   category        String
   websiteUrl      String
   affiliateUrl    String?
+  logoUrl         String?
+  description     String?  @db.Text
+  pros            Json?
+  cons            Json?
   rating          Float
   trustScore      Int
   minDeposit      String
@@ -140,8 +150,51 @@ model Broker {
   withdrawalTime  Json
   badges          String[]
   featured        Boolean  @default(false)
+  isActive        Boolean  @default(true)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+}
+
+/// Singleton site contact / social / footer content (admin CMS).
+model SiteSettings {
+  id            String   @id @default("singleton")
+  email         String?
+  phone         String?
+  telegramLink  String?
+  facebookLink  String?
+  zaloLink      String?
+  communityCta  String?  @db.Text
+  footerContent String?  @db.Text
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+/// Contact form submissions from the public site.
+model ContactSubmission {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  message   String   @db.Text
+  subject   String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([read])
+}
+
+/// Daily analysis automation run history.
+model AutomationLog {
+  id             String   @id @default(cuid())
+  date           String
+  status         String
+  telegramStatus String?
+  facebookStatus String?
+  errors         Json?
+  createdAt      DateTime @default(now())
+
+  @@index([date])
+  @@index([createdAt])
 }
 
 /// Outbound broker click analytics — replaces `data/broker-clicks.jsonl`.

@@ -2,6 +2,7 @@ import NextAuth from "next-auth"
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import Credentials from "next-auth/providers/credentials"
 
+import { UserRole } from "@/lib/generated/prisma/enums"
 import { prisma } from "@/lib/prisma"
 import { verifyPassword } from "@/lib/auth/password"
 
@@ -36,6 +37,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           email: user.email,
           name: user.name,
           image: user.image,
+          role: user.role,
         }
       },
     }),
@@ -45,11 +47,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (user?.id) {
         token.id = user.id
       }
+      if (user?.role === UserRole.admin || user?.role === UserRole.user) {
+        token.role = user.role
+      }
       return token
     },
     session({ session, token }) {
       if (session.user && typeof token.id === "string") {
         session.user.id = token.id
+      }
+      if (
+        session.user &&
+        (token.role === UserRole.admin || token.role === UserRole.user)
+      ) {
+        session.user.role = token.role
       }
       return session
     },

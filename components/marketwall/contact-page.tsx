@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { Mail, MapPin, Send } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -25,22 +26,61 @@ type ContactCard = {
   fullCardLink?: boolean
 }
 
-export function ContactPageContent() {
+export function ContactPageContent({
+  email = SITE_EMAIL,
+  telegramLink = TELEGRAM_LINK,
+}: {
+  email?: string
+  telegramLink?: string
+} = {}) {
   const { t } = useLang()
+  const [name, setName] = useState("")
+  const [formEmail, setFormEmail] = useState("")
+  const [subject, setSubject] = useState("")
+  const [message, setMessage] = useState("")
+  const [pending, setPending] = useState(false)
+  const [feedback, setFeedback] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  async function onSubmit(event: React.FormEvent) {
+    event.preventDefault()
+    setPending(true)
+    setFeedback(null)
+    setError(null)
+
+    const response = await fetch("/api/contact", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, email: formEmail, subject, message }),
+    })
+    const data = (await response.json()) as { error?: string }
+
+    setPending(false)
+    if (!response.ok) {
+      setError(data.error ?? "Failed to send")
+      return
+    }
+
+    setFeedback(t("contact.send"))
+    setName("")
+    setFormEmail("")
+    setSubject("")
+    setMessage("")
+  }
 
   const contactCards: ContactCard[] = [
     {
       icon: Mail,
       label: t("contact.email"),
       displayText: t("contact.sendEmail"),
-      href: `mailto:${SITE_EMAIL}`,
+      href: `mailto:${email}`,
       fullCardLink: true,
     },
     {
       icon: TelegramIcon,
       label: t("contactFab.telegram"),
       displayText: t("contactFab.telegram"),
-      href: TELEGRAM_LINK,
+      href: telegramLink,
       external: true,
     },
     {
@@ -117,12 +157,19 @@ export function ContactPageContent() {
       <Card className="gap-0 border-border/80 py-0">
         <CardContent className="space-y-4 p-5">
           <h2 className="text-base font-semibold text-foreground">{t("contact.formTitle")}</h2>
+          <form onSubmit={onSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <label className="space-y-1">
               <span className="text-xs font-medium text-muted-foreground">
                 {t("contact.name")}
               </span>
-              <Input className="h-9 bg-secondary/50" placeholder={t("contact.name")} />
+              <Input
+                className="h-9 bg-secondary/50"
+                placeholder={t("contact.name")}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+              />
             </label>
             <label className="space-y-1">
               <span className="text-xs font-medium text-muted-foreground">
@@ -132,6 +179,9 @@ export function ContactPageContent() {
                 type="email"
                 className="h-9 bg-secondary/50"
                 placeholder="email@example.com"
+                value={formEmail}
+                onChange={(e) => setFormEmail(e.target.value)}
+                required
               />
             </label>
           </div>
@@ -139,7 +189,12 @@ export function ContactPageContent() {
             <span className="text-xs font-medium text-muted-foreground">
               {t("contact.subject")}
             </span>
-            <Input className="h-9 bg-secondary/50" placeholder={t("contact.subject")} />
+            <Input
+              className="h-9 bg-secondary/50"
+              placeholder={t("contact.subject")}
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+            />
           </label>
           <label className="block space-y-1">
             <span className="text-xs font-medium text-muted-foreground">
@@ -149,12 +204,18 @@ export function ContactPageContent() {
               rows={5}
               className="w-full rounded-md border border-border bg-secondary/50 px-3 py-2 text-sm text-foreground outline-none ring-primary/30 focus:ring-1"
               placeholder={t("contact.message")}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              required
             />
           </label>
-          <Button className="gap-2">
+          {feedback ? <p className="text-sm text-gain">{feedback}</p> : null}
+          {error ? <p className="text-sm text-loss">{error}</p> : null}
+          <Button type="submit" className="gap-2" disabled={pending}>
             <Send className="size-4" aria-hidden />
-            {t("contact.send")}
+            {pending ? "…" : t("contact.send")}
           </Button>
+          </form>
         </CardContent>
       </Card>
     </div>

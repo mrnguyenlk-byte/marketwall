@@ -503,13 +503,19 @@ function DisclaimerBlock() {
   )
 }
 
-export function BrokersPageContent() {
+export function BrokersPageContent({
+  vnBrokers = vnStockPlatforms,
+  globalBrokers = globalPlatforms,
+}: {
+  vnBrokers?: Broker[]
+  globalBrokers?: Broker[]
+} = {}) {
   const { t } = useLang()
   const [activeFilters, setActiveFilters] = useState<GlobalBrokerFilterId[]>([])
 
   const filteredGlobalBrokers = useMemo(
-    () => filterGlobalBrokers(globalPlatforms, activeFilters),
-    [activeFilters],
+    () => filterGlobalBrokers(globalBrokers, activeFilters),
+    [globalBrokers, activeFilters],
   )
 
   const toggleFilter = (id: GlobalBrokerFilterId) => {
@@ -532,7 +538,7 @@ export function BrokersPageContent() {
       <ComparisonSection
         title={t("platforms.vnSection")}
         description={t("platforms.vnSectionDesc")}
-        brokers={vnStockPlatforms}
+        brokers={vnBrokers}
         rows={VN_COMPARE_ROWS}
         variant="vn"
       />

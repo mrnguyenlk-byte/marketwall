@@ -1,6 +1,6 @@
 import fs from "fs/promises"
 import path from "path"
-import { head, list, put } from "@vercel/blob"
+import { del, head, list, put } from "@vercel/blob"
 import type { DailyAnalysis, DailyAnalysisOpenAiErrorLog } from "./types"
 
 const CONTENT_DIR = path.join(process.cwd(), "content", "daily-analysis")
@@ -189,6 +189,32 @@ export async function getDailyAnalysisBySlug(slug: string): Promise<DailyAnalysi
   return list.find((article) => article.slug === slug) ?? null
 }
 
+export async function getDailyAnalysisByDate(date: string): Promise<DailyAnalysis | null> {
+  const list = await getDailyAnalysisList()
+  return list.find((article) => article.date === date) ?? null
+}
+
+export async function deleteDailyAnalysis(date: string): Promise<void> {
+  assertWritableStorage()
+  const backend = getStorageBackend()
+
+  if (backend === "blob") {
+    const token = blobToken()
+    try {
+      await del(blobArticlePathname(date), { token })
+    } catch {
+      // Article may not exist in blob.
+    }
+    return
+  }
+
+  try {
+    await fs.unlink(articlePath(date))
+  } catch {
+    // File may not exist locally.
+  }
+}
+
 async function appendBlobText(pathname: string, line: string): Promise<void> {
   const token = blobToken()
   let existing = ""
@@ -290,4 +316,71 @@ export async function logDailyAnalysisOpenAiError(
 
   existing.push(entry)
   await fs.writeFile(filePath, JSON.stringify(existing, null, 2), "utf-8")
+}
+
+export type AutomationLogEntry = {
+  date: string
+  source: "db" | "blob"
+  status: string
+  telegramStatus?: string
+  facebookStatus?: string
+  errors?: unknown
+  createdAt: string
+  raw?: string
+}
+
+export async function listBlobAutomationLogs(): Promise<AutomationLogEntry[]> {
+  const token = blobToken()
+  const entries: AutomationLogEntry[] = []
+
+  if (token) {
+    const { blobs } = await list({ prefix: BLOB_LOGS_PREFIX, token })
+    for (const blob of blobs) {
+      if (!blob.pathname.endsWith(".log")) continue
+      const date = blob.pathname
+        .slice(BLOB_LOGS_PREFIX.length)
+        .replace(/\.log$/, "")
+      try {
+        const response = await fetch(blob.url, { cache: "no-store" })
+        const raw = response.ok ? await response.text() : ""
+        const lastLine = raw.trim().split("\n").filter(Boolean).pop() ?? ""
+        entries.push({
+          date,
+          source: "blob",
+          status: lastLine || "logged",
+          createdAt: blob.uploadedAt?.toISOString() ?? new Date().toISOString(),
+          raw: lastLine,
+        })
+      } catch {
+        entries.push({
+          date,
+          source: "blob",
+          status: "unreadable",
+          createdAt: new Date().toISOString(),
+        })
+      }
+    }
+  }
+
+  try {
+    const files = await fs.readdir(LOGS_DIR)
+    for (const file of files) {
+      if (!file.endsWith(".log")) continue
+      const date = file.replace(/\.log$/, "")
+      if (entries.some((e) => e.date === date && e.source === "blob")) continue
+      const raw = await fs.readFile(path.join(LOGS_DIR, file), "utf-8")
+      const lastLine = raw.trim().split("\n").filter(Boolean).pop() ?? ""
+      entries.push({
+        date,
+        source: "blob",
+        status: lastLine || "logged",
+        createdAt: new Date().toISOString(),
+        raw: lastLine,
+      })
+    }
+  } catch {
+    // No local logs directory.
+  }
+
+  return entries.sort((a, b) => b.date.localeCompare(a.date))
 }

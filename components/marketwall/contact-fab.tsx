@@ -15,13 +15,17 @@ function TelegramIcon({ className }: { className?: string }) {
   )
 }
 
-export function ContactFab() {
+type ContactFabProps = {
+  telegramLink?: string
+}
+
+export function ContactFab({ telegramLink = TELEGRAM_LINK }: ContactFabProps) {
   const { t } = useLang()
 
   return (
     <div className="fixed bottom-8 right-8 z-50 flex flex-col gap-3">
       <a
-        href={TELEGRAM_LINK}
+        href={telegramLink}
         target="_blank"
         rel="noopener noreferrer"
         className={cn(fabClass, "bg-[#229ED9] hover:bg-[#1c8bc2]")}

@@ -17,7 +17,7 @@ import { ThemeProvider } from "@/lib/theme"
 import { SITE_NAME, SITE_LOGO } from "@/lib/brand"
 import { SITE_URL } from "@/lib/seo"
 
-import { ContactFab } from "@/components/marketwall/contact-fab"
+import { ContactFab } from "@/components/marketwall/contact-fab-server"
 import { AuthSessionProvider } from "@/components/providers/session-provider"
 import { StockDetailModal } from "@/components/heatmap/stock-detail-modal-lazy"
 import { SymbolDetailModal } from "@/components/marketwall/symbol-detail-modal-lazy"
