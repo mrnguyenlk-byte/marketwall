@@ -32,7 +32,8 @@ export type DailyAnalysisOpenAiContent = {
   vnindexAnalysis: string
   goldAnalysis: string
   usMacroSummary: string
-  cta: string
+  /** Section 4 — what to watch next (disclaimer appended when mapped to `cta`). */
+  watchNext: string
   telegramCaption: string
   facebookCaption: string
   zaloMessage: string
@@ -47,6 +48,7 @@ export type DailyAnalysisOpenAiErrorLog = {
     vnindexImage?: string
     goldImage?: string
     hasUsMacroData?: boolean
+    hasUsEvents?: boolean
   }
   fallbackUsed: true
 }

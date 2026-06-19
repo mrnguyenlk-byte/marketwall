@@ -1,7 +1,10 @@
 import OpenAI from "openai"
 import {
+  countDailyAnalysisBodyWords,
+  DAILY_ANALYSIS_BODY_WORD_LIMIT,
   DAILY_ANALYSIS_SYSTEM_PROMPT,
   appendDailyAnalysisDisclaimer,
+  buildDailyAnalysisCta,
   buildDailyAnalysisUserPrompt,
   type DailyAnalysisPromptInput,
 } from "./prompt"
@@ -15,7 +18,7 @@ const OPENAI_CONTENT_FIELDS: (keyof DailyAnalysisOpenAiContent)[] = [
   "vnindexAnalysis",
   "goldAnalysis",
   "usMacroSummary",
-  "cta",
+  "watchNext",
   "telegramCaption",
   "facebookCaption",
   "zaloMessage",
@@ -46,34 +49,59 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0
 }
 
+function readWatchNext(record: Record<string, unknown>): string | null {
+  if (isNonEmptyString(record.watchNext)) return record.watchNext.trim()
+  if (isNonEmptyString(record.cta)) return record.cta.trim()
+  return null
+}
+
+export function validateDailyAnalysisBodyWordCount(
+  content: Pick<
+    DailyAnalysisOpenAiContent,
+    "vnindexAnalysis" | "goldAnalysis" | "usMacroSummary" | "watchNext"
+  >,
+): boolean {
+  return countDailyAnalysisBodyWords(content) <= DAILY_ANALYSIS_BODY_WORD_LIMIT
+}
+
 export function parseAndValidateOpenAiContent(raw: unknown): DailyAnalysisOpenAiContent | null {
   if (!raw || typeof raw !== "object") return null
 
   const record = raw as Record<string, unknown>
   for (const field of OPENAI_CONTENT_FIELDS) {
+    if (field === "watchNext") {
+      if (!readWatchNext(record)) return null
+      continue
+    }
     if (!isNonEmptyString(record[field])) return null
   }
 
-  return sanitizeDailyAnalysisOpenAiContent({
+  const watchNext = readWatchNext(record)
+  if (!watchNext) return null
+
+  const content: DailyAnalysisOpenAiContent = {
     title: (record.title as string).trim(),
     summary: (record.summary as string).trim(),
     vnindexAnalysis: (record.vnindexAnalysis as string).trim(),
     goldAnalysis: (record.goldAnalysis as string).trim(),
     usMacroSummary: (record.usMacroSummary as string).trim(),
-    cta: (record.cta as string).trim(),
+    watchNext,
     telegramCaption: (record.telegramCaption as string).trim(),
     facebookCaption: (record.facebookCaption as string).trim(),
     zaloMessage: (record.zaloMessage as string).trim(),
-  })
+  }
+
+  if (!validateDailyAnalysisBodyWordCount(content)) return null
+
+  return sanitizeDailyAnalysisOpenAiContent(content)
 }
 
-/** Ensure disclaimer on article CTA and social captions even if the model omits it. */
+/** Ensure disclaimer on social captions even if the model omits it. */
 export function sanitizeDailyAnalysisOpenAiContent(
   content: DailyAnalysisOpenAiContent,
 ): DailyAnalysisOpenAiContent {
   return {
     ...content,
-    cta: appendDailyAnalysisDisclaimer(content.cta),
     telegramCaption: appendDailyAnalysisDisclaimer(content.telegramCaption),
     facebookCaption: appendDailyAnalysisDisclaimer(content.facebookCaption),
   }
@@ -96,7 +124,7 @@ export function buildDailyAnalysisFromOpenAiContent(
     vnindexAnalysis: content.vnindexAnalysis,
     goldAnalysis: content.goldAnalysis,
     usMacroSummary: content.usMacroSummary,
-    cta: content.cta,
+    cta: buildDailyAnalysisCta(content.watchNext),
     telegramCaption: content.telegramCaption,
     facebookCaption: content.facebookCaption,
     zaloMessage: content.zaloMessage,
@@ -144,6 +172,23 @@ export async function fetchOpenAiDailyContent(
 
   const validated = parseAndValidateOpenAiContent(parsed)
   if (!validated) {
+    if (parsed && typeof parsed === "object") {
+      const record = parsed as Record<string, unknown>
+      const watchNext = readWatchNext(record)
+      if (watchNext) {
+        const body = {
+          vnindexAnalysis: String(record.vnindexAnalysis ?? "").trim(),
+          goldAnalysis: String(record.goldAnalysis ?? "").trim(),
+          usMacroSummary: String(record.usMacroSummary ?? "").trim(),
+          watchNext,
+        }
+        if (!validateDailyAnalysisBodyWordCount(body)) {
+          throw new Error(
+            `OpenAI response exceeded ${DAILY_ANALYSIS_BODY_WORD_LIMIT}-word body limit (${countDailyAnalysisBodyWords(body)} words)`,
+          )
+        }
+      }
+    }
     throw new Error("OpenAI response failed schema validation")
   }
 
@@ -155,6 +200,8 @@ export async function generateOpenAiDailyAnalysis(
   vnindexImage?: string,
   goldImage?: string,
   usMacroDataText?: string,
+  usEventsText?: string,
+  usEventsCalendarChecked?: boolean,
 ): Promise<DailyAnalysis> {
   const vnImage = vnindexImage ?? defaultVnindexImage(date)
   const gImage = goldImage ?? defaultGoldImage(date)
@@ -164,6 +211,8 @@ export async function generateOpenAiDailyAnalysis(
     vnindexImage: vnImage,
     goldImage: gImage,
     usMacroDataText,
+    usEventsText,
+    usEventsCalendarChecked,
   })
 
   return buildDailyAnalysisFromOpenAiContent(date, content, vnImage, gImage)

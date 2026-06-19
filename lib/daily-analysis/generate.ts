@@ -1,3 +1,7 @@
+import {
+  formatUsEconomicEventsForPrompt,
+  getRecentUsEconomicEvents,
+} from "@/lib/economic-calendar/us-events"
 import { generateMockDailyAnalysis } from "./generator"
 import {
   generateOpenAiDailyAnalysis,
@@ -11,6 +15,7 @@ export type GenerateDailyAnalysisOptions = {
   vnindexImage?: string
   goldImage?: string
   usMacroDataText?: string
+  usEventsText?: string
 }
 
 export type GenerateDailyAnalysisResult = {
@@ -20,11 +25,29 @@ export type GenerateDailyAnalysisResult = {
   model?: string
 }
 
+async function resolveUsEventsText(
+  provided?: string,
+): Promise<{ text?: string; calendarChecked: boolean }> {
+  if (provided?.trim()) {
+    return { text: provided.trim(), calendarChecked: false }
+  }
+
+  const events = await getRecentUsEconomicEvents({ hours: 24 })
+  const formatted = formatUsEconomicEventsForPrompt(events)
+
+  return {
+    text: formatted || undefined,
+    calendarChecked: true,
+  }
+}
+
 export async function generateDailyAnalysis(
   date: string,
   options: GenerateDailyAnalysisOptions = {},
 ): Promise<GenerateDailyAnalysisResult> {
-  const { vnindexImage, goldImage, usMacroDataText } = options
+  const { vnindexImage, goldImage, usMacroDataText, usEventsText: providedUsEventsText } = options
+  const { text: usEventsText, calendarChecked: usEventsCalendarChecked } =
+    await resolveUsEventsText(providedUsEventsText)
   const model = getDailyAnalysisOpenAiModel()
 
   if (!hasOpenAiApiKey()) {
@@ -41,6 +64,8 @@ export async function generateDailyAnalysis(
       vnindexImage,
       goldImage,
       usMacroDataText,
+      usEventsText,
+      usEventsCalendarChecked,
     )
     return { article, source: "openai", fallbackUsed: false, model }
   } catch (error) {
@@ -56,6 +81,7 @@ export async function generateDailyAnalysis(
           vnindexImage,
           goldImage,
           hasUsMacroData: Boolean(usMacroDataText?.trim()),
+          hasUsEvents: Boolean(usEventsText?.trim()),
         },
         fallbackUsed: true,
       })

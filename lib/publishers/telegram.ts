@@ -1,6 +1,6 @@
 import { SITE_DOMAIN } from "@/lib/brand"
-import { appendDailyAnalysisDisclaimer, DAILY_ANALYSIS_DISCLAIMER } from "@/lib/daily-analysis/prompt"
 import type { DailyAnalysis } from "@/lib/daily-analysis/types"
+import { buildDailyAnalysisSocialCaption } from "@/lib/publishers/daily-analysis-caption"
 
 const TELEGRAM_CAPTION_MAX = 1024
 const TELEGRAM_API_BASE = "https://api.telegram.org"
@@ -28,10 +28,6 @@ function telegramEnv(): { token: string; channelId: string } | null {
   return { token, channelId }
 }
 
-function dailyAnalysisUrl(slug: string): string {
-  return `${SITE_DOMAIN}/daily-analysis/${slug}`
-}
-
 /** Resolve image for Telegram sendPhoto — absolute HTTP(S) URL required. */
 export function resolveTelegramPhotoUrl(image: string): string {
   if (image.startsWith("http://") || image.startsWith("https://")) {
@@ -47,83 +43,8 @@ function hasImage(image: string | undefined): image is string {
   return Boolean(image?.trim())
 }
 
-function truncateText(text: string, maxLen: number): string {
-  if (text.length <= maxLen) return text
-  if (maxLen <= 1) return text.slice(0, maxLen)
-  return `${text.slice(0, maxLen - 1).trimEnd()}…`
-}
-
-function truncateCaptionPreservingLink(caption: string, link: string): string {
-  const disclaimerSuffix = `\n\n${DAILY_ANALYSIS_DISCLAIMER}`
-  const linkSuffix = `\n\n${link}`
-  const trailingSuffix = `${linkSuffix}${disclaimerSuffix}`
-  const maxBody = TELEGRAM_CAPTION_MAX - trailingSuffix.length
-  if (maxBody <= 0) return truncateText(appendDailyAnalysisDisclaimer(link), TELEGRAM_CAPTION_MAX)
-
-  if (caption.includes(link)) {
-    const withoutLink = caption.replace(link, "").trimEnd()
-    if (withoutLink.length + trailingSuffix.length <= TELEGRAM_CAPTION_MAX) {
-      return appendDailyAnalysisDisclaimer(`${withoutLink}${linkSuffix}`)
-    }
-    return appendDailyAnalysisDisclaimer(`${truncateText(withoutLink, maxBody)}${linkSuffix}`)
-  }
-
-  if (caption.length + trailingSuffix.length <= TELEGRAM_CAPTION_MAX) {
-    return appendDailyAnalysisDisclaimer(`${caption}${linkSuffix}`)
-  }
-  return appendDailyAnalysisDisclaimer(`${truncateText(caption, maxBody)}${linkSuffix}`)
-}
-
-function buildDailyAnalysisCaption(article: DailyAnalysis): string {
-  const link = dailyAnalysisUrl(article.slug)
-  const linkSuffix = `\n\n${link}`
-  const disclaimerSuffix = `\n\n${DAILY_ANALYSIS_DISCLAIMER}`
-  const trailingSuffix = `${linkSuffix}${disclaimerSuffix}`
-  const maxBody = TELEGRAM_CAPTION_MAX - trailingSuffix.length
-
-  const title = article.title.trim()
-  const summary = article.summary.trim()
-  const vnLabel = "VN-Index:"
-  const goldLabel = "Vàng:"
-
-  let vnText = article.vnindexAnalysis.trim()
-  let goldText = article.goldAnalysis.trim()
-
-  const header = `${title}\n\n${summary}\n\n`
-  const labelsOverhead = `${vnLabel} \n\n${goldLabel} `.length
-
-  let bodyBudget = maxBody - header.length - labelsOverhead
-  if (bodyBudget < 40) {
-    return truncateCaptionPreservingLink(`${title}\n\n${summary}`, link)
-  }
-
-  const halfBudget = Math.floor(bodyBudget / 2)
-  if (vnText.length + goldText.length > bodyBudget) {
-    vnText = truncateText(vnText, Math.max(40, halfBudget))
-    goldText = truncateText(goldText, Math.max(40, bodyBudget - vnText.length))
-  }
-
-  let body = `${header}${vnLabel} ${vnText}\n\n${goldLabel} ${goldText}`
-  if (body.length > maxBody) {
-    body = truncateText(body, maxBody)
-  }
-
-  return appendDailyAnalysisDisclaimer(`${body}${linkSuffix}`)
-}
-
 function resolveCaption(article: DailyAnalysis): string {
-  const link = dailyAnalysisUrl(article.slug)
-  const openAiCaption = article.telegramCaption?.trim()
-
-  if (openAiCaption && openAiCaption.length <= TELEGRAM_CAPTION_MAX) {
-    return appendDailyAnalysisDisclaimer(openAiCaption)
-  }
-
-  if (openAiCaption) {
-    return truncateCaptionPreservingLink(openAiCaption, link)
-  }
-
-  return buildDailyAnalysisCaption(article)
+  return buildDailyAnalysisSocialCaption(article, { maxLength: TELEGRAM_CAPTION_MAX })
 }
 
 async function telegramRequest<T>(

@@ -1,9 +1,7 @@
-import { SITE_DOMAIN } from "@/lib/brand"
-import { appendDailyAnalysisDisclaimer } from "@/lib/daily-analysis/prompt"
 import type { DailyAnalysis } from "@/lib/daily-analysis/types"
+import { buildDailyAnalysisSocialCaption } from "@/lib/publishers/daily-analysis-caption"
 import { resolveTelegramPhotoUrl } from "@/lib/publishers/telegram"
 
-const FACEBOOK_CAPTION_MAX = 63206
 const FACEBOOK_GRAPH_API = "https://graph.facebook.com/v25.0"
 
 export type FacebookPublishResult =
@@ -21,52 +19,6 @@ function facebookEnv(): { pageId: string; accessToken: string } | null {
   const accessToken = process.env.FACEBOOK_PAGE_ACCESS_TOKEN?.trim()
   if (!pageId || !accessToken) return null
   return { pageId, accessToken }
-}
-
-function dailyAnalysisUrl(slug: string): string {
-  return `${SITE_DOMAIN}/daily-analysis/${slug}`
-}
-
-function truncateText(text: string, maxLen: number): string {
-  if (text.length <= maxLen) return text
-  if (maxLen <= 1) return text.slice(0, maxLen)
-  return `${text.slice(0, maxLen - 1).trimEnd()}…`
-}
-
-function buildFacebookCaption(article: DailyAnalysis): string {
-  const linkBlock = `Đọc đầy đủ:\n${dailyAnalysisUrl(article.slug)}`
-  const hashtags = "#BTrading #VNIndex #Gold #MarketAnalysis"
-  const suffix = `\n\n${linkBlock}\n\n${hashtags}`
-
-  const title = article.title.trim()
-  const summary = article.summary.trim()
-  const vnLabel = "VNIndex:"
-  const goldLabel = "Gold:"
-
-  let vnText = article.vnindexAnalysis.trim()
-  let goldText = article.goldAnalysis.trim()
-
-  const header = `${title}\n\n${summary}\n\n${vnLabel}\n`
-  const goldSectionPrefix = `\n\n${goldLabel}\n`
-  const maxBody = FACEBOOK_CAPTION_MAX - suffix.length
-
-  let bodyBudget = maxBody - header.length - goldSectionPrefix.length
-  if (bodyBudget < 80) {
-    return truncateText(`${title}\n\n${summary}${suffix}`, FACEBOOK_CAPTION_MAX)
-  }
-
-  if (vnText.length + goldText.length > bodyBudget) {
-    const halfBudget = Math.floor(bodyBudget / 2)
-    vnText = truncateText(vnText, Math.max(40, halfBudget))
-    goldText = truncateText(goldText, Math.max(40, bodyBudget - vnText.length))
-  }
-
-  let body = `${header}${vnText}${goldSectionPrefix}${goldText}${suffix}`
-  if (body.length > FACEBOOK_CAPTION_MAX) {
-    body = truncateText(body, FACEBOOK_CAPTION_MAX)
-  }
-
-  return appendDailyAnalysisDisclaimer(body)
 }
 
 function hasImage(image: string | undefined): boolean {
@@ -188,7 +140,7 @@ export async function publishDailyAnalysisToFacebook(
     return { ok: false, error: "No images available to publish" }
   }
 
-  const caption = buildFacebookCaption(article)
+  const caption = buildDailyAnalysisSocialCaption(article)
 
   if (hasVnindex && !hasGold) {
     const photoUrl = resolveTelegramPhotoUrl(article.vnindexImage)

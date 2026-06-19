@@ -1,4 +1,4 @@
-import { appendDailyAnalysisDisclaimer } from "./prompt"
+import { appendDailyAnalysisDisclaimer, buildDailyAnalysisCta } from "./prompt"
 import { generateDailyAnalysisSlug } from "./slug"
 import type { DailyAnalysis } from "./types"
 
@@ -22,14 +22,14 @@ export function generateMockDailyAnalysis(
   const vnImage = vnindexImage ?? defaultVnindexImage(date)
   const gImage = goldImage ?? defaultGoldImage(date)
 
-  const cta = appendDailyAnalysisDisclaimer(
-    "Theo dõi diễn biến tại các vùng giá quan trọng trên biểu đồ, lập kế hoạch quản trị rủi ro và chỉ điều chỉnh khi có tín hiệu xác nhận rõ ràng.",
-  )
+  const watchNext =
+    "Theo dõi diễn biến tại các vùng giá quan trọng trên biểu đồ, lập kế hoạch quản trị rủi ro và chỉ điều chỉnh khi có tín hiệu xác nhận rõ ràng."
+  const cta = buildDailyAnalysisCta(watchNext)
   const telegramCaption = appendDailyAnalysisDisclaimer(
-    `📊 Phân tích thị trường ${date}: tổng quan VN-Index, vàng XAUUSD và bối cảnh vĩ mô. Xem chi tiết trên Btrading.org #Btrading #VNIndex #Vang`,
+    `📊 Phân tích ${date}: VN-Index, vàng XAUUSD và bối cảnh vĩ mô Mỹ. Xem chi tiết trên Btrading.org #Btrading #VNIndex #Vang`,
   )
   const facebookCaption = appendDailyAnalysisDisclaimer(
-    `Bản phân tích thị trường ngày ${date} từ Btrading.org: bối cảnh VN-Index, vàng XAUUSD và vĩ mô Mỹ — nội dung giáo dục, giúp theo dõi xu hướng và quản trị rủi ro. Đọc đầy đủ tại Btrading.org.`,
+    `Phân tích thị trường ngày ${date} từ Btrading.org — bối cảnh VN-Index, vàng và vĩ mô Mỹ, nội dung tham khảo. Đọc đầy đủ tại Btrading.org.`,
   )
 
   return {
@@ -37,17 +37,17 @@ export function generateMockDailyAnalysis(
     title,
     slug,
     summary:
-      "Thị trường chứng khoán Việt Nam ghi nhận biến động trong phiên gần nhất; cần đối chiếu biểu đồ VN-Index để nắm bối cảnh. Giá vàng XAUUSD phản ánh tâm lý risk-on/risk-off và yếu tố vĩ mô. Bối cảnh Mỹ (Fed, lợi suất) tiếp tục ảnh hưởng dòng tiền toàn cầu.",
+      "Thị trường chứng khoán Việt Nam và vàng XAUUSD cần đọc trong bối cảnh vĩ mô toàn cầu. Nội dung dưới đây dựa trên biểu đồ được cung cấp, mang tính tham khảo.",
     vnindexAnalysis:
-      "Theo biểu đồ VN-Index, cần quan sát xu hướng ngắn hạn và các vùng hỗ trợ/kháng cự nổi bật trên đồ thị. Khối lượng và phân bổ dòng tiền ngành có thể là tín hiệu bổ sung — nếu dữ liệu chi tiết chưa có, dữ liệu đang được cập nhật.",
+      "Theo biểu đồ VN-Index, cần quan sát xu hướng ngắn hạn và các vùng hỗ trợ/kháng cự nổi bật. Nếu chưa đủ căn cứ cụ thể, dữ liệu đang được cập nhật.",
     goldAnalysis:
-      "Giá vàng XAUUSD cần được đọc trong bối cảnh USD, lợi suất và nhu cầu trú ẩn an toàn. Các vùng giá quan trọng chỉ nên nêu khi nhìn thấy rõ trên biểu đồ; nếu thiếu số liệu cụ thể, dữ liệu đang được cập nhật.",
+      "Giá vàng XAUUSD cần đọc cùng bối cảnh USD và lợi suất. Các vùng giá quan trọng chỉ nêu khi nhìn thấy rõ trên biểu đồ.",
     usMacroSummary:
-      "Tóm tắt vĩ mô Mỹ (Fed, lợi suất, chỉ số chính) dựa trên dữ liệu cập nhật. Nếu chưa có số liệu mới trong phiên, dữ liệu đang được cập nhật — nhà đầu tư nên theo dõi lịch công bố sắp tới để đánh giá kịch bản.",
+      "Dữ liệu vĩ mô Mỹ (Fed, lợi suất, chỉ số chính) đang được cập nhật. Nên theo dõi lịch công bố sắp tới để đánh giá kịch bản.",
     cta,
     telegramCaption,
     facebookCaption,
-    zaloMessage: `Btrading — Phân tích ngày ${date}: tổng quan VN-Index và vàng XAUUSD trong bối cảnh vĩ mô. Xem bài đầy đủ trên Btrading.org.`,
+    zaloMessage: `Btrading — Phân tích ngày ${date}: VN-Index và vàng XAUUSD. Xem bài đầy đủ trên Btrading.org.`,
     vnindexImage: vnImage,
     goldImage: gImage,
     webUrl: `/daily-analysis/${slug}`,
