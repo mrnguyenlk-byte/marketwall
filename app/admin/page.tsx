@@ -44,7 +44,7 @@ export default async function AdminDashboardPage() {
                 <div className="flex flex-wrap gap-2">
                   <StatusBadge status={latest.publishStatus} />
                   <StatusBadge status={latest.telegramStatus} />
-                  <StatusBadge status={latest.facebookStatus} />
+                  <StatusBadge status={latest.facebookStatus} detail={latest.facebookError} className="max-w-xs truncate" />
                 </div>
                 <Link
                   href={`/admin/daily-analysis/${latest.date}`}

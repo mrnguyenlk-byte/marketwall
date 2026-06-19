@@ -25,6 +25,8 @@ export type DailyAnalysis = {
   telegramMessageId?: number
   facebookStatus?: "sent" | "failed" | "skipped"
   facebookPostId?: string
+  facebookError?: string
+  facebookErrorCode?: string
   /** Live market snapshot at generation time (VN-Index + Gold). */
   marketData?: DailyAnalysisMarketData
 }

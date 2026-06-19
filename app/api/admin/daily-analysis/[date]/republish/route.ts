@@ -4,6 +4,10 @@ import {
 } from "@/lib/daily-analysis/storage"
 import type { DailyAnalysis } from "@/lib/daily-analysis/types"
 import { publishDailyAnalysisToFacebook } from "@/lib/publishers/facebook"
+import {
+  applyFacebookPublishResult,
+  facebookResultToAutomationLog,
+} from "@/lib/publishers/apply-facebook-publish-result"
 import { publishDailyAnalysisToTelegram } from "@/lib/publishers/telegram"
 import { isAdminApiError, requireAdminApi } from "@/lib/admin/auth"
 import { prisma } from "@/lib/prisma"
@@ -56,22 +60,18 @@ export async function POST(request: Request, context: RouteContext) {
   }
 
   const result = await publishDailyAnalysisToFacebook(article)
-  if (result.ok) {
-    updated.facebookStatus = "sent"
-    updated.facebookPostId = result.postId
-  } else if (result.error.startsWith("skipped:")) {
-    updated.facebookStatus = "skipped"
-  } else {
-    updated.facebookStatus = "failed"
-  }
+  Object.assign(updated, applyFacebookPublishResult(updated, result))
   const saved = await saveDailyAnalysis(updated)
   try {
+    const fbLog = facebookResultToAutomationLog(saved, result)
     await prisma.automationLog.create({
       data: {
         date,
         status: "republish-facebook",
-        facebookStatus: saved.facebookStatus ?? null,
-        errors: result.ok ? undefined : { error: result.error },
+        facebookStatus: fbLog.facebookStatus,
+        facebookError: fbLog.facebookError,
+        facebookErrorCode: fbLog.facebookErrorCode,
+        errors: fbLog.errors,
       },
     })
   } catch {

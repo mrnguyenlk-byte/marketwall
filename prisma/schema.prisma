@@ -190,6 +190,8 @@ model AutomationLog {
   status         String
   telegramStatus String?
   facebookStatus String?
+  facebookError  String?
+  facebookErrorCode String?
   errors         Json?
   createdAt      DateTime @default(now())
 

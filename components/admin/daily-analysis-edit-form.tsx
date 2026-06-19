@@ -138,7 +138,7 @@ export function DailyAnalysisEditForm({ article }: Props) {
       <div className="flex flex-wrap gap-2">
         <StatusBadge status={form.publishStatus} />
         <StatusBadge status={form.telegramStatus} />
-        <StatusBadge status={form.facebookStatus} />
+        <StatusBadge status={form.facebookStatus} detail={form.facebookError} className="max-w-md truncate" />
       </div>
 
       <form onSubmit={onSave} className="space-y-4">

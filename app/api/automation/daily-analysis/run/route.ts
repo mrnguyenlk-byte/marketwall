@@ -6,6 +6,10 @@ import {
 } from "@/lib/daily-analysis/storage"
 import type { DailyAnalysis } from "@/lib/daily-analysis/types"
 import {
+  applyFacebookPublishResult,
+  facebookResultToAutomationLog,
+} from "@/lib/publishers/apply-facebook-publish-result"
+import {
   publishDailyAnalysisToFacebook,
   type FacebookPublishResult,
 } from "@/lib/publishers/facebook"
@@ -13,6 +17,7 @@ import {
   publishDailyAnalysisToTelegram,
   type TelegramPublishResult,
 } from "@/lib/publishers/telegram"
+import { prisma } from "@/lib/prisma"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -67,17 +72,32 @@ async function saveWithTelegramPublish(article: DailyAnalysis): Promise<{
   }
 
   const facebook = await publishDailyAnalysisToFacebook(updated)
-  if (facebook.ok) {
-    updated.facebookStatus = "sent"
-    updated.facebookPostId = facebook.postId
-  } else if (facebook.error.startsWith("skipped:")) {
-    updated.facebookStatus = "skipped"
-  } else {
-    updated.facebookStatus = "failed"
+  const withFacebook = applyFacebookPublishResult(updated, facebook)
+  Object.assign(updated, withFacebook)
+
+  if (!facebook.ok && !facebook.error.startsWith("skipped:")) {
     console.error("[daily-analysis] Facebook publish failed:", facebook.error)
   }
 
   const saved = await saveDailyAnalysis(updated)
+
+  try {
+    const fbLog = facebookResultToAutomationLog(saved, facebook)
+    await prisma.automationLog.create({
+      data: {
+        date: saved.date,
+        status: "automation-run",
+        telegramStatus: saved.telegramStatus ?? null,
+        facebookStatus: fbLog.facebookStatus,
+        facebookError: fbLog.facebookError,
+        facebookErrorCode: fbLog.facebookErrorCode,
+        errors: fbLog.errors,
+      },
+    })
+  } catch {
+    // Optional DB logging.
+  }
+
   return { article: saved, telegram, facebook }
 }
 

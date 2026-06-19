@@ -25,6 +25,7 @@ export default async function AdminAutomationLogsPage() {
       status: log.status,
       telegramStatus: log.telegramStatus,
       facebookStatus: log.facebookStatus,
+      facebookError: log.facebookError,
       createdAt: log.createdAt.toISOString(),
       raw: null as string | null,
     })),
@@ -35,6 +36,7 @@ export default async function AdminAutomationLogsPage() {
       status: log.status,
       telegramStatus: log.telegramStatus ?? null,
       facebookStatus: log.facebookStatus ?? null,
+      facebookError: null as string | null,
       createdAt: log.createdAt,
       raw: log.raw ?? null,
     })),
@@ -71,7 +73,7 @@ export default async function AdminAutomationLogsPage() {
                   <StatusBadge status={log.telegramStatus} />
                 </TableCell>
                 <TableCell>
-                  <StatusBadge status={log.facebookStatus} />
+                  <StatusBadge status={log.facebookStatus} detail={log.facebookError} className="max-w-[14rem] truncate" />
                 </TableCell>
                 <TableCell className="text-xs text-muted-foreground">
                   {new Date(log.createdAt).toLocaleString()}

@@ -52,7 +52,7 @@ export default async function AdminDailyAnalysisListPage() {
                   <StatusBadge status={post.telegramStatus} />
                 </TableCell>
                 <TableCell>
-                  <StatusBadge status={post.facebookStatus} />
+                  <StatusBadge status={post.facebookStatus} detail={post.facebookError} className="max-w-[14rem] truncate" />
                 </TableCell>
                 <TableCell className="text-right">
                   <Link
