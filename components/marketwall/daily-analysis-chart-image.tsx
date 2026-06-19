@@ -1,12 +1,12 @@
 "use client"
 
-import { useCallback, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import Image from "next/image"
 import { X } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const MIN_SCALE = 1
-const DEFAULT_SCALE = 1.5
+const DEFAULT_SCALE = 1.75
 const MAX_SCALE = 4
 const ZOOM_STEP = 0.15
 
@@ -21,12 +21,30 @@ export function DailyAnalysisChartImage({ src, alt, variant = "full" }: DailyAna
   const [isOpen, setIsOpen] = useState(false)
   const [scale, setScale] = useState(DEFAULT_SCALE)
   const [transformOrigin, setTransformOrigin] = useState("center center")
+  const [translateX, setTranslateX] = useState(0)
+  const [translateY, setTranslateY] = useState(0)
+  const [isDragging, setIsDragging] = useState(false)
+  const dragStartRef = useRef({ x: 0, y: 0, translateX: 0, translateY: 0 })
   const isPreview = variant === "preview"
+  const canPan = scale > 1
+
+  const resetPan = useCallback(() => {
+    setTranslateX(0)
+    setTranslateY(0)
+    setIsDragging(false)
+  }, [])
 
   const resetZoom = useCallback(() => {
     setScale(DEFAULT_SCALE)
     setTransformOrigin("center center")
-  }, [])
+    resetPan()
+  }, [resetPan])
+
+  useEffect(() => {
+    if (scale <= MIN_SCALE) {
+      resetPan()
+    }
+  }, [scale, resetPan])
 
   const openLightbox = useCallback(() => {
     resetZoom()
@@ -51,6 +69,64 @@ export function DailyAnalysisChartImage({ src, alt, variant = "full" }: DailyAna
       return Math.min(MAX_SCALE, Math.max(MIN_SCALE, next))
     })
   }, [])
+
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      if (!canPan || e.button !== 0) return
+      e.preventDefault()
+      setIsDragging(true)
+      dragStartRef.current = {
+        x: e.clientX,
+        y: e.clientY,
+        translateX,
+        translateY,
+      }
+    },
+    [canPan, translateX, translateY],
+  )
+
+  const handleMouseMove = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      if (!isDragging) return
+      const dx = e.clientX - dragStartRef.current.x
+      const dy = e.clientY - dragStartRef.current.y
+      setTranslateX(dragStartRef.current.translateX + dx)
+      setTranslateY(dragStartRef.current.translateY + dy)
+    },
+    [isDragging],
+  )
+
+  const endDrag = useCallback(() => {
+    setIsDragging(false)
+  }, [])
+
+  const handleTouchStart = useCallback(
+    (e: React.TouchEvent<HTMLDivElement>) => {
+      if (!canPan || e.touches.length !== 1) return
+      const touch = e.touches[0]
+      setIsDragging(true)
+      dragStartRef.current = {
+        x: touch.clientX,
+        y: touch.clientY,
+        translateX,
+        translateY,
+      }
+    },
+    [canPan, translateX, translateY],
+  )
+
+  const handleTouchMove = useCallback(
+    (e: React.TouchEvent<HTMLDivElement>) => {
+      if (!isDragging || e.touches.length !== 1) return
+      e.preventDefault()
+      const touch = e.touches[0]
+      const dx = touch.clientX - dragStartRef.current.x
+      const dy = touch.clientY - dragStartRef.current.y
+      setTranslateX(dragStartRef.current.translateX + dx)
+      setTranslateY(dragStartRef.current.translateY + dy)
+    },
+    [isDragging],
+  )
 
   return (
     <>
@@ -97,21 +173,36 @@ export function DailyAnalysisChartImage({ src, alt, variant = "full" }: DailyAna
             <X className="size-5" />
           </button>
           <div
-            className="overflow-hidden"
+            className={cn(
+              "overflow-hidden select-none",
+              canPan && (isDragging ? "cursor-grabbing" : "cursor-grab"),
+            )}
             onWheel={handleWheel}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={endDrag}
+            onMouseLeave={endDrag}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={endDrag}
+            onTouchCancel={endDrag}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={src}
-              alt={alt}
-              draggable={false}
-              className="max-h-[95vh] max-w-[min(98vw,1400px)] object-contain transition-transform duration-100"
+            <div
+              className={cn(!isDragging && "transition-transform duration-100")}
               style={{
-                transform: `scale(${scale})`,
+                transform: `translate(${translateX}px, ${translateY}px) scale(${scale})`,
                 transformOrigin,
               }}
-            />
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={src}
+                alt={alt}
+                draggable={false}
+                className="max-h-[95vh] max-w-[min(98vw,1400px)] object-contain"
+              />
+            </div>
           </div>
         </div>
       </dialog>
