@@ -1,10 +1,10 @@
 "use client"
 
-import Image from "next/image"
 import Link from "next/link"
 import { useLang } from "@/lib/i18n"
 import type { DailyAnalysisCard } from "@/lib/daily-analysis/mock-data"
 import { cn } from "@/lib/utils"
+import { DailyAnalysisChartImage } from "./daily-analysis-chart-image"
 
 function PlaceholderChart({ color, variant }: { color: string; variant?: "preview" | "full" }) {
   return (
@@ -13,7 +13,7 @@ function PlaceholderChart({ color, variant }: { color: string; variant?: "previe
       className={cn(
         "w-full text-muted-foreground/40",
         variant === "preview"
-          ? "h-28 min-h-28 sm:h-40 sm:min-h-40"
+          ? "aspect-[16/10] min-h-36 sm:min-h-52 md:min-h-56"
           : "h-48 min-h-48 md:h-56 md:min-h-56",
       )}
       aria-hidden
@@ -63,28 +63,16 @@ export function DailyAnalysisArticleCard({ card, variant = "full" }: DailyAnalys
   const chartBlock = (
     <div
       className={cn(
-        "rounded-md bg-secondary/30 px-2 py-1",
-        isPreview ? "mt-4" : "mt-3",
+        "rounded-md bg-secondary/30",
+        isPreview ? "mt-4 px-1 py-0.5" : "mt-3 px-2 py-1",
       )}
     >
       {card.imageUrl ? (
-        <div
-          className={cn(
-            "relative w-full overflow-hidden",
-            isPreview
-              ? "h-28 min-h-28 sm:h-40 sm:min-h-40"
-              : "h-48 min-h-48 md:h-56 md:min-h-56",
-          )}
-        >
-          <Image
-            src={card.imageUrl}
-            alt=""
-            fill
-            className="object-contain object-center"
-            sizes="(max-width: 768px) 100vw, 50vw"
-            unoptimized
-          />
-        </div>
+        <DailyAnalysisChartImage
+          src={card.imageUrl}
+          alt={title}
+          variant={isPreview ? "preview" : "full"}
+        />
       ) : (
         <PlaceholderChart color={card.chartColor} variant={isPreview ? "preview" : "full"} />
       )}
