@@ -6,8 +6,9 @@ import { X } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const MIN_SCALE = 1
-const DEFAULT_SCALE = 1.75
+const DEFAULT_SCALE = 1
 const MAX_SCALE = 4
+const LIGHTBOX_MAX_W = "min(99vw,1800px)"
 const ZOOM_STEP = 0.15
 
 type DailyAnalysisChartImageProps = {
@@ -161,9 +162,9 @@ export function DailyAnalysisChartImage({ src, alt, variant = "full" }: DailyAna
         onClick={(e) => {
           if (e.target === e.currentTarget) closeLightbox()
         }}
-        className="fixed inset-0 z-50 m-0 hidden h-full max-h-full w-full max-w-full items-center justify-center border-0 bg-transparent p-2 backdrop:bg-black/80 open:flex"
+        className="fixed inset-0 z-50 m-0 hidden h-full max-h-full w-full max-w-full items-center justify-center border-0 bg-transparent p-1 backdrop:bg-black/80 open:flex"
       >
-        <div className="relative max-h-[95vh] max-w-[min(98vw,1400px)]">
+        <div className="relative max-h-[98vh]" style={{ maxWidth: LIGHTBOX_MAX_W }}>
           <button
             type="button"
             onClick={closeLightbox}
@@ -200,7 +201,8 @@ export function DailyAnalysisChartImage({ src, alt, variant = "full" }: DailyAna
                 src={src}
                 alt={alt}
                 draggable={false}
-                className="max-h-[95vh] max-w-[min(98vw,1400px)] object-contain"
+                className="max-h-[98vh] w-full object-contain"
+                style={{ maxWidth: LIGHTBOX_MAX_W }}
               />
             </div>
           </div>
