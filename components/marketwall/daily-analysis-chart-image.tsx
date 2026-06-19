@@ -1,9 +1,13 @@
 "use client"
 
-import { useCallback, useRef } from "react"
+import { useCallback, useRef, useState } from "react"
 import Image from "next/image"
 import { X } from "lucide-react"
 import { cn } from "@/lib/utils"
+
+const MIN_SCALE = 1
+const MAX_SCALE = 3
+const ZOOM_STEP = 0.15
 
 type DailyAnalysisChartImageProps = {
   src: string
@@ -13,14 +17,38 @@ type DailyAnalysisChartImageProps = {
 
 export function DailyAnalysisChartImage({ src, alt, variant = "full" }: DailyAnalysisChartImageProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
+  const [isOpen, setIsOpen] = useState(false)
+  const [scale, setScale] = useState(MIN_SCALE)
+  const [transformOrigin, setTransformOrigin] = useState("center center")
   const isPreview = variant === "preview"
 
-  const openLightbox = useCallback(() => {
-    dialogRef.current?.showModal()
+  const resetZoom = useCallback(() => {
+    setScale(MIN_SCALE)
+    setTransformOrigin("center center")
   }, [])
+
+  const openLightbox = useCallback(() => {
+    resetZoom()
+    setIsOpen(true)
+    dialogRef.current?.showModal()
+  }, [resetZoom])
 
   const closeLightbox = useCallback(() => {
     dialogRef.current?.close()
+    setIsOpen(false)
+    resetZoom()
+  }, [resetZoom])
+
+  const handleWheel = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    const rect = e.currentTarget.getBoundingClientRect()
+    const x = ((e.clientX - rect.left) / rect.width) * 100
+    const y = ((e.clientY - rect.top) / rect.height) * 100
+    setTransformOrigin(`${x}% ${y}%`)
+    setScale((current) => {
+      const next = current + (e.deltaY < 0 ? ZOOM_STEP : -ZOOM_STEP)
+      return Math.min(MAX_SCALE, Math.max(MIN_SCALE, next))
+    })
   }, [])
 
   return (
@@ -49,10 +77,14 @@ export function DailyAnalysisChartImage({ src, alt, variant = "full" }: DailyAna
 
       <dialog
         ref={dialogRef}
+        onClose={() => {
+          setIsOpen(false)
+          resetZoom()
+        }}
         onClick={(e) => {
           if (e.target === e.currentTarget) closeLightbox()
         }}
-        className="fixed inset-0 z-50 m-0 flex h-full max-h-full w-full max-w-full items-center justify-center border-0 bg-transparent p-4 backdrop:bg-black/80 open:flex"
+        className="fixed inset-0 z-50 m-0 hidden h-full max-h-full w-full max-w-full items-center justify-center border-0 bg-transparent p-4 backdrop:bg-black/80 open:flex"
       >
         <div className="relative max-h-[90vh] max-w-[min(95vw,1200px)]">
           <button
@@ -63,8 +95,23 @@ export function DailyAnalysisChartImage({ src, alt, variant = "full" }: DailyAna
           >
             <X className="size-5" />
           </button>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={src} alt={alt} className="max-h-[85vh] max-w-full object-contain" />
+          <div
+            className="overflow-hidden"
+            onWheel={handleWheel}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={src}
+              alt={alt}
+              draggable={false}
+              className="max-h-[85vh] max-w-full object-contain transition-transform duration-100"
+              style={{
+                transform: `scale(${scale})`,
+                transformOrigin,
+              }}
+            />
+          </div>
         </div>
       </dialog>
     </>
