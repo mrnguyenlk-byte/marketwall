@@ -6,7 +6,8 @@ import { X } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const MIN_SCALE = 1
-const MAX_SCALE = 3
+const DEFAULT_SCALE = 1.5
+const MAX_SCALE = 4
 const ZOOM_STEP = 0.15
 
 type DailyAnalysisChartImageProps = {
@@ -18,12 +19,12 @@ type DailyAnalysisChartImageProps = {
 export function DailyAnalysisChartImage({ src, alt, variant = "full" }: DailyAnalysisChartImageProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const [isOpen, setIsOpen] = useState(false)
-  const [scale, setScale] = useState(MIN_SCALE)
+  const [scale, setScale] = useState(DEFAULT_SCALE)
   const [transformOrigin, setTransformOrigin] = useState("center center")
   const isPreview = variant === "preview"
 
   const resetZoom = useCallback(() => {
-    setScale(MIN_SCALE)
+    setScale(DEFAULT_SCALE)
     setTransformOrigin("center center")
   }, [])
 
@@ -84,9 +85,9 @@ export function DailyAnalysisChartImage({ src, alt, variant = "full" }: DailyAna
         onClick={(e) => {
           if (e.target === e.currentTarget) closeLightbox()
         }}
-        className="fixed inset-0 z-50 m-0 hidden h-full max-h-full w-full max-w-full items-center justify-center border-0 bg-transparent p-4 backdrop:bg-black/80 open:flex"
+        className="fixed inset-0 z-50 m-0 hidden h-full max-h-full w-full max-w-full items-center justify-center border-0 bg-transparent p-2 backdrop:bg-black/80 open:flex"
       >
-        <div className="relative max-h-[90vh] max-w-[min(95vw,1200px)]">
+        <div className="relative max-h-[95vh] max-w-[min(98vw,1400px)]">
           <button
             type="button"
             onClick={closeLightbox}
@@ -105,7 +106,7 @@ export function DailyAnalysisChartImage({ src, alt, variant = "full" }: DailyAna
               src={src}
               alt={alt}
               draggable={false}
-              className="max-h-[85vh] max-w-full object-contain transition-transform duration-100"
+              className="max-h-[95vh] max-w-[min(98vw,1400px)] object-contain transition-transform duration-100"
               style={{
                 transform: `scale(${scale})`,
                 transformOrigin,
