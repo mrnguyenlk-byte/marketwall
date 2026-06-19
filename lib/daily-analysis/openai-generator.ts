@@ -8,6 +8,7 @@ import {
   buildDailyAnalysisUserPrompt,
   type DailyAnalysisPromptInput,
 } from "./prompt"
+import type { DailyAnalysisMarketData } from "./market-data"
 import { generateDailyAnalysisSlug } from "./slug"
 import type { DailyAnalysis, DailyAnalysisOpenAiContent } from "./types"
 
@@ -112,6 +113,7 @@ export function buildDailyAnalysisFromOpenAiContent(
   content: DailyAnalysisOpenAiContent,
   vnindexImage: string,
   goldImage: string,
+  marketData?: DailyAnalysisMarketData,
 ): DailyAnalysis {
   const now = new Date().toISOString()
   const slug = generateDailyAnalysisSlug(content.title, date)
@@ -134,6 +136,7 @@ export function buildDailyAnalysisFromOpenAiContent(
     publishStatus: "draft",
     createdAt: now,
     updatedAt: now,
+    ...(marketData ? { marketData } : {}),
   }
 }
 
@@ -202,6 +205,7 @@ export async function generateOpenAiDailyAnalysis(
   usMacroDataText?: string,
   usEventsText?: string,
   usEventsCalendarChecked?: boolean,
+  marketData?: DailyAnalysisMarketData,
 ): Promise<DailyAnalysis> {
   const vnImage = vnindexImage ?? defaultVnindexImage(date)
   const gImage = goldImage ?? defaultGoldImage(date)
@@ -210,10 +214,11 @@ export async function generateOpenAiDailyAnalysis(
     date,
     vnindexImage: vnImage,
     goldImage: gImage,
+    marketData,
     usMacroDataText,
     usEventsText,
     usEventsCalendarChecked,
   })
 
-  return buildDailyAnalysisFromOpenAiContent(date, content, vnImage, gImage)
+  return buildDailyAnalysisFromOpenAiContent(date, content, vnImage, gImage, marketData)
 }

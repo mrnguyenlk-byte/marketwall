@@ -1,3 +1,5 @@
+import type { DailyAnalysisMarketData } from "./market-data"
+
 export type DailyAnalysisPublishStatus = "draft" | "published" | "pending"
 
 /** Persisted daily analysis article (automation backend — distinct from UI card mock types). */
@@ -23,6 +25,8 @@ export type DailyAnalysis = {
   telegramMessageId?: number
   facebookStatus?: "sent" | "failed" | "skipped"
   facebookPostId?: string
+  /** Live market snapshot at generation time (VN-Index + Gold). */
+  marketData?: DailyAnalysisMarketData
 }
 
 /** JSON fields returned by OpenAI for daily analysis content. */
@@ -49,6 +53,7 @@ export type DailyAnalysisOpenAiErrorLog = {
     goldImage?: string
     hasUsMacroData?: boolean
     hasUsEvents?: boolean
+    hasMarketData?: boolean
   }
   fallbackUsed: true
 }

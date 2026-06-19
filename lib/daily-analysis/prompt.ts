@@ -1,3 +1,8 @@
+import {
+  buildMarketDataPromptSection,
+  type DailyAnalysisMarketData,
+} from "./market-data"
+
 /**
  * Vietnamese prompts for OpenAI daily analysis generation.
  */
@@ -49,11 +54,12 @@ export const DAILY_ANALYSIS_SYSTEM_PROMPT = `Bạn là chuyên gia phân tích t
 Nhiệm vụ: viết bản phân tích thị trường hàng ngày bằng tiếng Việt, ngắn gọn, chuyên nghiệp, trung lập và mang tính giáo dục.
 
 QUY TẮC DỮ LIỆU — BẮT BUỘC:
-1. KHÔNG bịa số liệu VN-Index — chỉ mô tả xu hướng/vùng giá khi có căn cứ từ biểu đồ được cung cấp.
-2. KHÔNG bịa giá vàng (XAUUSD) — chỉ dùng thông tin từ biểu đồ vàng được cung cấp.
-3. KHÔNG bịa dữ liệu kinh tế (CPI, Fed, lợi suất, GDP, v.v.) — chỉ dùng dữ liệu vĩ mô Mỹ và sự kiện lịch kinh tế được cung cấp trong prompt.
-4. CHỈ sử dụng dữ liệu được cung cấp; thiếu dữ liệu thì ghi rõ "dữ liệu đang được cập nhật".
-5. Biểu đồ chỉ là tham chiếu trực quan — không suy diễn số liệu cụ thể nếu không thấy rõ trên biểu đồ.
+1. Khi prompt cung cấp số liệu VN-Index (điểm, thay đổi, %), BẮT BUỘC đưa các con số đó vào vnindexAnalysis theo mẫu: "VN-Index hiện ở khoảng {value} điểm, thay đổi {change} điểm ({changePercent}%)." — không bịa thêm số khác.
+2. Khi prompt cung cấp số liệu vàng XAUUSD, BẮT BUỘC đưa vào goldAnalysis theo mẫu: "XAUUSD hiện quanh {value} USD/oz, thay đổi {change} USD ({changePercent}%)." — không bịa thêm số khác.
+3. Nếu số liệu null hoặc ghi "đang được cập nhật", dùng câu: "Dữ liệu điểm số đang được cập nhật."
+4. KHÔNG bịa dữ liệu kinh tế (CPI, Fed, lợi suất, GDP, v.v.) — chỉ dùng dữ liệu vĩ mô Mỹ và sự kiện lịch kinh tế được cung cấp trong prompt.
+5. CHỈ sử dụng dữ liệu được cung cấp; thiếu dữ liệu thì ghi rõ "Dữ liệu điểm số đang được cập nhật."
+6. Biểu đồ là tham chiếu trực quan bổ sung — ưu tiên số liệu thị trường được cung cấp trong prompt.
 
 QUY TẮC NỘI DUNG:
 1. KHÔNG dự đoán tương lai với mức độ chắc chắn (tránh "chắc chắn sẽ", "nhất định").
@@ -95,6 +101,7 @@ export type DailyAnalysisPromptInput = {
   date: string
   vnindexImage: string
   goldImage: string
+  marketData?: DailyAnalysisMarketData
   usMacroDataText?: string
   /** Recent US economic calendar events (when integrated upstream). */
   usEventsText?: string
@@ -103,16 +110,30 @@ export type DailyAnalysisPromptInput = {
 }
 
 export function buildDailyAnalysisUserPrompt(input: DailyAnalysisPromptInput): string {
-  const { date, vnindexImage, goldImage, usMacroDataText, usEventsText, usEventsCalendarChecked } =
-    input
+  const {
+    date,
+    vnindexImage,
+    goldImage,
+    marketData,
+    usMacroDataText,
+    usEventsText,
+    usEventsCalendarChecked,
+  } = input
 
   const lines = [
     `Viết bản phân tích thị trường ngày ${date} cho Btrading.org.`,
     "",
     "Dữ liệu được cung cấp (CHỈ dùng các thông tin dưới đây — KHÔNG bịa số liệu VN-Index, giá vàng hay dữ liệu kinh tế):",
+  ]
+
+  if (marketData) {
+    lines.push(buildMarketDataPromptSection(marketData), "")
+  }
+
+  lines.push(
     `- Biểu đồ VN-Index (tham chiếu trực quan): ${vnindexImage}`,
     `- Biểu đồ vàng XAUUSD (tham chiếu trực quan): ${goldImage}`,
-    "Mô tả xu hướng và vùng giá chỉ khi nhìn thấy rõ trên biểu đồ. Nếu không đủ căn cứ, ghi rõ dữ liệu đang được cập nhật.",
+    "Bổ sung mô tả xu hướng/vùng giá từ biểu đồ khi có căn cứ. Nếu số liệu null, ghi: \"Dữ liệu điểm số đang được cập nhật.\"",
     "",
     "Cấu trúc nội dung bài phân tích (tối đa 180 từ cho 4 mục vnindexAnalysis + goldAnalysis + usMacroSummary + watchNext):",
     "1. VN-Index → vnindexAnalysis",
@@ -125,7 +146,7 @@ export function buildDailyAnalysisUserPrompt(input: DailyAnalysisPromptInput): s
     "- summary: tóm tắt 2–3 câu",
     "- telegramCaption, facebookCaption: ngắn, trung lập, kèm tuyên bố bắt buộc",
     "- zaloMessage: tin nhắn Zalo ngắn",
-  ]
+  )
 
   if (usMacroDataText?.trim()) {
     lines.push("", "Dữ liệu vĩ mô Mỹ (ưu tiên cho usMacroSummary):", usMacroDataText.trim())

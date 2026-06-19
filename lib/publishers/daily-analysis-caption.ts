@@ -1,5 +1,9 @@
 import { SITE_DOMAIN } from "@/lib/brand"
 import { formatDailyAnalysisDate } from "@/lib/daily-analysis/map-to-card"
+import {
+  formatGoldMarketLine,
+  formatVnindexMarketLine,
+} from "@/lib/daily-analysis/market-data"
 import type { DailyAnalysis } from "@/lib/daily-analysis/types"
 
 export const DAILY_ANALYSIS_SOCIAL_DISCLAIMER =
@@ -125,6 +129,31 @@ function fitCaptionWithinLimit(
   return truncateText(caption, maxLength)
 }
 
+function buildMarketSection(
+  marketLine: string | null,
+  analysisText: string,
+): string {
+  const analysis = analysisText.trim()
+  if (marketLine) {
+    return analysis ? `${marketLine}\n${analysis}` : marketLine
+  }
+  return analysis
+}
+
+function resolveVnSection(article: DailyAnalysis): string {
+  const marketLine = article.marketData
+    ? formatVnindexMarketLine(article.marketData.vnindex)
+    : null
+  return buildMarketSection(marketLine, article.vnindexAnalysis)
+}
+
+function resolveGoldSection(article: DailyAnalysis): string {
+  const marketLine = article.marketData
+    ? formatGoldMarketLine(article.marketData.gold)
+    : null
+  return buildMarketSection(marketLine, article.goldAnalysis)
+}
+
 /** Build the standardized daily analysis social caption from article fields. */
 export function buildDailyAnalysisSocialCaption(
   article: DailyAnalysis,
@@ -132,8 +161,8 @@ export function buildDailyAnalysisSocialCaption(
 ): string {
   const dateLabel = formatDailyAnalysisDate(article.date)
   const articleUrl = dailyAnalysisArticleUrl(article.slug)
-  const vnText = article.vnindexAnalysis.trim()
-  const goldText = article.goldAnalysis.trim()
+  const vnText = resolveVnSection(article)
+  const goldText = resolveGoldSection(article)
   const usMacroBullets = parseUsMacroBullets(article.usMacroSummary)
 
   if (options?.maxLength) {

@@ -2,6 +2,7 @@ import {
   formatUsEconomicEventsForPrompt,
   getRecentUsEconomicEvents,
 } from "@/lib/economic-calendar/us-events"
+import { fetchDailyAnalysisMarketData } from "./market-data"
 import { generateMockDailyAnalysis } from "./generator"
 import {
   generateOpenAiDailyAnalysis,
@@ -48,11 +49,12 @@ export async function generateDailyAnalysis(
   const { vnindexImage, goldImage, usMacroDataText, usEventsText: providedUsEventsText } = options
   const { text: usEventsText, calendarChecked: usEventsCalendarChecked } =
     await resolveUsEventsText(providedUsEventsText)
+  const marketData = await fetchDailyAnalysisMarketData()
   const model = getDailyAnalysisOpenAiModel()
 
   if (!hasOpenAiApiKey()) {
     return {
-      article: generateMockDailyAnalysis(date, vnindexImage, goldImage),
+      article: generateMockDailyAnalysis(date, vnindexImage, goldImage, marketData),
       source: "mock",
       fallbackUsed: true,
     }
@@ -66,6 +68,7 @@ export async function generateDailyAnalysis(
       usMacroDataText,
       usEventsText,
       usEventsCalendarChecked,
+      marketData,
     )
     return { article, source: "openai", fallbackUsed: false, model }
   } catch (error) {
@@ -82,6 +85,9 @@ export async function generateDailyAnalysis(
           goldImage,
           hasUsMacroData: Boolean(usMacroDataText?.trim()),
           hasUsEvents: Boolean(usEventsText?.trim()),
+          hasMarketData: Boolean(
+            marketData.vnindex.value != null || marketData.gold.value != null,
+          ),
         },
         fallbackUsed: true,
       })
@@ -90,7 +96,7 @@ export async function generateDailyAnalysis(
     }
 
     return {
-      article: generateMockDailyAnalysis(date, vnindexImage, goldImage),
+      article: generateMockDailyAnalysis(date, vnindexImage, goldImage, marketData),
       source: "mock",
       fallbackUsed: true,
       model,
