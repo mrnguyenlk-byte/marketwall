@@ -6,11 +6,14 @@ import { useLang } from "@/lib/i18n"
 import type { DailyAnalysisCard } from "@/lib/daily-analysis/mock-data"
 import { cn } from "@/lib/utils"
 
-function PlaceholderChart({ color, tall }: { color: string; tall?: boolean }) {
+function PlaceholderChart({ color, variant }: { color: string; variant?: "preview" | "full" }) {
   return (
     <svg
       viewBox="0 0 280 80"
-      className={cn("w-full text-muted-foreground/40", tall ? "h-28" : "h-20")}
+      className={cn(
+        "w-full text-muted-foreground/40",
+        variant === "preview" ? "h-28 min-h-28 sm:h-40 sm:min-h-40" : "h-28",
+      )}
       aria-hidden
       preserveAspectRatio="none"
     >
@@ -103,7 +106,12 @@ export function DailyAnalysisArticleCard({ card, variant = "full" }: DailyAnalys
       ) : null}
       <div className="mt-4 rounded-md bg-secondary/30 px-2 py-1">
         {card.imageUrl ? (
-          <div className={cn("relative w-full overflow-hidden", !isPreview ? "h-28" : "h-20")}>
+          <div
+            className={cn(
+              "relative w-full overflow-hidden",
+              isPreview ? "h-28 min-h-28 sm:h-40 sm:min-h-40" : "h-28",
+            )}
+          >
             <Image
               src={card.imageUrl}
               alt=""
@@ -114,7 +122,7 @@ export function DailyAnalysisArticleCard({ card, variant = "full" }: DailyAnalys
             />
           </div>
         ) : (
-          <PlaceholderChart color={card.chartColor} tall={!isPreview} />
+          <PlaceholderChart color={card.chartColor} variant={isPreview ? "preview" : "full"} />
         )}
       </div>
       {!isPreview ? (

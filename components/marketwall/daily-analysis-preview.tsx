@@ -33,8 +33,8 @@ export function DailyAnalysisPreview({ cards }: DailyAnalysisPreviewProps) {
           </Link>
         }
       />
-      <DashboardCard className="p-4">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <DashboardCard className="p-4 sm:p-5">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5">
           {displayCards.map((card) => (
             <DailyAnalysisArticleCard key={card.id} card={card} variant="preview" />
           ))}
