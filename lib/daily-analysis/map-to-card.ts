@@ -109,6 +109,7 @@ export function mapArticleToListCard(article: DailyAnalysis): DailyAnalysisCard 
     title: article.title,
     summary: truncateSummary(article.summary, 200),
     fullSummary: article.summary,
+    imageUrl: article.vnindexImage,
     href: `/daily-analysis/${article.slug}`,
     bullets: [],
     chartColor: "#22c55e",

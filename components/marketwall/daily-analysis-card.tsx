@@ -12,7 +12,9 @@ function PlaceholderChart({ color, variant }: { color: string; variant?: "previe
       viewBox="0 0 280 80"
       className={cn(
         "w-full text-muted-foreground/40",
-        variant === "preview" ? "h-28 min-h-28 sm:h-40 sm:min-h-40" : "h-28",
+        variant === "preview"
+          ? "h-28 min-h-28 sm:h-40 sm:min-h-40"
+          : "h-48 min-h-48 md:h-56 md:min-h-56",
       )}
       aria-hidden
       preserveAspectRatio="none"
@@ -58,6 +60,37 @@ export function DailyAnalysisArticleCard({ card, variant = "full" }: DailyAnalys
         ? t(card.fullSummaryKey)
         : "")
 
+  const chartBlock = (
+    <div
+      className={cn(
+        "rounded-md bg-secondary/30 px-2 py-1",
+        isPreview ? "mt-4" : "mt-3",
+      )}
+    >
+      {card.imageUrl ? (
+        <div
+          className={cn(
+            "relative w-full overflow-hidden",
+            isPreview
+              ? "h-28 min-h-28 sm:h-40 sm:min-h-40"
+              : "h-48 min-h-48 md:h-56 md:min-h-56",
+          )}
+        >
+          <Image
+            src={card.imageUrl}
+            alt=""
+            fill
+            className="object-contain object-center"
+            sizes="(max-width: 768px) 100vw, 50vw"
+            unoptimized
+          />
+        </div>
+      ) : (
+        <PlaceholderChart color={card.chartColor} variant={isPreview ? "preview" : "full"} />
+      )}
+    </div>
+  )
+
   return (
     <article className="flex h-full flex-col rounded-lg border border-border/80 bg-card p-4 shadow-sm">
       <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -84,47 +117,29 @@ export function DailyAnalysisArticleCard({ card, variant = "full" }: DailyAnalys
       >
         {title}
       </h3>
-      <p
-        className={cn(
-          "mt-2 leading-relaxed text-muted-foreground",
-          isPreview ? "line-clamp-2 text-xs" : "text-sm",
-        )}
-      >
-        {summary}
-      </p>
-      {!isPreview && card.bullets.length > 0 ? (
-        <ul className="mt-3 space-y-1.5 text-sm">
-          {card.bullets.map((item) => (
-            <li key={item.labelKey} className="flex gap-2">
-              <span className="shrink-0 font-semibold text-foreground">{t(item.labelKey)}:</span>
-              <span className="text-muted-foreground">
-                {item.text ?? (item.textKey ? t(item.textKey) : "")}
-              </span>
-            </li>
-          ))}
-        </ul>
-      ) : null}
-      <div className="mt-4 rounded-md bg-secondary/30 px-2 py-1">
-        {card.imageUrl ? (
-          <div
-            className={cn(
-              "relative w-full overflow-hidden",
-              isPreview ? "h-28 min-h-28 sm:h-40 sm:min-h-40" : "h-28",
-            )}
-          >
-            <Image
-              src={card.imageUrl}
-              alt=""
-              fill
-              className="object-contain object-center"
-              sizes="(max-width: 768px) 100vw, 50vw"
-              unoptimized
-            />
-          </div>
-        ) : (
-          <PlaceholderChart color={card.chartColor} variant={isPreview ? "preview" : "full"} />
-        )}
-      </div>
+      {isPreview ? (
+        <>
+          <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-muted-foreground">{summary}</p>
+          {chartBlock}
+        </>
+      ) : (
+        <>
+          {chartBlock}
+          <p className="mt-3 line-clamp-2 text-sm leading-relaxed text-muted-foreground">{summary}</p>
+          {card.bullets.length > 0 ? (
+            <ul className="mt-3 space-y-1.5 text-sm">
+              {card.bullets.map((item) => (
+                <li key={item.labelKey} className="flex gap-2">
+                  <span className="shrink-0 font-semibold text-foreground">{t(item.labelKey)}:</span>
+                  <span className="text-muted-foreground">
+                    {item.text ?? (item.textKey ? t(item.textKey) : "")}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </>
+      )}
       {!isPreview ? (
         card.href ? (
           <Link
