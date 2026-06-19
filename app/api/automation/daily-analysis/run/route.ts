@@ -1,16 +1,14 @@
-import fs from "fs/promises"
-import path from "path"
-
 import { generateDailyAnalysis } from "@/lib/daily-analysis/generate"
-import { appendDailyAnalysisLog, saveDailyAnalysis } from "@/lib/daily-analysis/storage"
+import {
+  appendDailyAnalysisLog,
+  saveDailyAnalysis,
+  saveDailyAnalysisImage,
+} from "@/lib/daily-analysis/storage"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
-const UPLOADS_DIR = path.join(process.cwd(), "public", "uploads", "daily-analysis")
-const MAX_IMAGE_BYTES = 10 * 1024 * 1024
-const ALLOWED_IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/webp"])
 
 type RunRequestBody = {
   date?: string
@@ -34,26 +32,6 @@ function validateSecret(secret: string | undefined): boolean {
 
 function unauthorizedResponse() {
   return Response.json({ ok: false, error: "Unauthorized" }, { status: 401 })
-}
-
-function uploadPathsForDate(date: string) {
-  return {
-    vnindexImage: `/uploads/daily-analysis/${date}/vnindex.png`,
-    goldImage: `/uploads/daily-analysis/${date}/gold.png`,
-  }
-}
-
-async function saveUploadedImage(file: File, destPath: string): Promise<void> {
-  if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
-    throw new Error(`Invalid image type: ${file.type || "unknown"}`)
-  }
-  if (file.size <= 0 || file.size > MAX_IMAGE_BYTES) {
-    throw new Error(`Invalid image size: ${file.size} bytes`)
-  }
-
-  await fs.mkdir(path.dirname(destPath), { recursive: true })
-  const buffer = Buffer.from(await file.arrayBuffer())
-  await fs.writeFile(destPath, buffer)
 }
 
 async function handleMultipartRequest(request: Request) {
@@ -87,22 +65,20 @@ async function handleMultipartRequest(request: Request) {
     )
   }
 
-  const dateDir = path.join(UPLOADS_DIR, date)
-  await fs.mkdir(UPLOADS_DIR, { recursive: true })
+  let vnindexImageUrl: string
+  let goldImageUrl: string
 
   try {
-    await saveUploadedImage(vnindexFile, path.join(dateDir, "vnindex.png"))
-    await saveUploadedImage(goldFile, path.join(dateDir, "gold.png"))
+    vnindexImageUrl = await saveDailyAnalysisImage(date, "vnindex.png", vnindexFile)
+    goldImageUrl = await saveDailyAnalysisImage(date, "gold.png", goldFile)
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to save uploaded images"
     return Response.json({ ok: false, error: message }, { status: 400 })
   }
 
-  const paths = uploadPathsForDate(date)
-
   const { article, source, fallbackUsed, model } = await generateDailyAnalysis(date, {
-    vnindexImage: paths.vnindexImage,
-    goldImage: paths.goldImage,
+    vnindexImage: vnindexImageUrl,
+    goldImage: goldImageUrl,
   })
 
   const saved = await saveDailyAnalysis(article)
@@ -121,8 +97,8 @@ async function handleMultipartRequest(request: Request) {
   return Response.json({
     success: true,
     date,
-    vnindexImage: paths.vnindexImage,
-    goldImage: paths.goldImage,
+    vnindexImage: vnindexImageUrl,
+    goldImage: goldImageUrl,
     article: saved,
   })
 }

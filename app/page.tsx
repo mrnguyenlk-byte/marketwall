@@ -23,6 +23,8 @@ import { SectionErrorBoundary } from "@/components/marketwall/section-error-boun
 import { getLatestDailyAnalysis } from "@/lib/daily-analysis/latest"
 import { mapLatestToPreviewCards } from "@/lib/daily-analysis/map-to-card"
 
+export const dynamic = "force-dynamic"
+
 export const metadata = homeMetadata
 
 function pickHeatmapMarket(
