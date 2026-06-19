@@ -20,6 +20,8 @@ import { MarketNews } from "@/components/marketwall/market-news"
 import { RiskWarning } from "@/components/marketwall/risk-warning"
 import { Footer } from "@/components/marketwall/footer"
 import { SectionErrorBoundary } from "@/components/marketwall/section-error-boundary"
+import { MobileOverview } from "@/components/marketwall/mobile-overview"
+import { ForeignFlowSection } from "@/components/marketwall/foreign-flow-section"
 import { getLatestDailyAnalysis } from "@/lib/daily-analysis/latest"
 import { mapLatestToPreviewCards } from "@/lib/daily-analysis/map-to-card"
 
@@ -61,24 +63,66 @@ export default async function Page() {
       <Header tickerItems={dashboard.dashboardTickerBarItems} />
 
       <main className="w-full overflow-x-hidden px-3 pt-1 pb-3 lg:px-4">
+        <div className="mb-4 md:hidden">
+          <MobileOverview
+            fearGreedItems={dashboard.fearGreedItems}
+            heatmapMarkets={dashboard.heatmapMarkets}
+            dailyAnalysisCards={dailyAnalysisPreviewCards}
+          />
+        </div>
+
         <div className="dashboard-grid">
           <aside aria-label="Market sidebar" className="dashboard-sidebar-left min-w-0">
             <Sidebar overviewByCategory={dashboard.overviewByCategory} />
           </aside>
 
           <section className="dashboard-center flex min-w-0 flex-col gap-4">
-            <SectionErrorBoundary name="daily-analysis">
-              <DailyAnalysisPreview cards={dailyAnalysisPreviewCards} />
-            </SectionErrorBoundary>
-            <SectionErrorBoundary name="market-liquidity">
-              <MarketLiquiditySection />
-            </SectionErrorBoundary>
-            <SectionErrorBoundary name="heatmap">
-              <HeatmapSection markets={dashboard.heatmapMarkets} />
-            </SectionErrorBoundary>
-            <SectionErrorBoundary name="vn-dashboard">
-              <VietnamMarketDashboard />
-            </SectionErrorBoundary>
+            <div className="hidden md:flex md:flex-col md:gap-4">
+              <SectionErrorBoundary name="daily-analysis">
+                <DailyAnalysisPreview cards={dailyAnalysisPreviewCards} />
+              </SectionErrorBoundary>
+              <SectionErrorBoundary name="market-liquidity">
+                <MarketLiquiditySection />
+              </SectionErrorBoundary>
+              <SectionErrorBoundary name="heatmap">
+                <HeatmapSection markets={dashboard.heatmapMarkets} />
+              </SectionErrorBoundary>
+              <SectionErrorBoundary name="vn-dashboard">
+                <VietnamMarketDashboard />
+              </SectionErrorBoundary>
+            </div>
+
+            <div className="flex flex-col gap-4 md:hidden">
+              <SectionErrorBoundary name="daily-analysis-full">
+                <DailyAnalysisPreview cards={dailyAnalysisPreviewCards} />
+              </SectionErrorBoundary>
+              <SectionErrorBoundary name="fear-greed-full">
+                <div id="fear-greed-full" className="scroll-mt-20">
+                  <FearGreed items={dashboard.fearGreedItems} variant="sidebar" />
+                </div>
+              </SectionErrorBoundary>
+              <SectionErrorBoundary name="market-liquidity-full">
+                <div id="market-liquidity-full" className="scroll-mt-20">
+                  <MarketLiquiditySection />
+                </div>
+              </SectionErrorBoundary>
+              <SectionErrorBoundary name="heatmap-full">
+                <div id="heatmap-full" className="scroll-mt-20">
+                  <HeatmapSection markets={dashboard.heatmapMarkets} />
+                </div>
+              </SectionErrorBoundary>
+              <SectionErrorBoundary name="vn-dashboard-full">
+                <div id="vn-dashboard-full" className="scroll-mt-20">
+                  <VietnamMarketDashboard maxRows={20} />
+                </div>
+              </SectionErrorBoundary>
+              <SectionErrorBoundary name="foreign-flow-full">
+                <div id="foreign-flow-full" className="scroll-mt-20">
+                  <ForeignFlowSection />
+                </div>
+              </SectionErrorBoundary>
+            </div>
+
             <RiskWarning />
           </section>
 
@@ -87,7 +131,9 @@ export default async function Page() {
             className="dashboard-sidebar-right flex min-w-0 flex-col gap-4"
           >
             <SectionErrorBoundary name="fear-greed">
-              <FearGreed items={dashboard.fearGreedItems} variant="sidebar" />
+              <div className="hidden md:block">
+                <FearGreed items={dashboard.fearGreedItems} variant="sidebar" />
+              </div>
             </SectionErrorBoundary>
             {features.currencyStrength && (
               <SectionErrorBoundary name="currency-strength">

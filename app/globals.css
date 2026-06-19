@@ -320,6 +320,14 @@
     min-width: 0;
   }
 
+  @media (max-width: 767px) {
+    .heatmap-viewport-mobile-fixed {
+      height: var(--heatmap-mobile-height, 450px) !important;
+      min-height: 0 !important;
+      max-height: var(--heatmap-mobile-height, 450px) !important;
+    }
+  }
+
   @media (min-width: 1024px) {
     .dashboard-sidebar-left {
       grid-column: 1;

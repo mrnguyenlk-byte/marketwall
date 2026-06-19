@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useRef, useState, type ReactNode } from "react"
+import { useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react"
 import {
   HEATMAP_HEIGHT_DEFAULT,
   HEATMAP_HEIGHT_MAX,
@@ -75,19 +75,35 @@ function ControlGroup({ children }: { children: React.ReactNode }) {
 const HEATMAP_VIEWPORT_CLASS =
   "h-[650px] min-h-[500px] max-h-[1500px] min-w-0"
 
-function HeatmapViewport({ children }: { children: ReactNode }) {
+function HeatmapViewport({
+  children,
+  mobileHeight,
+}: {
+  children: ReactNode
+  mobileHeight?: number
+}) {
   const containerRef = useRef<HTMLDivElement>(null)
   const { height, startResize } = useResizableHeight()
+  const mobileFixed = mobileHeight != null
 
   return (
     <div ref={containerRef} className="relative min-w-0">
       <div
-        className="min-w-0 overflow-hidden bg-chart-bg p-px"
-        style={{
-          height: `${height}px`,
-          minHeight: HEATMAP_HEIGHT_MIN,
-          maxHeight: HEATMAP_HEIGHT_MAX,
-        }}
+        className={cn(
+          "min-w-0 overflow-hidden bg-chart-bg p-px",
+          mobileFixed && "heatmap-viewport-mobile-fixed",
+        )}
+        style={
+          mobileFixed
+            ? ({
+                "--heatmap-mobile-height": `${mobileHeight}px`,
+              } as CSSProperties)
+            : {
+                height: `${height}px`,
+                minHeight: HEATMAP_HEIGHT_MIN,
+                maxHeight: HEATMAP_HEIGHT_MAX,
+              }
+        }
       >
         <div className="h-full min-w-0 w-full">{children}</div>
       </div>
@@ -95,7 +111,10 @@ function HeatmapViewport({ children }: { children: ReactNode }) {
         role="separator"
         aria-orientation="horizontal"
         aria-label="Resize heatmap panel"
-        className="absolute inset-x-0 bottom-0 z-10 flex h-3 -translate-y-px cursor-ns-resize touch-none items-center justify-center"
+        className={cn(
+          "absolute inset-x-0 bottom-0 z-10 flex h-3 -translate-y-px cursor-ns-resize touch-none items-center justify-center",
+          mobileFixed && "max-md:hidden",
+        )}
         onPointerDown={(e) => {
           e.preventDefault()
           const el = containerRef.current?.firstElementChild as HTMLElement | null
@@ -240,7 +259,7 @@ function filterVnExchanges(market: HeatmapMarket): HeatmapMarket {
   }
 }
 
-function HeatmapDetailSection() {
+function HeatmapDetailSection({ mobileHeight }: { mobileHeight?: number }) {
   const { t, lang } = useLang()
   const { openMarketAsset } = useOpenSymbolDetail()
   const { quoteBySymbol } = useRealtime()
@@ -347,7 +366,7 @@ function HeatmapDetailSection() {
           ))}
         </div>
 
-        <HeatmapViewport>
+        <HeatmapViewport mobileHeight={mobileHeight}>
           {loading ? (
             <HeatmapGridSkeleton />
           ) : assets.length > 0 ? (
@@ -373,15 +392,27 @@ function HeatmapDetailSection() {
   )
 }
 
-export function HeatmapSection({ markets }: { markets: HeatmapMarket[] }) {
+export function HeatmapSection({
+  markets,
+  mobileHeight,
+}: {
+  markets: HeatmapMarket[]
+  mobileHeight?: number
+}) {
   if (features.heatmapDetailModal) {
-    return <HeatmapDetailSection />
+    return <HeatmapDetailSection mobileHeight={mobileHeight} />
   }
 
-  return <LegacyHeatmapSection markets={markets} />
+  return <LegacyHeatmapSection markets={markets} mobileHeight={mobileHeight} />
 }
 
-function LegacyHeatmapSection({ markets }: { markets: HeatmapMarket[] }) {
+function LegacyHeatmapSection({
+  markets,
+  mobileHeight,
+}: {
+  markets: HeatmapMarket[]
+  mobileHeight?: number
+}) {
   const { t } = useLang()
   const [activeExchange, setActiveExchange] = useState<VnExchangeId>("hose")
 
@@ -457,7 +488,7 @@ function LegacyHeatmapSection({ markets }: { markets: HeatmapMarket[] }) {
           </div>
         )}
 
-        <HeatmapViewport>
+        <HeatmapViewport mobileHeight={mobileHeight}>
           {loading ? <HeatmapGridSkeleton /> : <HeatGrid tiles={activeTiles} />}
         </HeatmapViewport>
 

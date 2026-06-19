@@ -265,11 +265,22 @@ function LeaderboardCard({ title, rows, metric, loading }: LeaderboardProps) {
   )
 }
 
-export function VietnamMarketDashboard() {
+type VietnamMarketDashboardProps = {
+  maxRows?: number
+  boards?: "both" | "volume" | "value"
+}
+
+export function VietnamMarketDashboard({
+  maxRows = VN_LEADERBOARD_DISPLAY_ROWS,
+  boards = "both",
+}: VietnamMarketDashboardProps = {}) {
   const { t } = useLang()
   const { data, isLoading } = useVietnamMarkets()
   const dashboard = data?.dashboard
   const isLive = dashboard?.source === "live" || data?.source === "live"
+
+  const showVolume = boards === "both" || boards === "volume"
+  const showValue = boards === "both" || boards === "value"
 
   return (
     <section aria-labelledby="vn-dashboard-title">
@@ -280,18 +291,22 @@ export function VietnamMarketDashboard() {
         </span>
       </div>
       <div className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-2">
-        <LeaderboardCard
-          title={t("vnDashboard.topVolume")}
-          rows={(dashboard?.topVolume ?? []).slice(0, VN_LEADERBOARD_DISPLAY_ROWS)}
-          metric="volume"
-          loading={isLoading}
-        />
-        <LeaderboardCard
-          title={t("vnDashboard.topValue")}
-          rows={(dashboard?.topValue ?? []).slice(0, VN_LEADERBOARD_DISPLAY_ROWS)}
-          metric="value"
-          loading={isLoading}
-        />
+        {showVolume && (
+          <LeaderboardCard
+            title={t("vnDashboard.topVolume")}
+            rows={(dashboard?.topVolume ?? []).slice(0, maxRows)}
+            metric="volume"
+            loading={isLoading}
+          />
+        )}
+        {showValue && (
+          <LeaderboardCard
+            title={t("vnDashboard.topValue")}
+            rows={(dashboard?.topValue ?? []).slice(0, maxRows)}
+            metric="value"
+            loading={isLoading}
+          />
+        )}
       </div>
     </section>
   )
