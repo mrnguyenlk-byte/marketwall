@@ -4,6 +4,11 @@ import {
   saveDailyAnalysis,
   saveDailyAnalysisImage,
 } from "@/lib/daily-analysis/storage"
+import type { DailyAnalysis } from "@/lib/daily-analysis/types"
+import {
+  publishDailyAnalysisToTelegram,
+  type TelegramPublishResult,
+} from "@/lib/publishers/telegram"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -32,6 +37,32 @@ function validateSecret(secret: string | undefined): boolean {
 
 function unauthorizedResponse() {
   return Response.json({ ok: false, error: "Unauthorized" }, { status: 401 })
+}
+
+async function saveWithTelegramPublish(article: DailyAnalysis): Promise<{
+  article: DailyAnalysis
+  telegram: TelegramPublishResult
+}> {
+  await saveDailyAnalysis(article)
+
+  const telegram = await publishDailyAnalysisToTelegram(article)
+  const updated: DailyAnalysis = {
+    ...article,
+    updatedAt: new Date().toISOString(),
+  }
+
+  if (telegram.ok) {
+    updated.telegramStatus = "sent"
+    updated.telegramMessageId = telegram.messageId
+  } else if (telegram.error.startsWith("skipped:")) {
+    updated.telegramStatus = "skipped"
+  } else {
+    updated.telegramStatus = "failed"
+    console.error("[daily-analysis] Telegram publish failed:", telegram.error)
+  }
+
+  const saved = await saveDailyAnalysis(updated)
+  return { article: saved, telegram }
 }
 
 async function handleMultipartRequest(request: Request) {
@@ -81,14 +112,18 @@ async function handleMultipartRequest(request: Request) {
     goldImage: goldImageUrl,
   })
 
-  const saved = await saveDailyAnalysis(article)
+  const { article: saved, telegram } = await saveWithTelegramPublish(article)
 
   try {
     const modelNote = model ? ` model=${model}` : ""
     const fallbackNote = fallbackUsed ? " (fallback mock)" : ""
+    const telegramNote =
+      telegram.ok
+        ? ` telegram=sent msg=${telegram.messageId}`
+        : ` telegram=${saved.telegramStatus ?? "unknown"}`
     await appendDailyAnalysisLog(
       date,
-      `Generated daily analysis via ${source}${modelNote}${fallbackNote} (slug=${saved.slug})`,
+      `Generated daily analysis via ${source}${modelNote}${fallbackNote} (slug=${saved.slug})${telegramNote}`,
     )
   } catch {
     // Logging is optional; do not fail the request.
@@ -100,6 +135,7 @@ async function handleMultipartRequest(request: Request) {
     vnindexImage: vnindexImageUrl,
     goldImage: goldImageUrl,
     article: saved,
+    telegram,
   })
 }
 
@@ -129,20 +165,34 @@ async function handleJsonRequest(request: Request) {
     usMacroDataText: body.usMacroData,
   })
 
-  const saved = await saveDailyAnalysis(article)
+  const { article: saved, telegram } = await saveWithTelegramPublish(article)
 
   try {
     const modelNote = model ? ` model=${model}` : ""
     const fallbackNote = fallbackUsed ? " (fallback mock)" : ""
+    const telegramNote =
+      telegram.ok
+        ? ` telegram=sent msg=${telegram.messageId}`
+        : ` telegram=${saved.telegramStatus ?? "unknown"}`
     await appendDailyAnalysisLog(
       date,
-      `Generated daily analysis via ${source}${modelNote}${fallbackNote} (slug=${saved.slug})`,
+      `Generated daily analysis via ${source}${modelNote}${fallbackNote} (slug=${saved.slug})${telegramNote}`,
     )
   } catch {
     // Logging is optional; do not fail the request.
   }
 
-  return Response.json(saved, { status: 200 })
+  return Response.json(
+    {
+      success: true,
+      date,
+      vnindexImage: saved.vnindexImage,
+      goldImage: saved.goldImage,
+      article: saved,
+      telegram,
+    },
+    { status: 200 },
+  )
 }
 
 export async function POST(request: Request) {

@@ -19,6 +19,8 @@ export type DailyAnalysis = {
   telegramCaption?: string
   facebookCaption?: string
   zaloMessage?: string
+  telegramStatus?: "sent" | "failed" | "skipped"
+  telegramMessageId?: number
 }
 
 /** JSON fields returned by OpenAI for daily analysis content. */
