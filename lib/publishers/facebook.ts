@@ -1,4 +1,5 @@
 import { SITE_DOMAIN } from "@/lib/brand"
+import { appendDailyAnalysisDisclaimer } from "@/lib/daily-analysis/prompt"
 import type { DailyAnalysis } from "@/lib/daily-analysis/types"
 import { resolveTelegramPhotoUrl } from "@/lib/publishers/telegram"
 
@@ -65,7 +66,7 @@ function buildFacebookCaption(article: DailyAnalysis): string {
     body = truncateText(body, FACEBOOK_CAPTION_MAX)
   }
 
-  return body
+  return appendDailyAnalysisDisclaimer(body)
 }
 
 function hasImage(image: string | undefined): boolean {

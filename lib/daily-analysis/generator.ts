@@ -1,3 +1,4 @@
+import { appendDailyAnalysisDisclaimer } from "./prompt"
 import { generateDailyAnalysisSlug } from "./slug"
 import type { DailyAnalysis } from "./types"
 
@@ -21,22 +22,32 @@ export function generateMockDailyAnalysis(
   const vnImage = vnindexImage ?? defaultVnindexImage(date)
   const gImage = goldImage ?? defaultGoldImage(date)
 
+  const cta = appendDailyAnalysisDisclaimer(
+    "Theo dõi diễn biến tại các vùng giá quan trọng trên biểu đồ, lập kế hoạch quản trị rủi ro và chỉ điều chỉnh khi có tín hiệu xác nhận rõ ràng.",
+  )
+  const telegramCaption = appendDailyAnalysisDisclaimer(
+    `📊 Phân tích thị trường ${date}: tổng quan VN-Index, vàng XAUUSD và bối cảnh vĩ mô. Xem chi tiết trên Btrading.org #Btrading #VNIndex #Vang`,
+  )
+  const facebookCaption = appendDailyAnalysisDisclaimer(
+    `Bản phân tích thị trường ngày ${date} từ Btrading.org: bối cảnh VN-Index, vàng XAUUSD và vĩ mô Mỹ — nội dung giáo dục, giúp theo dõi xu hướng và quản trị rủi ro. Đọc đầy đủ tại Btrading.org.`,
+  )
+
   return {
     date,
     title,
     slug,
     summary:
-      "Thị trường chứng khoán Việt Nam điều chỉnh nhẹ trong phiên giao dịch hôm nay, trong khi giá vàng duy trì xu hướng tăng trung hạn. Vĩ mô Mỹ tiếp tục là yếu tố then chốt ảnh hưởng tới dòng tiền toàn cầu và tâm lý nhà đầu tư trong nước.",
+      "Thị trường chứng khoán Việt Nam ghi nhận biến động trong phiên gần nhất; cần đối chiếu biểu đồ VN-Index để nắm bối cảnh. Giá vàng XAUUSD phản ánh tâm lý risk-on/risk-off và yếu tố vĩ mô. Bối cảnh Mỹ (Fed, lợi suất) tiếp tục ảnh hưởng dòng tiền toàn cầu.",
     vnindexAnalysis:
-      "VN-Index đóng cửa quanh vùng 1.280 điểm, giảm khoảng 0,4% so với phiên trước. Nhóm ngân hàng và bất động sản chịu áp lực bán chủ động, trong khi dòng tiền vẫn ưu tiên các mã midcap có kết quả kinh doanh quý 2 khả quan. Kháng cự ngắn hạn nằm tại 1.295–1.300 điểm; hỗ trợ quan trọng tại 1.265–1.270 điểm. Khối lượng giao dịch trên HOSE ở mức trung bình, cho thấy nhà đầu tư đang thận trọng chờ tín hiệu xác nhận xu hướng.",
+      "Theo biểu đồ VN-Index, cần quan sát xu hướng ngắn hạn và các vùng hỗ trợ/kháng cự nổi bật trên đồ thị. Khối lượng và phân bổ dòng tiền ngành có thể là tín hiệu bổ sung — nếu dữ liệu chi tiết chưa có, dữ liệu đang được cập nhật.",
     goldAnalysis:
-      "Giá vàng (XAUUSD) giao dịch quanh 2.340–2.350 USD/oz, duy trì xu hướng tăng nhẹ trong ngắn hạn nhờ kỳ vọng Fed giữ lãi suất ổn định và nhu cầu trú ẩn an toàn. Vùng kháng cự gần 2.380 USD/oz; hỗ trợ tại 2.300–2.310 USD/oz. Biến động USD Index và lợi suất trái phiếu Mỹ 10 năm vẫn là hai yếu tố cần theo dõi sát trong các phiên tới.",
+      "Giá vàng XAUUSD cần được đọc trong bối cảnh USD, lợi suất và nhu cầu trú ẩn an toàn. Các vùng giá quan trọng chỉ nên nêu khi nhìn thấy rõ trên biểu đồ; nếu thiếu số liệu cụ thể, dữ liệu đang được cập nhật.",
     usMacroSummary:
-      "Thị trường Mỹ ghi nhận chỉ số CPI tháng gần nhất tăng chậm hơn kỳ vọng, củng cố kịch bản Fed có thể giữ nguyên lãi suất trong cuộc họp tới. Dow Jones và S&P 500 đóng cửa đi ngang; lợi suất trái phiếu 10 năm dao động quanh 4,2%. Dữ liệu việc làm và bán lẻ tuần tới có thể định hình lại kỳ vọng thị trường.",
-    cta: "Theo dõi sát vùng hỗ trợ VN-Index và quản trị rủi ro khi thị trường biến động. Với vàng, ưu tiên quan sát phản ứng tại các vùng giá quan trọng trước khi điều chỉnh kế hoạch.",
-    telegramCaption: `📊 Phân tích thị trường ${date}: VN-Index điều chỉnh nhẹ, vàng duy trì xu hướng tăng trung hạn. Xem chi tiết trên Btrading.org #Btrading #VNIndex #Vang`,
-    facebookCaption: `Bản phân tích thị trường ngày ${date} từ Btrading.org: tổng quan VN-Index, vàng XAUUSD và vĩ mô Mỹ. Nội dung mang tính tham khảo, giúp bạn theo dõi xu hướng và quản trị rủi ro. Đọc đầy đủ tại Btrading.org.`,
-    zaloMessage: `Btrading — Phân tích ngày ${date}: VN-Index điều chỉnh nhẹ; vàng giữ xu hướng tăng trung hạn. Xem bài đầy đủ trên web Btrading.org.`,
+      "Tóm tắt vĩ mô Mỹ (Fed, lợi suất, chỉ số chính) dựa trên dữ liệu cập nhật. Nếu chưa có số liệu mới trong phiên, dữ liệu đang được cập nhật — nhà đầu tư nên theo dõi lịch công bố sắp tới để đánh giá kịch bản.",
+    cta,
+    telegramCaption,
+    facebookCaption,
+    zaloMessage: `Btrading — Phân tích ngày ${date}: tổng quan VN-Index và vàng XAUUSD trong bối cảnh vĩ mô. Xem bài đầy đủ trên Btrading.org.`,
     vnindexImage: vnImage,
     goldImage: gImage,
     webUrl: `/daily-analysis/${slug}`,

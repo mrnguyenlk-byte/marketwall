@@ -1,4 +1,5 @@
 import { SITE_DOMAIN } from "@/lib/brand"
+import { appendDailyAnalysisDisclaimer, DAILY_ANALYSIS_DISCLAIMER } from "@/lib/daily-analysis/prompt"
 import type { DailyAnalysis } from "@/lib/daily-analysis/types"
 
 const TELEGRAM_CAPTION_MAX = 1024
@@ -53,28 +54,32 @@ function truncateText(text: string, maxLen: number): string {
 }
 
 function truncateCaptionPreservingLink(caption: string, link: string): string {
+  const disclaimerSuffix = `\n\n${DAILY_ANALYSIS_DISCLAIMER}`
   const linkSuffix = `\n\n${link}`
-  const maxBody = TELEGRAM_CAPTION_MAX - linkSuffix.length
-  if (maxBody <= 0) return truncateText(link, TELEGRAM_CAPTION_MAX)
+  const trailingSuffix = `${linkSuffix}${disclaimerSuffix}`
+  const maxBody = TELEGRAM_CAPTION_MAX - trailingSuffix.length
+  if (maxBody <= 0) return truncateText(appendDailyAnalysisDisclaimer(link), TELEGRAM_CAPTION_MAX)
 
   if (caption.includes(link)) {
     const withoutLink = caption.replace(link, "").trimEnd()
-    if (withoutLink.length + linkSuffix.length <= TELEGRAM_CAPTION_MAX) {
-      return `${withoutLink}${linkSuffix}`
+    if (withoutLink.length + trailingSuffix.length <= TELEGRAM_CAPTION_MAX) {
+      return appendDailyAnalysisDisclaimer(`${withoutLink}${linkSuffix}`)
     }
-    return `${truncateText(withoutLink, maxBody)}${linkSuffix}`
+    return appendDailyAnalysisDisclaimer(`${truncateText(withoutLink, maxBody)}${linkSuffix}`)
   }
 
-  if (caption.length + linkSuffix.length <= TELEGRAM_CAPTION_MAX) {
-    return `${caption}${linkSuffix}`
+  if (caption.length + trailingSuffix.length <= TELEGRAM_CAPTION_MAX) {
+    return appendDailyAnalysisDisclaimer(`${caption}${linkSuffix}`)
   }
-  return `${truncateText(caption, maxBody)}${linkSuffix}`
+  return appendDailyAnalysisDisclaimer(`${truncateText(caption, maxBody)}${linkSuffix}`)
 }
 
 function buildDailyAnalysisCaption(article: DailyAnalysis): string {
   const link = dailyAnalysisUrl(article.slug)
   const linkSuffix = `\n\n${link}`
-  const maxBody = TELEGRAM_CAPTION_MAX - linkSuffix.length
+  const disclaimerSuffix = `\n\n${DAILY_ANALYSIS_DISCLAIMER}`
+  const trailingSuffix = `${linkSuffix}${disclaimerSuffix}`
+  const maxBody = TELEGRAM_CAPTION_MAX - trailingSuffix.length
 
   const title = article.title.trim()
   const summary = article.summary.trim()
@@ -103,7 +108,7 @@ function buildDailyAnalysisCaption(article: DailyAnalysis): string {
     body = truncateText(body, maxBody)
   }
 
-  return `${body}${linkSuffix}`
+  return appendDailyAnalysisDisclaimer(`${body}${linkSuffix}`)
 }
 
 function resolveCaption(article: DailyAnalysis): string {
@@ -111,7 +116,7 @@ function resolveCaption(article: DailyAnalysis): string {
   const openAiCaption = article.telegramCaption?.trim()
 
   if (openAiCaption && openAiCaption.length <= TELEGRAM_CAPTION_MAX) {
-    return openAiCaption
+    return appendDailyAnalysisDisclaimer(openAiCaption)
   }
 
   if (openAiCaption) {

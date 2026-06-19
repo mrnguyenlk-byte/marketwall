@@ -1,6 +1,7 @@
 import OpenAI from "openai"
 import {
   DAILY_ANALYSIS_SYSTEM_PROMPT,
+  appendDailyAnalysisDisclaimer,
   buildDailyAnalysisUserPrompt,
   type DailyAnalysisPromptInput,
 } from "./prompt"
@@ -53,7 +54,7 @@ export function parseAndValidateOpenAiContent(raw: unknown): DailyAnalysisOpenAi
     if (!isNonEmptyString(record[field])) return null
   }
 
-  return {
+  return sanitizeDailyAnalysisOpenAiContent({
     title: (record.title as string).trim(),
     summary: (record.summary as string).trim(),
     vnindexAnalysis: (record.vnindexAnalysis as string).trim(),
@@ -63,6 +64,18 @@ export function parseAndValidateOpenAiContent(raw: unknown): DailyAnalysisOpenAi
     telegramCaption: (record.telegramCaption as string).trim(),
     facebookCaption: (record.facebookCaption as string).trim(),
     zaloMessage: (record.zaloMessage as string).trim(),
+  })
+}
+
+/** Ensure disclaimer on article CTA and social captions even if the model omits it. */
+export function sanitizeDailyAnalysisOpenAiContent(
+  content: DailyAnalysisOpenAiContent,
+): DailyAnalysisOpenAiContent {
+  return {
+    ...content,
+    cta: appendDailyAnalysisDisclaimer(content.cta),
+    telegramCaption: appendDailyAnalysisDisclaimer(content.telegramCaption),
+    facebookCaption: appendDailyAnalysisDisclaimer(content.facebookCaption),
   }
 }
 
