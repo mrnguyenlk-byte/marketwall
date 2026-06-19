@@ -6,6 +6,10 @@ import {
 } from "@/lib/daily-analysis/storage"
 import type { DailyAnalysis } from "@/lib/daily-analysis/types"
 import {
+  publishDailyAnalysisToFacebook,
+  type FacebookPublishResult,
+} from "@/lib/publishers/facebook"
+import {
   publishDailyAnalysisToTelegram,
   type TelegramPublishResult,
 } from "@/lib/publishers/telegram"
@@ -42,6 +46,7 @@ function unauthorizedResponse() {
 async function saveWithTelegramPublish(article: DailyAnalysis): Promise<{
   article: DailyAnalysis
   telegram: TelegramPublishResult
+  facebook: FacebookPublishResult
 }> {
   await saveDailyAnalysis(article)
 
@@ -61,8 +66,19 @@ async function saveWithTelegramPublish(article: DailyAnalysis): Promise<{
     console.error("[daily-analysis] Telegram publish failed:", telegram.error)
   }
 
+  const facebook = await publishDailyAnalysisToFacebook(updated)
+  if (facebook.ok) {
+    updated.facebookStatus = "sent"
+    updated.facebookPostId = facebook.postId ?? facebook.photoId
+  } else if (facebook.error.startsWith("skipped:")) {
+    updated.facebookStatus = "skipped"
+  } else {
+    updated.facebookStatus = "failed"
+    console.error("[daily-analysis] Facebook publish failed:", facebook.error)
+  }
+
   const saved = await saveDailyAnalysis(updated)
-  return { article: saved, telegram }
+  return { article: saved, telegram, facebook }
 }
 
 async function handleMultipartRequest(request: Request) {
@@ -112,7 +128,7 @@ async function handleMultipartRequest(request: Request) {
     goldImage: goldImageUrl,
   })
 
-  const { article: saved, telegram } = await saveWithTelegramPublish(article)
+  const { article: saved, telegram, facebook } = await saveWithTelegramPublish(article)
 
   try {
     const modelNote = model ? ` model=${model}` : ""
@@ -121,9 +137,13 @@ async function handleMultipartRequest(request: Request) {
       telegram.ok
         ? ` telegram=sent msg=${telegram.messageId}`
         : ` telegram=${saved.telegramStatus ?? "unknown"}`
+    const facebookNote =
+      facebook.ok
+        ? ` facebook=sent post=${facebook.postId ?? facebook.photoId ?? "unknown"}`
+        : ` facebook=${saved.facebookStatus ?? "unknown"}`
     await appendDailyAnalysisLog(
       date,
-      `Generated daily analysis via ${source}${modelNote}${fallbackNote} (slug=${saved.slug})${telegramNote}`,
+      `Generated daily analysis via ${source}${modelNote}${fallbackNote} (slug=${saved.slug})${telegramNote}${facebookNote}`,
     )
   } catch {
     // Logging is optional; do not fail the request.
@@ -136,6 +156,7 @@ async function handleMultipartRequest(request: Request) {
     goldImage: goldImageUrl,
     article: saved,
     telegram,
+    facebook,
   })
 }
 
@@ -165,7 +186,7 @@ async function handleJsonRequest(request: Request) {
     usMacroDataText: body.usMacroData,
   })
 
-  const { article: saved, telegram } = await saveWithTelegramPublish(article)
+  const { article: saved, telegram, facebook } = await saveWithTelegramPublish(article)
 
   try {
     const modelNote = model ? ` model=${model}` : ""
@@ -174,9 +195,13 @@ async function handleJsonRequest(request: Request) {
       telegram.ok
         ? ` telegram=sent msg=${telegram.messageId}`
         : ` telegram=${saved.telegramStatus ?? "unknown"}`
+    const facebookNote =
+      facebook.ok
+        ? ` facebook=sent post=${facebook.postId ?? facebook.photoId ?? "unknown"}`
+        : ` facebook=${saved.facebookStatus ?? "unknown"}`
     await appendDailyAnalysisLog(
       date,
-      `Generated daily analysis via ${source}${modelNote}${fallbackNote} (slug=${saved.slug})${telegramNote}`,
+      `Generated daily analysis via ${source}${modelNote}${fallbackNote} (slug=${saved.slug})${telegramNote}${facebookNote}`,
     )
   } catch {
     // Logging is optional; do not fail the request.
@@ -190,6 +215,7 @@ async function handleJsonRequest(request: Request) {
       goldImage: saved.goldImage,
       article: saved,
       telegram,
+      facebook,
     },
     { status: 200 },
   )
