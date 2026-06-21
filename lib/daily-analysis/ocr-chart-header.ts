@@ -2,8 +2,12 @@ import "server-only"
 
 import OpenAI from "openai"
 import sharp from "sharp"
+import {
+  computePointChange,
+  computePreviousClose,
+  type AmiBrokerOcrRow,
+} from "./market-data"
 import { getDailyAnalysisOpenAiModel, hasOpenAiApiKey } from "./openai-generator"
-import type { AmiBrokerOcrRow } from "./market-data"
 
 const HEADER_CROP_RATIO = 0.14
 
@@ -69,6 +73,15 @@ function parseOcrRow(raw: unknown): AmiBrokerOcrRow | null {
 
 function isOcrSuccess(row: AmiBrokerOcrRow | null): boolean {
   return row != null && row.close != null
+}
+
+function ocrRowWithDerivedValues(row: AmiBrokerOcrRow | null) {
+  if (!row || row.close == null) return row
+  const previousClose =
+    row.changePercent != null ? computePreviousClose(row.close, row.changePercent) : null
+  const pointChange =
+    row.changePercent != null ? computePointChange(row.close, row.changePercent) : null
+  return { ...row, previousClose, pointChange }
 }
 
 /** Crop the top header band of an AmiBroker chart screenshot. */
@@ -147,7 +160,10 @@ export async function extractAmiBrokerHeaderOcr(
 
     if (isOcrSuccess(row)) {
       console.log("[daily-analysis] OCR_SUCCESS", { label, symbol: row.symbol })
-      console.log("[daily-analysis] OCR_VALUES", JSON.stringify({ label, row }))
+      console.log(
+        "[daily-analysis] OCR_VALUES",
+        JSON.stringify({ label, row: ocrRowWithDerivedValues(row) }),
+      )
     } else {
       console.log("[daily-analysis] OCR_FAILED", {
         label,
@@ -188,8 +204,8 @@ export async function extractDailyAnalysisOcr(input: {
     JSON.stringify({
       vnindexSuccess: result.vnindexSuccess,
       goldSuccess: result.goldSuccess,
-      vnindex: result.vnindex,
-      gold: result.gold,
+      vnindex: ocrRowWithDerivedValues(result.vnindex),
+      gold: ocrRowWithDerivedValues(result.gold),
     }),
   )
 

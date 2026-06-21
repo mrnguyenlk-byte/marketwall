@@ -4,7 +4,6 @@ import {
 } from "@/lib/economic-calendar/us-events"
 import { generateMockDailyAnalysis } from "./generator"
 import {
-  applyOcrToAnalysisSections,
   emptyOcrMarketData,
   ocrToMarketData,
   type DailyAnalysisMarketData,
@@ -14,6 +13,7 @@ import {
   getDailyAnalysisOpenAiModel,
   hasOpenAiApiKey,
 } from "./openai-generator"
+import { ensureArticleUsesOcrValues } from "./ocr-article-sync"
 import type { DailyAnalysisOcrResult } from "./ocr-chart-header"
 import { logDailyAnalysisOpenAiError } from "./storage"
 import type { DailyAnalysis } from "./types"
@@ -64,20 +64,21 @@ function attachOcrFields(
   ocrData: DailyAnalysisOcrResult | null | undefined,
   marketData: DailyAnalysisMarketData,
 ): DailyAnalysis {
-  const withOcrAnalysis = applyOcrToAnalysisSections(article, marketData)
-  return {
-    ...article,
-    ...withOcrAnalysis,
-    marketData,
-    ...(ocrData
-      ? {
-          ocrData: {
-            vnindex: ocrData.vnindex,
-            gold: ocrData.gold,
-          },
-        }
-      : {}),
-  }
+  return ensureArticleUsesOcrValues(
+    {
+      ...article,
+      marketData,
+      ...(ocrData
+        ? {
+            ocrData: {
+              vnindex: ocrData.vnindex,
+              gold: ocrData.gold,
+            },
+          }
+        : {}),
+    },
+    ocrData ?? null,
+  )
 }
 
 export async function generateDailyAnalysis(

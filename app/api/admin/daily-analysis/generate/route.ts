@@ -2,6 +2,7 @@ import { generateDailyAnalysis } from "@/lib/daily-analysis/generate"
 import {
   extractDailyAnalysisOcr,
 } from "@/lib/daily-analysis/ocr-chart-header"
+import { ensureArticleUsesOcrValues } from "@/lib/daily-analysis/ocr-article-sync"
 import {
   appendDailyAnalysisLog,
   saveDailyAnalysis,
@@ -106,7 +107,9 @@ export async function POST(request: Request) {
     ocrData,
   })
 
-  const { article: saved } = await saveWithPublish(article)
+  const { article: saved } = await saveWithPublish(
+    ensureArticleUsesOcrValues(article, ocrData),
+  )
 
   try {
     await appendDailyAnalysisLog(

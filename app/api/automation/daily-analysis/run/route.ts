@@ -3,6 +3,7 @@ import {
   extractDailyAnalysisOcr,
   fetchImageBuffer,
 } from "@/lib/daily-analysis/ocr-chart-header"
+import { ensureArticleUsesOcrValues } from "@/lib/daily-analysis/ocr-article-sync"
 import {
   appendDailyAnalysisLog,
   saveDailyAnalysis,
@@ -164,7 +165,9 @@ async function handleMultipartRequest(request: Request) {
     ocrData,
   })
 
-  const { article: saved, telegram, facebook } = await saveWithTelegramPublish(article)
+  const { article: saved, telegram, facebook } = await saveWithTelegramPublish(
+    ensureArticleUsesOcrValues(article, ocrData),
+  )
 
   try {
     const modelNote = model ? ` model=${model}` : ""
@@ -234,7 +237,9 @@ async function handleJsonRequest(request: Request) {
     ocrData,
   })
 
-  const { article: saved, telegram, facebook } = await saveWithTelegramPublish(article)
+  const { article: saved, telegram, facebook } = await saveWithTelegramPublish(
+    ensureArticleUsesOcrValues(article, ocrData),
+  )
 
   try {
     const modelNote = model ? ` model=${model}` : ""

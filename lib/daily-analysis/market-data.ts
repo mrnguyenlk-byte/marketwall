@@ -59,6 +59,19 @@ function formatSignedPercent(value: number): string {
   return `${formatSignedNumber(value, 2)}%`
 }
 
+/** Previous session close implied by current close and header changePercent. */
+export function computePreviousClose(close: number, changePercent: number): number {
+  const factor = 1 + changePercent / 100
+  if (!Number.isFinite(factor) || factor === 0) return close
+  return close / factor
+}
+
+/** Session point change from OCR close and changePercent (not intraday open-close). */
+export function computePointChange(close: number, changePercent: number): number {
+  const previousClose = computePreviousClose(close, changePercent)
+  return round(close - previousClose, 4)
+}
+
 /** Fetch live VN-Index and Gold quotes for daily analysis generation. */
 export async function fetchDailyAnalysisMarketData(): Promise<DailyAnalysisMarketData> {
   const [vietnam, global] = await Promise.all([
@@ -106,7 +119,9 @@ function ocrRowToQuote(row: AmiBrokerOcrRow | null): DailyAnalysisMarketQuote {
   }
 
   const change =
-    row.open != null && row.close != null ? round(row.close - row.open, 4) : null
+    row.changePercent != null
+      ? computePointChange(row.close, row.changePercent)
+      : null
 
   return {
     value: row.close,
@@ -133,9 +148,12 @@ export function emptyOcrMarketData(): DailyAnalysisMarketData {
 
 export function formatVnindexMarketLine(quote: DailyAnalysisMarketQuote): string {
   if (quote.value == null) return updatingMessageForQuote(quote)
-  const value = formatNumber(quote.value, 1)
+  const value = formatNumber(quote.value, 2)
+  const changeDecimals = quote.source === "ami-broker-ocr" ? 2 : 1
   const change =
-    quote.change != null ? `${formatSignedNumber(quote.change, 1)} điểm` : "— điểm"
+    quote.change != null
+      ? `${formatSignedNumber(quote.change, changeDecimals)} điểm`
+      : "— điểm"
   const changePercent =
     quote.changePercent != null ? formatSignedPercent(quote.changePercent) : "—"
   return `${value} | ${change} | ${changePercent}`
@@ -153,9 +171,10 @@ export function formatGoldMarketLine(quote: DailyAnalysisMarketQuote): string {
 /** Prompt sentence for VN-Index numeric injection. */
 export function vnindexPromptSentence(quote: DailyAnalysisMarketQuote): string {
   if (quote.value == null) return updatingMessageForQuote(quote)
-  const value = formatNumber(quote.value, 1)
+  const value = formatNumber(quote.value, 2)
+  const changeDecimals = quote.source === "ami-broker-ocr" ? 2 : 1
   const change =
-    quote.change != null ? formatSignedNumber(quote.change, 1) : "—"
+    quote.change != null ? formatSignedNumber(quote.change, changeDecimals) : "—"
   const changePercent =
     quote.changePercent != null ? formatSignedPercent(quote.changePercent) : "—"
   return `VN-Index hiện ở khoảng ${value} điểm, thay đổi ${change} điểm (${changePercent}).`
@@ -189,6 +208,11 @@ export function buildMarketDataPromptSection(marketData: DailyAnalysisMarketData
 
 const UPDATING_MESSAGES = [MARKET_DATA_UPDATING_MESSAGE, OCR_AMIBROKER_UPDATING_MESSAGE]
 
+const VNINDEX_OPENING_PATTERN =
+  /^VN-Index hiện ở khoảng .+? điểm, thay đổi .+? điểm \([^)]+\)\.\s*/i
+const GOLD_OPENING_PATTERN =
+  /^XAUUSD hiện quanh .+? USD\/oz, thay đổi .+? USD \([^)]+\)\.\s*/i
+
 function stripLeadingUpdatingMessage(text: string): string {
   let body = text.trim()
   for (const message of UPDATING_MESSAGES) {
@@ -213,9 +237,16 @@ export function injectOcrOpeningSentence(
       : OCR_AMIBROKER_UPDATING_MESSAGE
   }
 
-  const body = stripLeadingUpdatingMessage(analysis)
+  const openingPattern = openingPatternForSentence(sentence)
+  const body = stripLeadingUpdatingMessage(analysis).replace(openingPattern, "")
   if (body.startsWith(sentence)) return body
   return body ? `${sentence} ${body}`.trim() : sentence
+}
+
+function openingPatternForSentence(sentence: string): RegExp {
+  if (sentence.startsWith("VN-Index")) return VNINDEX_OPENING_PATTERN
+  if (sentence.startsWith("XAUUSD")) return GOLD_OPENING_PATTERN
+  return /^/
 }
 
 export function applyOcrToAnalysisSections(
@@ -233,5 +264,38 @@ export function applyOcrToAnalysisSections(
       goldPromptSentence(marketData.gold),
       marketData.gold.value != null,
     ),
+  }
+}
+
+export type InstrumentArticleValues = {
+  close: number | null
+  previousClose: number | null
+  pointChange: number | null
+  changePercent: number | null
+}
+
+export function quoteToArticleValues(quote: DailyAnalysisMarketQuote): InstrumentArticleValues {
+  const close = quote.value
+  const changePercent = quote.changePercent
+  const previousClose =
+    close != null && changePercent != null
+      ? round(computePreviousClose(close, changePercent), 4)
+      : null
+
+  return {
+    close,
+    previousClose,
+    pointChange: quote.change,
+    changePercent,
+  }
+}
+
+export function buildArticleValuesSnapshot(marketData: DailyAnalysisMarketData): {
+  vnindex: InstrumentArticleValues
+  gold: InstrumentArticleValues
+} {
+  return {
+    vnindex: quoteToArticleValues(marketData.vnindex),
+    gold: quoteToArticleValues(marketData.gold),
   }
 }
