@@ -1,5 +1,6 @@
 import {
   buildMarketDataPromptSection,
+  OCR_AMIBROKER_UPDATING_MESSAGE,
   type DailyAnalysisMarketData,
 } from "./market-data"
 
@@ -56,10 +57,10 @@ Nhiệm vụ: viết bản phân tích thị trường hàng ngày bằng tiến
 QUY TẮC DỮ LIỆU — BẮT BUỘC:
 1. Khi prompt cung cấp số liệu VN-Index (điểm, thay đổi, %), BẮT BUỘC đưa các con số đó vào vnindexAnalysis theo mẫu: "VN-Index hiện ở khoảng {value} điểm, thay đổi {change} điểm ({changePercent}%)." — không bịa thêm số khác.
 2. Khi prompt cung cấp số liệu vàng XAUUSD, BẮT BUỘC đưa vào goldAnalysis theo mẫu: "XAUUSD hiện quanh {value} USD/oz, thay đổi {change} USD ({changePercent}%)." — không bịa thêm số khác.
-3. Nếu số liệu null hoặc ghi "đang được cập nhật", dùng câu: "Dữ liệu điểm số đang được cập nhật."
+3. Nếu số liệu null hoặc không đọc được từ biểu đồ AmiBroker, dùng câu: "${OCR_AMIBROKER_UPDATING_MESSAGE}"
 4. KHÔNG bịa dữ liệu kinh tế (CPI, Fed, lợi suất, GDP, v.v.) — chỉ dùng dữ liệu vĩ mô Mỹ và sự kiện lịch kinh tế được cung cấp trong prompt.
-5. CHỈ sử dụng dữ liệu được cung cấp; thiếu dữ liệu thì ghi rõ "Dữ liệu điểm số đang được cập nhật."
-6. Biểu đồ là tham chiếu trực quan bổ sung — ưu tiên số liệu thị trường được cung cấp trong prompt.
+5. CHỈ sử dụng dữ liệu được cung cấp; thiếu số liệu VN-Index/vàng thì ghi rõ "${OCR_AMIBROKER_UPDATING_MESSAGE}"
+6. Biểu đồ AmiBroker là nguồn số liệu duy nhất cho VN-Index và vàng — ưu tiên số OCR trong prompt, không bịa thêm.
 
 QUY TẮC NỘI DUNG:
 1. KHÔNG dự đoán tương lai với mức độ chắc chắn (tránh "chắc chắn sẽ", "nhất định").
@@ -133,7 +134,9 @@ export function buildDailyAnalysisUserPrompt(input: DailyAnalysisPromptInput): s
   lines.push(
     `- Biểu đồ VN-Index (tham chiếu trực quan): ${vnindexImage}`,
     `- Biểu đồ vàng XAUUSD (tham chiếu trực quan): ${goldImage}`,
-    "Bổ sung mô tả xu hướng/vùng giá từ biểu đồ khi có căn cứ. Nếu số liệu null, ghi: \"Dữ liệu điểm số đang được cập nhật.\"",
+    "Bổ sung mô tả xu hướng/vùng giá từ biểu đồ khi có căn cứ. Nếu số liệu null, ghi: \"" +
+      OCR_AMIBROKER_UPDATING_MESSAGE +
+      "\"",
     "",
     "Cấu trúc nội dung bài phân tích (tối đa 180 từ cho 4 mục vnindexAnalysis + goldAnalysis + usMacroSummary + watchNext):",
     "1. VN-Index → vnindexAnalysis",

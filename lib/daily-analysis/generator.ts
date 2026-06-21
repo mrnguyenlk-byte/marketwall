@@ -1,6 +1,6 @@
 import {
   goldPromptSentence,
-  MARKET_DATA_UPDATING_MESSAGE,
+  OCR_AMIBROKER_UPDATING_MESSAGE,
   vnindexPromptSentence,
   type DailyAnalysisMarketData,
 } from "./market-data"
@@ -42,13 +42,17 @@ export function generateMockDailyAnalysis(
   const vnAnalysis = marketData
     ? marketData.vnindex.value != null
       ? `${vnindexPromptSentence(marketData.vnindex)} Theo biểu đồ, cần quan sát xu hướng ngắn hạn và các vùng hỗ trợ/kháng cự.`
-      : MARKET_DATA_UPDATING_MESSAGE
-    : "Theo biểu đồ VN-Index, cần quan sát xu hướng ngắn hạn và các vùng hỗ trợ/kháng cự nổi bật. Nếu chưa đủ căn cứ cụ thể, dữ liệu đang được cập nhật."
+      : marketData.vnindex.source === "ami-broker-ocr"
+        ? OCR_AMIBROKER_UPDATING_MESSAGE
+        : "Theo biểu đồ VN-Index, cần quan sát xu hướng ngắn hạn và các vùng hỗ trợ/kháng cự nổi bật."
+    : OCR_AMIBROKER_UPDATING_MESSAGE
   const goldAnalysis = marketData
     ? marketData.gold.value != null
       ? `${goldPromptSentence(marketData.gold)} Cần đọc cùng bối cảnh USD và lợi suất.`
-      : MARKET_DATA_UPDATING_MESSAGE
-    : "Giá vàng XAUUSD cần đọc cùng bối cảnh USD và lợi suất. Các vùng giá quan trọng chỉ nêu khi nhìn thấy rõ trên biểu đồ."
+      : marketData.gold.source === "ami-broker-ocr"
+        ? OCR_AMIBROKER_UPDATING_MESSAGE
+        : "Giá vàng XAUUSD cần đọc cùng bối cảnh USD và lợi suất. Các vùng giá quan trọng chỉ nêu khi nhìn thấy rõ trên biểu đồ."
+    : OCR_AMIBROKER_UPDATING_MESSAGE
 
   return {
     date,

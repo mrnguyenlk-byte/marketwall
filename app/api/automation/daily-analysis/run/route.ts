@@ -1,5 +1,9 @@
 import { generateDailyAnalysis } from "@/lib/daily-analysis/generate"
 import {
+  extractDailyAnalysisOcr,
+  fetchImageBuffer,
+} from "@/lib/daily-analysis/ocr-chart-header"
+import {
   appendDailyAnalysisLog,
   saveDailyAnalysis,
   saveDailyAnalysisImage,
@@ -101,6 +105,13 @@ async function saveWithTelegramPublish(article: DailyAnalysis): Promise<{
   return { article: saved, telegram, facebook }
 }
 
+function formatOcrLogSuffix(
+  ocrData: Awaited<ReturnType<typeof extractDailyAnalysisOcr>> | null,
+): string {
+  if (!ocrData) return ""
+  return ` ocr_vn=${ocrData.vnindexSuccess ? "ok" : "fail"} ocr_gold=${ocrData.goldSuccess ? "ok" : "fail"}`
+}
+
 async function handleMultipartRequest(request: Request) {
   let formData: FormData
   try {
@@ -134,8 +145,12 @@ async function handleMultipartRequest(request: Request) {
 
   let vnindexImageUrl: string
   let goldImageUrl: string
+  let ocrData = null
 
   try {
+    const vnindexBuffer = Buffer.from(await vnindexFile.arrayBuffer())
+    const goldBuffer = Buffer.from(await goldFile.arrayBuffer())
+    ocrData = await extractDailyAnalysisOcr({ vnindexBuffer, goldBuffer })
     vnindexImageUrl = await saveDailyAnalysisImage(date, "vnindex.png", vnindexFile)
     goldImageUrl = await saveDailyAnalysisImage(date, "gold.png", goldFile)
   } catch (error) {
@@ -146,6 +161,7 @@ async function handleMultipartRequest(request: Request) {
   const { article, source, fallbackUsed, model } = await generateDailyAnalysis(date, {
     vnindexImage: vnindexImageUrl,
     goldImage: goldImageUrl,
+    ocrData,
   })
 
   const { article: saved, telegram, facebook } = await saveWithTelegramPublish(article)
@@ -163,7 +179,7 @@ async function handleMultipartRequest(request: Request) {
         : ` facebook=${saved.facebookStatus ?? "unknown"}`
     await appendDailyAnalysisLog(
       date,
-      `Generated daily analysis via ${source}${modelNote}${fallbackNote} (slug=${saved.slug})${telegramNote}${facebookNote}`,
+      `Generated daily analysis via ${source}${modelNote}${fallbackNote} (slug=${saved.slug})${telegramNote}${facebookNote}${formatOcrLogSuffix(ocrData)}`,
     )
   } catch {
     // Logging is optional; do not fail the request.
@@ -200,10 +216,22 @@ async function handleJsonRequest(request: Request) {
     )
   }
 
+  let ocrData = null
+  if (body.vnindexImage?.trim() && body.goldImage?.trim()) {
+    const [vnindexBuffer, goldBuffer] = await Promise.all([
+      fetchImageBuffer(body.vnindexImage.trim()),
+      fetchImageBuffer(body.goldImage.trim()),
+    ])
+    if (vnindexBuffer && goldBuffer) {
+      ocrData = await extractDailyAnalysisOcr({ vnindexBuffer, goldBuffer })
+    }
+  }
+
   const { article, source, fallbackUsed, model } = await generateDailyAnalysis(date, {
     vnindexImage: body.vnindexImage,
     goldImage: body.goldImage,
     usMacroDataText: body.usMacroData,
+    ocrData,
   })
 
   const { article: saved, telegram, facebook } = await saveWithTelegramPublish(article)
@@ -221,7 +249,7 @@ async function handleJsonRequest(request: Request) {
         : ` facebook=${saved.facebookStatus ?? "unknown"}`
     await appendDailyAnalysisLog(
       date,
-      `Generated daily analysis via ${source}${modelNote}${fallbackNote} (slug=${saved.slug})${telegramNote}${facebookNote}`,
+      `Generated daily analysis via ${source}${modelNote}${fallbackNote} (slug=${saved.slug})${telegramNote}${facebookNote}${formatOcrLogSuffix(ocrData)}`,
     )
   } catch {
     // Logging is optional; do not fail the request.

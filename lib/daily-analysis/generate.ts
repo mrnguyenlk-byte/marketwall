@@ -2,13 +2,19 @@ import {
   formatUsEconomicEventsForPrompt,
   getRecentUsEconomicEvents,
 } from "@/lib/economic-calendar/us-events"
-import { fetchDailyAnalysisMarketData } from "./market-data"
 import { generateMockDailyAnalysis } from "./generator"
+import {
+  applyOcrToAnalysisSections,
+  emptyOcrMarketData,
+  ocrToMarketData,
+  type DailyAnalysisMarketData,
+} from "./market-data"
 import {
   generateOpenAiDailyAnalysis,
   getDailyAnalysisOpenAiModel,
   hasOpenAiApiKey,
 } from "./openai-generator"
+import type { DailyAnalysisOcrResult } from "./ocr-chart-header"
 import { logDailyAnalysisOpenAiError } from "./storage"
 import type { DailyAnalysis } from "./types"
 
@@ -17,6 +23,7 @@ export type GenerateDailyAnalysisOptions = {
   goldImage?: string
   usMacroDataText?: string
   usEventsText?: string
+  ocrData?: DailyAnalysisOcrResult | null
 }
 
 export type GenerateDailyAnalysisResult = {
@@ -42,19 +49,60 @@ async function resolveUsEventsText(
   }
 }
 
+function buildMarketDataFromOcr(
+  ocrData?: DailyAnalysisOcrResult | null,
+): DailyAnalysisMarketData {
+  if (!ocrData) return emptyOcrMarketData()
+  return ocrToMarketData({
+    vnindex: ocrData.vnindex,
+    gold: ocrData.gold,
+  })
+}
+
+function attachOcrFields(
+  article: DailyAnalysis,
+  ocrData: DailyAnalysisOcrResult | null | undefined,
+  marketData: DailyAnalysisMarketData,
+): DailyAnalysis {
+  const withOcrAnalysis = applyOcrToAnalysisSections(article, marketData)
+  return {
+    ...article,
+    ...withOcrAnalysis,
+    marketData,
+    ...(ocrData
+      ? {
+          ocrData: {
+            vnindex: ocrData.vnindex,
+            gold: ocrData.gold,
+          },
+        }
+      : {}),
+  }
+}
+
 export async function generateDailyAnalysis(
   date: string,
   options: GenerateDailyAnalysisOptions = {},
 ): Promise<GenerateDailyAnalysisResult> {
-  const { vnindexImage, goldImage, usMacroDataText, usEventsText: providedUsEventsText } = options
+  const {
+    vnindexImage,
+    goldImage,
+    usMacroDataText,
+    usEventsText: providedUsEventsText,
+    ocrData,
+  } = options
   const { text: usEventsText, calendarChecked: usEventsCalendarChecked } =
     await resolveUsEventsText(providedUsEventsText)
-  const marketData = await fetchDailyAnalysisMarketData()
+  const marketData = buildMarketDataFromOcr(ocrData)
   const model = getDailyAnalysisOpenAiModel()
 
   if (!hasOpenAiApiKey()) {
     return {
-      article: generateMockDailyAnalysis(date, vnindexImage, goldImage, marketData),
+      article: attachOcrFields(
+        generateMockDailyAnalysis(date, vnindexImage, goldImage, marketData),
+        ocrData,
+        marketData,
+      ),
       source: "mock",
       fallbackUsed: true,
     }
@@ -69,8 +117,14 @@ export async function generateDailyAnalysis(
       usEventsText,
       usEventsCalendarChecked,
       marketData,
+      ocrData,
     )
-    return { article, source: "openai", fallbackUsed: false, model }
+    return {
+      article: attachOcrFields(article, ocrData, marketData),
+      source: "openai",
+      fallbackUsed: false,
+      model,
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
 
@@ -96,7 +150,11 @@ export async function generateDailyAnalysis(
     }
 
     return {
-      article: generateMockDailyAnalysis(date, vnindexImage, goldImage, marketData),
+      article: attachOcrFields(
+        generateMockDailyAnalysis(date, vnindexImage, goldImage, marketData),
+        ocrData,
+        marketData,
+      ),
       source: "mock",
       fallbackUsed: true,
       model,

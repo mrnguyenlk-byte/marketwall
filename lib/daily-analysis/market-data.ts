@@ -3,6 +3,15 @@ import "server-only"
 import { getData as getGlobalData } from "@/lib/providers/global-market-provider"
 import { getData as getVietnamData } from "@/lib/providers/vietnam-market-provider"
 
+export type AmiBrokerOcrRow = {
+  symbol: string
+  open: number | null
+  high: number | null
+  low: number | null
+  close: number | null
+  changePercent: number | null
+}
+
 export type DailyAnalysisMarketQuote = {
   value: number | null
   change: number | null
@@ -16,6 +25,9 @@ export type DailyAnalysisMarketData = {
 }
 
 export const MARKET_DATA_UPDATING_MESSAGE = "Dữ liệu điểm số đang được cập nhật."
+
+export const OCR_AMIBROKER_UPDATING_MESSAGE =
+  "Dữ liệu điểm số đang được cập nhật từ biểu đồ AmiBroker."
 
 const EMPTY_QUOTE: DailyAnalysisMarketQuote = {
   value: null,
@@ -83,8 +95,44 @@ export async function fetchDailyAnalysisMarketData(): Promise<DailyAnalysisMarke
   return { vnindex, gold }
 }
 
+function updatingMessageForQuote(quote: DailyAnalysisMarketQuote): string {
+  if (quote.source === "ami-broker-ocr") return OCR_AMIBROKER_UPDATING_MESSAGE
+  return MARKET_DATA_UPDATING_MESSAGE
+}
+
+function ocrRowToQuote(row: AmiBrokerOcrRow | null): DailyAnalysisMarketQuote {
+  if (!row || row.close == null) {
+    return { ...EMPTY_QUOTE, source: "ami-broker-ocr" }
+  }
+
+  const change =
+    row.open != null && row.close != null ? round(row.close - row.open, 4) : null
+
+  return {
+    value: row.close,
+    change,
+    changePercent: row.changePercent,
+    source: "ami-broker-ocr",
+  }
+}
+
+/** Build daily analysis market snapshot from AmiBroker OCR rows only. */
+export function ocrToMarketData(ocr: {
+  vnindex: AmiBrokerOcrRow | null
+  gold: AmiBrokerOcrRow | null
+}): DailyAnalysisMarketData {
+  return {
+    vnindex: ocrRowToQuote(ocr.vnindex),
+    gold: ocrRowToQuote(ocr.gold),
+  }
+}
+
+export function emptyOcrMarketData(): DailyAnalysisMarketData {
+  return ocrToMarketData({ vnindex: null, gold: null })
+}
+
 export function formatVnindexMarketLine(quote: DailyAnalysisMarketQuote): string {
-  if (quote.value == null) return MARKET_DATA_UPDATING_MESSAGE
+  if (quote.value == null) return updatingMessageForQuote(quote)
   const value = formatNumber(quote.value, 1)
   const change =
     quote.change != null ? `${formatSignedNumber(quote.change, 1)} điểm` : "— điểm"
@@ -94,7 +142,7 @@ export function formatVnindexMarketLine(quote: DailyAnalysisMarketQuote): string
 }
 
 export function formatGoldMarketLine(quote: DailyAnalysisMarketQuote): string {
-  if (quote.value == null) return MARKET_DATA_UPDATING_MESSAGE
+  if (quote.value == null) return updatingMessageForQuote(quote)
   const value = formatNumber(quote.value, 2)
   const change = quote.change != null ? `${formatSignedNumber(quote.change, 2)} USD` : "— USD"
   const changePercent =
@@ -104,7 +152,7 @@ export function formatGoldMarketLine(quote: DailyAnalysisMarketQuote): string {
 
 /** Prompt sentence for VN-Index numeric injection. */
 export function vnindexPromptSentence(quote: DailyAnalysisMarketQuote): string {
-  if (quote.value == null) return MARKET_DATA_UPDATING_MESSAGE
+  if (quote.value == null) return updatingMessageForQuote(quote)
   const value = formatNumber(quote.value, 1)
   const change =
     quote.change != null ? formatSignedNumber(quote.change, 1) : "—"
@@ -115,7 +163,7 @@ export function vnindexPromptSentence(quote: DailyAnalysisMarketQuote): string {
 
 /** Prompt sentence for Gold numeric injection. */
 export function goldPromptSentence(quote: DailyAnalysisMarketQuote): string {
-  if (quote.value == null) return MARKET_DATA_UPDATING_MESSAGE
+  if (quote.value == null) return updatingMessageForQuote(quote)
   const value = formatNumber(quote.value, 2)
   const change =
     quote.change != null ? formatSignedNumber(quote.change, 2) : "—"
@@ -125,10 +173,65 @@ export function goldPromptSentence(quote: DailyAnalysisMarketQuote): string {
 }
 
 export function buildMarketDataPromptSection(marketData: DailyAnalysisMarketData): string {
+  const updatingHint =
+    marketData.vnindex.source === "ami-broker-ocr" ||
+    marketData.gold.source === "ami-broker-ocr"
+      ? `Khi số liệu là null hoặc không đọc được từ biểu đồ AmiBroker, ghi: "${OCR_AMIBROKER_UPDATING_MESSAGE}"`
+      : `Khi số liệu là null hoặc thông báo cập nhật, ghi: "${MARKET_DATA_UPDATING_MESSAGE}"`
+
   return [
-    "Số liệu thị trường thời điểm hiện tại (BẮT BUỘC dùng khi viết vnindexAnalysis và goldAnalysis):",
+    "Số liệu thị trường đọc từ header biểu đồ AmiBroker (BẮT BUỘC dùng khi viết vnindexAnalysis và goldAnalysis — KHÔNG bịa số):",
     `- VN-Index (${marketData.vnindex.source}): ${vnindexPromptSentence(marketData.vnindex)}`,
     `- Vàng XAUUSD (${marketData.gold.source}): ${goldPromptSentence(marketData.gold)}`,
-    "Khi số liệu là null hoặc thông báo cập nhật, ghi: \"Dữ liệu điểm số đang được cập nhật.\"",
+    updatingHint,
   ].join("\n")
+}
+
+const UPDATING_MESSAGES = [MARKET_DATA_UPDATING_MESSAGE, OCR_AMIBROKER_UPDATING_MESSAGE]
+
+function stripLeadingUpdatingMessage(text: string): string {
+  let body = text.trim()
+  for (const message of UPDATING_MESSAGES) {
+    if (body.startsWith(message)) {
+      body = body.slice(message.length).trim()
+      break
+    }
+  }
+  return body
+}
+
+/** Ensure analysis sections open with OCR-derived market sentences. */
+export function injectOcrOpeningSentence(
+  analysis: string,
+  sentence: string,
+  ocrSucceeded: boolean,
+): string {
+  if (!ocrSucceeded) {
+    const body = stripLeadingUpdatingMessage(analysis)
+    return body
+      ? `${OCR_AMIBROKER_UPDATING_MESSAGE} ${body}`.trim()
+      : OCR_AMIBROKER_UPDATING_MESSAGE
+  }
+
+  const body = stripLeadingUpdatingMessage(analysis)
+  if (body.startsWith(sentence)) return body
+  return body ? `${sentence} ${body}`.trim() : sentence
+}
+
+export function applyOcrToAnalysisSections(
+  content: { vnindexAnalysis: string; goldAnalysis: string },
+  marketData: DailyAnalysisMarketData,
+): { vnindexAnalysis: string; goldAnalysis: string } {
+  return {
+    vnindexAnalysis: injectOcrOpeningSentence(
+      content.vnindexAnalysis,
+      vnindexPromptSentence(marketData.vnindex),
+      marketData.vnindex.value != null,
+    ),
+    goldAnalysis: injectOcrOpeningSentence(
+      content.goldAnalysis,
+      goldPromptSentence(marketData.gold),
+      marketData.gold.value != null,
+    ),
+  }
 }

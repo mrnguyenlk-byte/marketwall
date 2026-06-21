@@ -1,4 +1,4 @@
-import type { DailyAnalysisMarketData } from "./market-data"
+import type { AmiBrokerOcrRow, DailyAnalysisMarketData } from "./market-data"
 
 export type DailyAnalysisPublishStatus = "draft" | "published" | "pending"
 
@@ -29,6 +29,11 @@ export type DailyAnalysis = {
   facebookErrorCode?: string
   /** Live market snapshot at generation time (VN-Index + Gold). */
   marketData?: DailyAnalysisMarketData
+  /** Raw OCR rows extracted from AmiBroker chart headers. */
+  ocrData?: {
+    vnindex: AmiBrokerOcrRow | null
+    gold: AmiBrokerOcrRow | null
+  }
 }
 
 /** JSON fields returned by OpenAI for daily analysis content. */

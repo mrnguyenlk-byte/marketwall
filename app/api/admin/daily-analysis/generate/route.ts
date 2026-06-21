@@ -1,5 +1,8 @@
 import { generateDailyAnalysis } from "@/lib/daily-analysis/generate"
 import {
+  extractDailyAnalysisOcr,
+} from "@/lib/daily-analysis/ocr-chart-header"
+import {
   appendDailyAnalysisLog,
   saveDailyAnalysis,
   saveDailyAnalysisImage,
@@ -80,17 +83,27 @@ export async function POST(request: Request) {
 
   let vnindexImageUrl: string | undefined
   let goldImageUrl: string | undefined
+  let vnindexBuffer: Buffer | undefined
+  let goldBuffer: Buffer | undefined
 
   if (vnindexFile instanceof File && vnindexFile.size > 0) {
+    vnindexBuffer = Buffer.from(await vnindexFile.arrayBuffer())
     vnindexImageUrl = await saveDailyAnalysisImage(date, "vnindex.png", vnindexFile)
   }
   if (goldFile instanceof File && goldFile.size > 0) {
+    goldBuffer = Buffer.from(await goldFile.arrayBuffer())
     goldImageUrl = await saveDailyAnalysisImage(date, "gold.png", goldFile)
   }
+
+  const ocrData =
+    vnindexBuffer && goldBuffer
+      ? await extractDailyAnalysisOcr({ vnindexBuffer, goldBuffer })
+      : null
 
   const { article, source, fallbackUsed, model } = await generateDailyAnalysis(date, {
     vnindexImage: vnindexImageUrl,
     goldImage: goldImageUrl,
+    ocrData,
   })
 
   const { article: saved } = await saveWithPublish(article)

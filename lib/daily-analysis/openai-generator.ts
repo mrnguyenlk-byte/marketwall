@@ -9,6 +9,7 @@ import {
   type DailyAnalysisPromptInput,
 } from "./prompt"
 import type { DailyAnalysisMarketData } from "./market-data"
+import type { DailyAnalysisOcrResult } from "./ocr-chart-header"
 import { generateDailyAnalysisSlug } from "./slug"
 import type { DailyAnalysis, DailyAnalysisOpenAiContent } from "./types"
 
@@ -114,6 +115,7 @@ export function buildDailyAnalysisFromOpenAiContent(
   vnindexImage: string,
   goldImage: string,
   marketData?: DailyAnalysisMarketData,
+  ocrData?: DailyAnalysisOcrResult | null,
 ): DailyAnalysis {
   const now = new Date().toISOString()
   const slug = generateDailyAnalysisSlug(content.title, date)
@@ -137,6 +139,14 @@ export function buildDailyAnalysisFromOpenAiContent(
     createdAt: now,
     updatedAt: now,
     ...(marketData ? { marketData } : {}),
+    ...(ocrData
+      ? {
+          ocrData: {
+            vnindex: ocrData.vnindex,
+            gold: ocrData.gold,
+          },
+        }
+      : {}),
   }
 }
 
@@ -206,6 +216,7 @@ export async function generateOpenAiDailyAnalysis(
   usEventsText?: string,
   usEventsCalendarChecked?: boolean,
   marketData?: DailyAnalysisMarketData,
+  ocrData?: DailyAnalysisOcrResult | null,
 ): Promise<DailyAnalysis> {
   const vnImage = vnindexImage ?? defaultVnindexImage(date)
   const gImage = goldImage ?? defaultGoldImage(date)
@@ -220,5 +231,12 @@ export async function generateOpenAiDailyAnalysis(
     usEventsCalendarChecked,
   })
 
-  return buildDailyAnalysisFromOpenAiContent(date, content, vnImage, gImage, marketData)
+  return buildDailyAnalysisFromOpenAiContent(
+    date,
+    content,
+    vnImage,
+    gImage,
+    marketData,
+    ocrData,
+  )
 }
