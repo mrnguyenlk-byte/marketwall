@@ -4,6 +4,11 @@ import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 
+import {
+  BrokerOfferPolicyFields,
+  EMPTY_OFFER_FORM,
+  type BrokerOfferFormFields,
+} from "@/components/admin/broker-offer-policy-fields"
 import { PageHeader } from "@/components/admin/page-header"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -27,12 +32,32 @@ type BrokerDetail = {
   leverage: string
   isActive: boolean
   featured: boolean
+  backcomType: string | null
+  backcomValue: string | null
+  rebateType: string | null
+  bonusType: string | null
+  highlightOffer: string | null
+  offerConditions: string | null
+  payoutCycle: string | null
+}
+
+function toOfferForm(broker: BrokerDetail): BrokerOfferFormFields {
+  return {
+    backcomType: broker.backcomType ?? EMPTY_OFFER_FORM.backcomType,
+    backcomValue: broker.backcomValue ?? "",
+    rebateType: broker.rebateType ?? EMPTY_OFFER_FORM.rebateType,
+    bonusType: broker.bonusType ?? EMPTY_OFFER_FORM.bonusType,
+    highlightOffer: broker.highlightOffer ?? "",
+    offerConditions: broker.offerConditions ?? "",
+    payoutCycle: broker.payoutCycle ?? EMPTY_OFFER_FORM.payoutCycle,
+  }
 }
 
 export default function AdminBrokerEditPage() {
   const params = useParams<{ slug: string }>()
   const router = useRouter()
   const [form, setForm] = useState<BrokerDetail | null>(null)
+  const [offer, setOffer] = useState<BrokerOfferFormFields>(EMPTY_OFFER_FORM)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [logo, setLogo] = useState<File | null>(null)
@@ -45,7 +70,10 @@ export default function AdminBrokerEditPage() {
         setError(data.error ?? "Not found")
         return
       }
-      if (data.broker) setForm(data.broker)
+      if (data.broker) {
+        setForm(data.broker)
+        setOffer(toOfferForm(data.broker))
+      }
     }
     void load()
   }, [params.slug])
@@ -72,6 +100,7 @@ export default function AdminBrokerEditPage() {
     formData.set("leverage", form.leverage)
     formData.set("isActive", String(form.isActive))
     formData.set("featured", String(form.featured))
+    Object.entries(offer).forEach(([key, value]) => formData.set(key, value))
     if (logo) formData.set("logo", logo)
 
     const response = await fetch(`/api/admin/brokers/${form.slug}`, {
@@ -85,7 +114,10 @@ export default function AdminBrokerEditPage() {
       setError(data.error ?? "Save failed")
       return
     }
-    if (data.broker) setForm(data.broker)
+    if (data.broker) {
+      setForm(data.broker)
+      setOffer(toOfferForm(data.broker))
+    }
     router.refresh()
   }
 
@@ -136,6 +168,15 @@ export default function AdminBrokerEditPage() {
             />
           </div>
           <div className="space-y-2 sm:col-span-2">
+            <Label htmlFor="affiliateUrl">Affiliate URL</Label>
+            <Input
+              id="affiliateUrl"
+              type="url"
+              value={form.affiliateUrl ?? ""}
+              onChange={(e) => setForm({ ...form, affiliateUrl: e.target.value })}
+            />
+          </div>
+          <div className="space-y-2 sm:col-span-2">
             <Label htmlFor="description">Description</Label>
             <textarea
               id="description"
@@ -165,6 +206,9 @@ export default function AdminBrokerEditPage() {
             />
           </div>
         </div>
+
+        <BrokerOfferPolicyFields value={offer} onChange={setOffer} />
+
         <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"

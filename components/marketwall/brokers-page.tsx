@@ -13,6 +13,7 @@ import {
   type BrokerBadge,
   type GlobalBrokerFilterId,
 } from "@/lib/broker-data"
+import { brokerOfferBadges } from "@/lib/brokers/offer-policy"
 import { brokerSlug } from "@/lib/brokers/registry"
 import { cn } from "@/lib/utils"
 import { BrokerLogo } from "./BrokerLogo"
@@ -114,6 +115,29 @@ const GLOBAL_COMPARE_ROWS: CompareRow[] = [
     getValue: (b, lang) => b.license[lang],
   },
 ]
+
+function OfferPolicyBadges({ broker }: { broker: Broker }) {
+  const badges = brokerOfferBadges({
+    backcomType: broker.backcomType,
+    backcomValue: broker.backcomValue,
+    rebateType: broker.rebateType,
+    bonusType: broker.bonusType,
+  })
+  if (badges.length === 0) return null
+  return (
+    <div className="flex flex-wrap justify-center gap-1.5">
+      {badges.map((label) => (
+        <Badge
+          key={label}
+          variant="outline"
+          className="h-6 rounded-md border-primary/35 bg-primary/10 px-2 text-[11px] font-semibold text-primary sm:text-xs"
+        >
+          {label}
+        </Badge>
+      ))}
+    </div>
+  )
+}
 
 function BrokerBadges({ badges }: { badges: BrokerBadge[] }) {
   const { t } = useLang()
@@ -227,7 +251,29 @@ function BrokerCardHeader({
           {broker.name}
         </p>
         {variant === "global" && <RatingPill broker={broker} />}
+        <OfferPolicyBadges broker={broker} />
         <BrokerBadges badges={broker.badges} />
+        {broker.offerConditions?.trim() ? (
+          <p
+            className={cn(
+              "line-clamp-2 text-muted-foreground",
+              compact ? "text-[10px] leading-snug" : "text-[11px] leading-snug sm:text-xs",
+            )}
+            title={broker.offerConditions}
+          >
+            {broker.offerConditions}
+          </p>
+        ) : broker.highlightOffer?.trim() ? (
+          <p
+            className={cn(
+              "line-clamp-2 text-muted-foreground",
+              compact ? "text-[10px] leading-snug" : "text-[11px] leading-snug sm:text-xs",
+            )}
+            title={broker.highlightOffer}
+          >
+            {broker.highlightOffer}
+          </p>
+        ) : null}
       </div>
       <div className="mt-auto flex w-full flex-col gap-1.5 pt-1">
         <a

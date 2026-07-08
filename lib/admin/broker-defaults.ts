@@ -1,4 +1,5 @@
 import type { Bi } from "@/lib/market-utils"
+import type { BrokerOfferPolicy } from "@/lib/brokers/offer-policy"
 
 const EMPTY_BI: Bi = { en: "", vi: "" }
 
@@ -20,6 +21,7 @@ export function brokerCreateDefaults(input: {
   leverage?: string
   isActive?: boolean
   featured?: boolean
+  offerPolicy?: Partial<BrokerOfferPolicy>
 }) {
   return {
     slug: input.slug,
@@ -49,6 +51,13 @@ export function brokerCreateDefaults(input: {
     badges: [] as string[],
     featured: input.featured ?? false,
     isActive: input.isActive ?? true,
+    backcomType: input.offerPolicy?.backcomType ?? "none",
+    backcomValue: input.offerPolicy?.backcomValue ?? null,
+    rebateType: input.offerPolicy?.rebateType ?? "Không có",
+    bonusType: input.offerPolicy?.bonusType ?? "Không có",
+    highlightOffer: input.offerPolicy?.highlightOffer ?? null,
+    offerConditions: input.offerPolicy?.offerConditions ?? null,
+    payoutCycle: input.offerPolicy?.payoutCycle ?? "Hằng tuần",
   }
 }
 

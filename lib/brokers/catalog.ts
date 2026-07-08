@@ -49,6 +49,13 @@ function prismaBrokerToClient(row: {
   withdrawalTime: unknown
   badges: string[]
   featured: boolean
+  backcomType: string | null
+  backcomValue: string | null
+  rebateType: string | null
+  bonusType: string | null
+  highlightOffer: string | null
+  offerConditions: string | null
+  payoutCycle: string | null
 }): Broker {
   const emptyBi: Bi = { en: "", vi: "" }
   const category = (row.category === "vn" ? "vn" : "global") as BrokerCategory
@@ -62,6 +69,7 @@ function prismaBrokerToClient(row: {
     websiteUrl: row.websiteUrl,
     domain: domainFromUrl(row.websiteUrl),
     logoUrl: row.logoUrl ?? undefined,
+    affiliateUrl: row.affiliateUrl ?? undefined,
     rating: row.rating,
     trustScore: row.trustScore,
     minDeposit: row.minDeposit,
@@ -84,6 +92,13 @@ function prismaBrokerToClient(row: {
     featured: row.featured,
     rebatePerLotValue: 0,
     promotionCount: 0,
+    backcomType: row.backcomType,
+    backcomValue: row.backcomValue,
+    rebateType: row.rebateType,
+    bonusType: row.bonusType,
+    highlightOffer: row.highlightOffer,
+    offerConditions: row.offerConditions,
+    payoutCycle: row.payoutCycle,
   }
 }
 

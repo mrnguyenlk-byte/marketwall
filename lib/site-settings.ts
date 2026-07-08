@@ -9,6 +9,7 @@ export type PublicSiteSettings = {
   telegramLink: string
   facebookLink: string | null
   zaloLink: string | null
+  liveUrl: string | null
   communityCta: string | null
   footerContent: string | null
 }
@@ -19,6 +20,7 @@ const DEFAULTS: PublicSiteSettings = {
   telegramLink: TELEGRAM_LINK,
   facebookLink: null,
   zaloLink: ZALO_LINK,
+  liveUrl: null,
   communityCta: null,
   footerContent: null,
 }
@@ -34,6 +36,7 @@ export async function getSiteSettings(): Promise<PublicSiteSettings> {
       telegramLink: row.telegramLink?.trim() || DEFAULTS.telegramLink,
       facebookLink: row.facebookLink?.trim() || null,
       zaloLink: row.zaloLink?.trim() || DEFAULTS.zaloLink,
+      liveUrl: row.liveUrl?.trim() || null,
       communityCta: row.communityCta?.trim() || null,
       footerContent: row.footerContent?.trim() || null,
     }
@@ -48,6 +51,7 @@ export type SiteSettingsInput = {
   telegramLink?: string | null
   facebookLink?: string | null
   zaloLink?: string | null
+  liveUrl?: string | null
   communityCta?: string | null
   footerContent?: string | null
 }

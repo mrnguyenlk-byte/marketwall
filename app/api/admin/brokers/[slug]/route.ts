@@ -1,4 +1,5 @@
 import { isAdminApiError, requireAdminApi } from "@/lib/admin/auth"
+import { readOfferPolicyFromFormData } from "@/lib/brokers/offer-policy"
 import { prisma } from "@/lib/prisma"
 import { isR2Configured, putR2Object } from "@/lib/r2"
 
@@ -48,6 +49,8 @@ export async function PUT(request: Request, context: RouteContext) {
     }
   }
 
+  const offerPolicy = readOfferPolicyFromFormData(formData)
+
   const broker = await prisma.broker.update({
     where: { slug },
     data: {
@@ -68,6 +71,7 @@ export async function PUT(request: Request, context: RouteContext) {
       leverage: String(formData.get("leverage") ?? "").trim() || undefined,
       isActive: formData.has("isActive") ? formData.get("isActive") === "true" : undefined,
       featured: formData.has("featured") ? formData.get("featured") === "true" : undefined,
+      ...offerPolicy,
       ...(logoUrl ? { logoUrl } : {}),
     },
   })

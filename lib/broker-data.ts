@@ -29,6 +29,8 @@ export type Broker = {
   domain: string
   /** Optional direct logo CDN URL; falls back to Clearbit then favicon. */
   logoUrl?: string
+  /** Optional affiliate override for CTA / redirect. */
+  affiliateUrl?: string
   rating: number
   trustScore: number
   minDeposit: string
@@ -55,6 +57,14 @@ export type Broker = {
   marketInterest?: MarketInterestTier
   priceTolerance?: Bi
   promotions?: Bi[]
+  /** Admin CMS promotion policy fields (public badges). */
+  backcomType?: string | null
+  backcomValue?: string | null
+  rebateType?: string | null
+  bonusType?: string | null
+  highlightOffer?: string | null
+  offerConditions?: string | null
+  payoutCycle?: string | null
 }
 
 export const brokerPageStats = {

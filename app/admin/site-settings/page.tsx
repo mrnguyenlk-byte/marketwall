@@ -13,6 +13,7 @@ type SettingsForm = {
   telegramLink: string
   facebookLink: string
   zaloLink: string
+  liveUrl: string
   communityCta: string
   footerContent: string
 }
@@ -24,6 +25,7 @@ export default function AdminSiteSettingsPage() {
     telegramLink: "",
     facebookLink: "",
     zaloLink: "",
+    liveUrl: "",
     communityCta: "",
     footerContent: "",
   })
@@ -42,6 +44,7 @@ export default function AdminSiteSettingsPage() {
           telegramLink: data.settings.telegramLink ?? "",
           facebookLink: data.settings.facebookLink ?? "",
           zaloLink: data.settings.zaloLink ?? "",
+          liveUrl: data.settings.liveUrl ?? "",
           communityCta: data.settings.communityCta ?? "",
           footerContent: data.settings.footerContent ?? "",
         })
@@ -119,6 +122,19 @@ export default function AdminSiteSettingsPage() {
             value={form.zaloLink}
             onChange={(e) => setForm((f) => ({ ...f, zaloLink: e.target.value }))}
           />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="liveUrl">Live Link</Label>
+          <Input
+            id="liveUrl"
+            type="url"
+            placeholder="https://…"
+            value={form.liveUrl}
+            onChange={(e) => setForm((f) => ({ ...f, liveUrl: e.target.value }))}
+          />
+          <p className="text-xs text-muted-foreground">
+            Optional. Used for the LIVE button / CTA when set (must be a valid URL).
+          </p>
         </div>
         <div className="space-y-2">
           <Label htmlFor="communityCta">Community CTA</Label>

@@ -1,8 +1,31 @@
 import { buildAffiliateUrl } from "@/lib/brokers/affiliate"
+import { getPublicBrokers } from "@/lib/brokers/catalog"
 import { logBrokerClick } from "@/lib/brokers/click-store"
-import { findBrokerBySlug } from "@/lib/brokers/registry"
+import { brokerSlug, findBrokerBySlug } from "@/lib/brokers/registry"
+import type { BrokerRecord } from "@/types/broker"
 
 export const dynamic = "force-dynamic"
+
+async function resolveBroker(slug: string): Promise<BrokerRecord | undefined> {
+  const staticHit = findBrokerBySlug(slug)
+  try {
+    const brokers = await getPublicBrokers()
+    const normalized = slug.trim().toLowerCase()
+    const dbHit = brokers.find(
+      (b) => brokerSlug(b.name) === normalized || b.name.toLowerCase() === normalized,
+    )
+    if (dbHit) {
+      return {
+        ...dbHit,
+        slug: brokerSlug(dbHit.name),
+        affiliateUrl: dbHit.affiliateUrl ?? staticHit?.affiliateUrl,
+      }
+    }
+  } catch {
+    // fall through to static
+  }
+  return staticHit
+}
 
 export async function GET(request: Request) {
   const url = new URL(request.url)
@@ -14,7 +37,7 @@ export async function GET(request: Request) {
     return Response.json({ error: "Missing slug parameter" }, { status: 400 })
   }
 
-  const broker = findBrokerBySlug(slug)
+  const broker = await resolveBroker(slug)
   if (!broker) {
     return Response.json({ error: "Broker not found" }, { status: 404 })
   }

@@ -151,6 +151,14 @@ model Broker {
   badges          String[]
   featured        Boolean  @default(false)
   isActive        Boolean  @default(true)
+  /// Promotion policy — admin CMS offer fields for public badges.
+  backcomType     String?
+  backcomValue    String?
+  rebateType      String?
+  bonusType       String?
+  highlightOffer  String?  @db.Text
+  offerConditions String?  @db.Text
+  payoutCycle     String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
@@ -163,6 +171,8 @@ model SiteSettings {
   telegramLink  String?
   facebookLink  String?
   zaloLink      String?
+  /// Public LIVE button / CTA URL (optional).
+  liveUrl       String?
   communityCta  String?  @db.Text
   footerContent String?  @db.Text
   createdAt     DateTime @default(now())

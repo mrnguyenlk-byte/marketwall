@@ -60,6 +60,13 @@ export type BrokerRecord = {
   priceTolerance?: Bi
   /** Global FX: promotional programs (may differ from primary offer). */
   promotions?: Bi[]
+  backcomType?: string | null
+  backcomValue?: string | null
+  rebateType?: string | null
+  bonusType?: string | null
+  highlightOffer?: string | null
+  offerConditions?: string | null
+  payoutCycle?: string | null
 }
 
 export type BrokerClickLog = {

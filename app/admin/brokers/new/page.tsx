@@ -3,6 +3,11 @@
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 
+import {
+  BrokerOfferPolicyFields,
+  EMPTY_OFFER_FORM,
+  type BrokerOfferFormFields,
+} from "@/components/admin/broker-offer-policy-fields"
 import { PageHeader } from "@/components/admin/page-header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -32,6 +37,7 @@ export default function AdminBrokerNewPage() {
     isActive: true,
     featured: false,
   })
+  const [offer, setOffer] = useState<BrokerOfferFormFields>(EMPTY_OFFER_FORM)
   const [logo, setLogo] = useState<File | null>(null)
 
   async function onSubmit(event: React.FormEvent) {
@@ -41,10 +47,11 @@ export default function AdminBrokerNewPage() {
 
     const formData = new FormData()
     Object.entries(form).forEach(([key, value]) => formData.set(key, String(value)))
+    Object.entries(offer).forEach(([key, value]) => formData.set(key, value))
     if (logo) formData.set("logo", logo)
 
     const response = await fetch("/api/admin/brokers", { method: "POST", body: formData })
-    const data = (await response.json()) as { error?: string; slug?: string }
+    const data = (await response.json()) as { error?: string; slug?: string; broker?: { slug?: string } }
 
     setPending(false)
     if (!response.ok) {
@@ -52,7 +59,7 @@ export default function AdminBrokerNewPage() {
       return
     }
 
-    router.push(`/admin/brokers/${data.slug ?? form.slug}`)
+    router.push(`/admin/brokers/${data.broker?.slug ?? data.slug ?? form.slug}`)
     router.refresh()
   }
 
@@ -151,6 +158,9 @@ export default function AdminBrokerNewPage() {
             onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
           />
         </div>
+
+        <BrokerOfferPolicyFields value={offer} onChange={setOffer} />
+
         <div className="space-y-2">
           <Label htmlFor="logo">Logo (PNG)</Label>
           <Input

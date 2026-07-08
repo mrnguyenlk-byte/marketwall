@@ -1,5 +1,6 @@
 import { isAdminApiError, requireAdminApi } from "@/lib/admin/auth"
 import { brokerCreateDefaults, slugify } from "@/lib/admin/broker-defaults"
+import { readOfferPolicyFromFormData } from "@/lib/brokers/offer-policy"
 import { prisma } from "@/lib/prisma"
 import { isR2Configured, putR2Object } from "@/lib/r2"
 
@@ -38,6 +39,9 @@ export async function GET() {
       isActive: true,
       featured: true,
       logoUrl: true,
+      backcomType: true,
+      rebateType: true,
+      bonusType: true,
     },
   })
 
@@ -76,6 +80,8 @@ export async function POST(request: Request) {
     }
   }
 
+  const offerPolicy = readOfferPolicyFromFormData(formData)
+
   const data = brokerCreateDefaults({
     slug,
     name,
@@ -94,6 +100,7 @@ export async function POST(request: Request) {
     leverage: String(formData.get("leverage") ?? "1:500"),
     isActive: formData.get("isActive") !== "false",
     featured: formData.get("featured") === "true",
+    offerPolicy,
   })
 
   try {
