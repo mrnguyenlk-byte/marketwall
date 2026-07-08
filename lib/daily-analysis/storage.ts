@@ -1,6 +1,13 @@
 import fs from "fs/promises"
 import path from "path"
-import { del, head, list, put } from "@vercel/blob"
+import {
+  deleteR2Object,
+  getR2ObjectJson,
+  getR2ObjectText,
+  isR2Configured,
+  listR2ObjectKeys,
+  putR2Object,
+} from "@/lib/r2"
 import type { DailyAnalysis, DailyAnalysisOpenAiErrorLog } from "./types"
 
 const CONTENT_DIR = path.join(process.cwd(), "content", "daily-analysis")
@@ -8,12 +15,12 @@ const LOGS_DIR = path.join(CONTENT_DIR, "logs")
 const UPLOADS_DIR = path.join(process.cwd(), "public", "uploads", "daily-analysis")
 
 const DATE_FILE_PATTERN = /^\d{4}-\d{2}-\d{2}\.json$/
-const BLOB_ARTICLES_PREFIX = "daily-analysis/articles/"
-const BLOB_LOGS_PREFIX = "daily-analysis/logs/"
-const BLOB_OPENAI_ERRORS_SUFFIX = "-openai-errors.json"
+const R2_ARTICLES_PREFIX = "daily-analysis/articles/"
+const R2_LOGS_PREFIX = "daily-analysis/logs/"
+const OPENAI_ERRORS_SUFFIX = "-openai-errors.json"
 const VN_TIMEZONE = "Asia/Ho_Chi_Minh"
 
-export type StorageBackend = "local" | "blob"
+export type StorageBackend = "local" | "r2"
 export type DailyAnalysisImageName = "vnindex.png" | "gold.png"
 
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024
@@ -23,20 +30,16 @@ function isServerlessRuntime(): boolean {
   return process.env.VERCEL === "1" || Boolean(process.env.AWS_LAMBDA_FUNCTION_VERSION)
 }
 
-function blobToken(): string | undefined {
-  return process.env.BLOB_READ_WRITE_TOKEN?.trim() || undefined
-}
-
-/** Selects filesystem (dev) or Vercel Blob (when token is set). */
+/** Selects filesystem (dev) or Cloudflare R2 (when credentials are set). */
 export function getStorageBackend(): StorageBackend {
-  if (blobToken()) return "blob"
+  if (isR2Configured()) return "r2"
   return "local"
 }
 
 function assertWritableStorage(): void {
-  if (isServerlessRuntime() && !blobToken()) {
+  if (isServerlessRuntime() && !isR2Configured()) {
     throw new Error(
-      "BLOB_READ_WRITE_TOKEN is required for daily analysis storage on Vercel/serverless",
+      "Cloudflare R2 is required for daily analysis storage on Vercel/serverless (set R2_ENDPOINT, R2_BUCKET, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY)",
     )
   }
 }
@@ -45,8 +48,8 @@ function articlePath(date: string): string {
   return path.join(CONTENT_DIR, `${date}.json`)
 }
 
-function blobArticlePathname(date: string): string {
-  return `${BLOB_ARTICLES_PREFIX}${date}.json`
+function r2ArticleKey(date: string): string {
+  return `${R2_ARTICLES_PREFIX}${date}.json`
 }
 
 /** YYYYMMDD-HHmmss in Asia/Ho_Chi_Minh — unique per upload to bust CDN cache. */
@@ -72,12 +75,12 @@ function timestampedImageFilename(baseName: DailyAnalysisImageName): string {
   return `${timestampImagePrefix()}-${baseName}`
 }
 
-function blobLogPathname(date: string): string {
-  return `${BLOB_LOGS_PREFIX}${date}.log`
+function r2LogKey(date: string): string {
+  return `${R2_LOGS_PREFIX}${date}.log`
 }
 
-function blobOpenAiErrorLogPathname(date: string): string {
-  return `${BLOB_LOGS_PREFIX}${date}${BLOB_OPENAI_ERRORS_SUFFIX}`
+function r2OpenAiErrorLogKey(date: string): string {
+  return `${R2_LOGS_PREFIX}${date}${OPENAI_ERRORS_SUFFIX}`
 }
 
 async function readLocalArticles(): Promise<DailyAnalysis[]> {
@@ -101,21 +104,19 @@ async function readLocalArticles(): Promise<DailyAnalysis[]> {
   }
 }
 
-async function readBlobArticles(): Promise<DailyAnalysis[]> {
-  const token = blobToken()
-  if (!token) return []
+async function readR2Articles(): Promise<DailyAnalysis[]> {
+  if (!isR2Configured()) return []
 
-  const { blobs } = await list({ prefix: BLOB_ARTICLES_PREFIX, token })
+  const objects = await listR2ObjectKeys(R2_ARTICLES_PREFIX)
   const articles: DailyAnalysis[] = []
 
-  for (const blob of blobs) {
-    if (!blob.pathname.endsWith(".json")) continue
+  for (const object of objects) {
+    if (!object.key.endsWith(".json")) continue
     try {
-      const response = await fetch(blob.url, { cache: "no-store" })
-      if (!response.ok) continue
-      articles.push((await response.json()) as DailyAnalysis)
+      const article = await getR2ObjectJson<DailyAnalysis>(object.key)
+      if (article) articles.push(article)
     } catch {
-      // Skip unreadable blobs.
+      // Skip unreadable objects.
     }
   }
 
@@ -149,16 +150,13 @@ export async function saveDailyAnalysisImage(
   const stampedFilename = timestampedImageFilename(filename)
   const backend = getStorageBackend()
 
-  if (backend === "blob") {
-    const token = blobToken()
-    const blob = await put(`daily-analysis/${date}/${stampedFilename}`, buffer, {
-      access: "public",
+  if (backend === "r2") {
+    // Path: daily-analysis/YYYY-MM-DD/{timestamp}-{vnindex|gold}.png
+    return putR2Object({
+      key: `daily-analysis/${date}/${stampedFilename}`,
+      body: buffer,
       contentType: file.type,
-      token,
-      addRandomSuffix: false,
-      allowOverwrite: true,
     })
-    return blob.url
   }
 
   const destPath = path.join(UPLOADS_DIR, date, stampedFilename)
@@ -171,14 +169,11 @@ export async function saveDailyAnalysis(article: DailyAnalysis): Promise<DailyAn
   assertWritableStorage()
   const backend = getStorageBackend()
 
-  if (backend === "blob") {
-    const token = blobToken()
-    await put(blobArticlePathname(article.date), JSON.stringify(article, null, 2), {
-      access: "public",
+  if (backend === "r2") {
+    await putR2Object({
+      key: r2ArticleKey(article.date),
+      body: JSON.stringify(article, null, 2),
       contentType: "application/json",
-      token,
-      addRandomSuffix: false,
-      allowOverwrite: true,
     })
     return article
   }
@@ -189,11 +184,11 @@ export async function saveDailyAnalysis(article: DailyAnalysis): Promise<DailyAn
 }
 
 export async function getDailyAnalysisList(): Promise<DailyAnalysis[]> {
-  const [localArticles, blobArticles] = await Promise.all([
+  const [localArticles, r2Articles] = await Promise.all([
     readLocalArticles(),
-    blobToken() ? readBlobArticles() : Promise.resolve([]),
+    isR2Configured() ? readR2Articles() : Promise.resolve([]),
   ])
-  return mergeArticlesByDate(localArticles, blobArticles)
+  return mergeArticlesByDate(localArticles, r2Articles)
 }
 
 export async function getLatestDailyAnalysis(): Promise<DailyAnalysis | null> {
@@ -215,12 +210,11 @@ export async function deleteDailyAnalysis(date: string): Promise<void> {
   assertWritableStorage()
   const backend = getStorageBackend()
 
-  if (backend === "blob") {
-    const token = blobToken()
+  if (backend === "r2") {
     try {
-      await del(blobArticlePathname(date), { token })
+      await deleteR2Object(r2ArticleKey(date))
     } catch {
-      // Article may not exist in blob.
+      // Article may not exist in R2.
     }
     return
   }
@@ -232,26 +226,18 @@ export async function deleteDailyAnalysis(date: string): Promise<void> {
   }
 }
 
-async function appendBlobText(pathname: string, line: string): Promise<void> {
-  const token = blobToken()
+async function appendR2Text(key: string, line: string): Promise<void> {
   let existing = ""
-
   try {
-    const meta = await head(pathname, { token })
-    const response = await fetch(meta.url, { cache: "no-store" })
-    if (response.ok) {
-      existing = await response.text()
-    }
+    existing = (await getR2ObjectText(key)) ?? ""
   } catch {
-    // New log file for this pathname.
+    // New log file for this key.
   }
 
-  await put(pathname, existing + line, {
-    access: "public",
+  await putR2Object({
+    key,
+    body: existing + line,
     contentType: "text/plain",
-    token,
-    addRandomSuffix: false,
-    allowOverwrite: true,
   })
 }
 
@@ -260,8 +246,8 @@ export async function appendDailyAnalysisLog(date: string, message: string): Pro
   const line = `[${new Date().toISOString()}] ${message}\n`
   const backend = getStorageBackend()
 
-  if (backend === "blob") {
-    await appendBlobText(blobLogPathname(date), line)
+  if (backend === "r2") {
+    await appendR2Text(r2LogKey(date), line)
     return
   }
 
@@ -270,19 +256,12 @@ export async function appendDailyAnalysisLog(date: string, message: string): Pro
 }
 
 function openAiErrorLogPath(date: string): string {
-  return path.join(LOGS_DIR, `${date}${BLOB_OPENAI_ERRORS_SUFFIX}`)
+  return path.join(LOGS_DIR, `${date}${OPENAI_ERRORS_SUFFIX}`)
 }
 
-async function readBlobOpenAiErrors(date: string): Promise<DailyAnalysisOpenAiErrorLog[]> {
-  const token = blobToken()
-  const pathname = blobOpenAiErrorLogPathname(date)
-
+async function readR2OpenAiErrors(date: string): Promise<DailyAnalysisOpenAiErrorLog[]> {
   try {
-    const meta = await head(pathname, { token })
-    const response = await fetch(meta.url, { cache: "no-store" })
-    if (!response.ok) return []
-
-    const parsed = (await response.json()) as unknown
+    const parsed = await getR2ObjectJson<unknown>(r2OpenAiErrorLogKey(date))
     if (Array.isArray(parsed)) return parsed as DailyAnalysisOpenAiErrorLog[]
     if (parsed && typeof parsed === "object") return [parsed as DailyAnalysisOpenAiErrorLog]
   } catch {
@@ -300,17 +279,13 @@ export async function logDailyAnalysisOpenAiError(
   assertWritableStorage()
   const backend = getStorageBackend()
 
-  if (backend === "blob") {
-    const token = blobToken()
-    const pathname = blobOpenAiErrorLogPathname(date)
-    const existing = await readBlobOpenAiErrors(date)
+  if (backend === "r2") {
+    const existing = await readR2OpenAiErrors(date)
     existing.push(entry)
-    await put(pathname, JSON.stringify(existing, null, 2), {
-      access: "public",
+    await putR2Object({
+      key: r2OpenAiErrorLogKey(date),
+      body: JSON.stringify(existing, null, 2),
       contentType: "application/json",
-      token,
-      addRandomSuffix: false,
-      allowOverwrite: true,
     })
     return
   }
@@ -337,7 +312,7 @@ export async function logDailyAnalysisOpenAiError(
 
 export type AutomationLogEntry = {
   date: string
-  source: "db" | "blob"
+  source: "db" | "blob" | "r2"
   status: string
   telegramStatus?: string
   facebookStatus?: string
@@ -346,32 +321,29 @@ export type AutomationLogEntry = {
   raw?: string
 }
 
+/** List file-based automation logs (R2 and/or local). Source label stays "blob" for local files for UI compatibility. */
 export async function listBlobAutomationLogs(): Promise<AutomationLogEntry[]> {
-  const token = blobToken()
   const entries: AutomationLogEntry[] = []
 
-  if (token) {
-    const { blobs } = await list({ prefix: BLOB_LOGS_PREFIX, token })
-    for (const blob of blobs) {
-      if (!blob.pathname.endsWith(".log")) continue
-      const date = blob.pathname
-        .slice(BLOB_LOGS_PREFIX.length)
-        .replace(/\.log$/, "")
+  if (isR2Configured()) {
+    const objects = await listR2ObjectKeys(R2_LOGS_PREFIX)
+    for (const object of objects) {
+      if (!object.key.endsWith(".log")) continue
+      const date = object.key.slice(R2_LOGS_PREFIX.length).replace(/\.log$/, "")
       try {
-        const response = await fetch(blob.url, { cache: "no-store" })
-        const raw = response.ok ? await response.text() : ""
+        const raw = (await getR2ObjectText(object.key)) ?? ""
         const lastLine = raw.trim().split("\n").filter(Boolean).pop() ?? ""
         entries.push({
           date,
-          source: "blob",
+          source: "r2",
           status: lastLine || "logged",
-          createdAt: blob.uploadedAt?.toISOString() ?? new Date().toISOString(),
+          createdAt: object.lastModified?.toISOString() ?? new Date().toISOString(),
           raw: lastLine,
         })
       } catch {
         entries.push({
           date,
-          source: "blob",
+          source: "r2",
           status: "unreadable",
           createdAt: new Date().toISOString(),
         })
@@ -384,7 +356,7 @@ export async function listBlobAutomationLogs(): Promise<AutomationLogEntry[]> {
     for (const file of files) {
       if (!file.endsWith(".log")) continue
       const date = file.replace(/\.log$/, "")
-      if (entries.some((e) => e.date === date && e.source === "blob")) continue
+      if (entries.some((e) => e.date === date && e.source === "r2")) continue
       const raw = await fs.readFile(path.join(LOGS_DIR, file), "utf-8")
       const lastLine = raw.trim().split("\n").filter(Boolean).pop() ?? ""
       entries.push({

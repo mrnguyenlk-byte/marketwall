@@ -1,6 +1,9 @@
 import "server-only"
 
+import { isR2Configured } from "@/lib/r2"
+
 export type AutomationEnvFlags = {
+  /** Remote object storage configured (Cloudflare R2). */
   blobStorage: boolean
   openAi: boolean
   telegram: boolean
@@ -10,7 +13,8 @@ export type AutomationEnvFlags = {
 
 export function getAutomationEnvFlags(): AutomationEnvFlags {
   return {
-    blobStorage: Boolean(process.env.BLOB_READ_WRITE_TOKEN?.trim()),
+    // Keep key name for admin UI compatibility; value reflects R2 readiness.
+    blobStorage: isR2Configured(),
     openAi: Boolean(process.env.OPENAI_API_KEY?.trim()),
     telegram: Boolean(
       process.env.TELEGRAM_BOT_TOKEN?.trim() && process.env.TELEGRAM_CHANNEL_ID?.trim(),

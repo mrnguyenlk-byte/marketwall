@@ -46,7 +46,7 @@ export default async function AdminAutomationLogsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Automation Logs"
-        description="Run history from database and Vercel Blob / local log files."
+        description="Run history from database and Cloudflare R2 / local log files."
       />
 
       <div className="rounded-lg border border-border/80">

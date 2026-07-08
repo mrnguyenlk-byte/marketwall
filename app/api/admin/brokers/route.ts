@@ -1,31 +1,26 @@
-import { put } from "@vercel/blob"
-
 import { isAdminApiError, requireAdminApi } from "@/lib/admin/auth"
 import { brokerCreateDefaults, slugify } from "@/lib/admin/broker-defaults"
 import { prisma } from "@/lib/prisma"
+import { isR2Configured, putR2Object } from "@/lib/r2"
 
 export const dynamic = "force-dynamic"
 
 const MAX_LOGO_BYTES = 5 * 1024 * 1024
 
 async function uploadBrokerLogo(slug: string, file: File): Promise<string> {
-  const token = process.env.BLOB_READ_WRITE_TOKEN?.trim()
-  if (!token) {
-    throw new Error("BLOB_READ_WRITE_TOKEN is required for logo upload")
+  if (!isR2Configured()) {
+    throw new Error("Cloudflare R2 is required for logo upload")
   }
   if (file.size <= 0 || file.size > MAX_LOGO_BYTES) {
     throw new Error("Invalid logo file size")
   }
 
   const buffer = Buffer.from(await file.arrayBuffer())
-  const blob = await put(`admin/brokers/${slug}.png`, buffer, {
-    access: "public",
+  return putR2Object({
+    key: `admin/brokers/${slug}.png`,
+    body: buffer,
     contentType: file.type || "image/png",
-    token,
-    addRandomSuffix: false,
-    allowOverwrite: true,
   })
-  return blob.url
 }
 
 export async function GET() {
