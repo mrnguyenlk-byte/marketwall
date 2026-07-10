@@ -35,7 +35,9 @@ export function DailyAnalysisDetailContent({ article }: { article: DailyAnalysis
 
       <section className="rounded-lg border border-border/80 bg-card p-4 shadow-sm">
         <h2 className="text-base font-semibold text-foreground">{t("dailyAnalysis.usMacro")}</h2>
-        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{article.usMacroSummary}</p>
+        <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
+          {article.usMacroSummary}
+        </p>
       </section>
 
       <section className="rounded-lg border border-border/80 bg-card p-4 shadow-sm">

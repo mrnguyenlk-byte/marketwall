@@ -1,65 +1,94 @@
 import "server-only"
 
+import { getDailyAnalysisList } from "@/lib/daily-analysis/storage"
+import type { DailyAnalysis } from "@/lib/daily-analysis/types"
 import { getData } from "@/lib/providers/calendar-provider"
 import type { EconomicEventRecord } from "@/lib/providers/types"
+import {
+  deduplicateUsMacroEvents,
+  filterUsMacroCandidates,
+  resolveUsMacroSinceMs,
+  selectTopUsMacroEvents,
+  usMacroEventDedupKey,
+  type UsEconomicEvent,
+} from "./us-macro-core"
 
-export type UsEconomicEvent = {
-  event: string
-  actual: string | null
-  forecast: string | null
-  previous: string | null
-  impact: "high" | "medium" | "low"
+export type { UsEconomicEvent } from "./us-macro-core"
+export { US_MACRO_MAX_EVENTS } from "./us-macro-core"
+
+function findPreviousArticle(
+  articles: DailyAnalysis[],
+  currentDate: string,
+): DailyAnalysis | null {
+  return (
+    articles
+      .filter((article) => article.date < currentDate)
+      .sort((a, b) => b.date.localeCompare(a.date))[0] ?? null
+  )
 }
 
-const MAJOR_US_EVENT_PATTERNS: RegExp[] = [
-  /initial\s+jobless\s+claims/i,
-  /non[-\s]?farm\s+payrolls/i,
-  /core\s+cpi/i,
-  /\bcpi\b/i,
-  /\bppi\b/i,
-  /retail\s+sales/i,
-  /\bfomc\b/i,
-  /\bgdp\b/i,
-  /consumer\s+confidence/i,
-]
-
-const EMPTY_VALUE_PATTERN = /^[—\-–]+$/
-
-function isMajorUsEvent(eventName: string): boolean {
-  return MAJOR_US_EVENT_PATTERNS.some((pattern) => pattern.test(eventName))
+function findArticleBefore(
+  articles: DailyAnalysis[],
+  article: DailyAnalysis,
+): DailyAnalysis | null {
+  return (
+    articles
+      .filter((candidate) => candidate.date < article.date)
+      .sort((a, b) => b.date.localeCompare(a.date))[0] ?? null
+  )
 }
 
-function toNullableValue(value: string): string | null {
-  const trimmed = value.trim()
-  if (!trimmed || EMPTY_VALUE_PATTERN.test(trimmed)) return null
-  return trimmed
+async function buildPreviousArticleDedupKeys(
+  articles: DailyAnalysis[],
+  previousArticle: DailyAnalysis | null,
+  records: EconomicEventRecord[],
+): Promise<Set<string>> {
+  if (!previousArticle) return new Set()
+
+  const articleBeforePrevious = findArticleBefore(articles, previousArticle)
+  const sinceMs = resolveUsMacroSinceMs(articleBeforePrevious?.createdAt)
+  const untilMs = new Date(previousArticle.createdAt).getTime()
+
+  const previousWindowEvents = filterUsMacroCandidates(records, sinceMs, untilMs)
+  const previousSelected = selectTopUsMacroEvents(previousWindowEvents)
+
+  return new Set(previousSelected.map(usMacroEventDedupKey))
 }
 
-function isWithinLastHours(isoDate: string, hours: number): boolean {
-  const date = new Date(isoDate)
-  if (Number.isNaN(date.getTime())) return false
-  const cutoff = Date.now() - hours * 60 * 60 * 1000
-  return date.getTime() >= cutoff
+function logUsMacroCandidates(events: UsEconomicEvent[]): void {
+  console.log(
+    `US_MACRO_CANDIDATES count=${events.length} events=${events
+      .map((event) => `${event.event}@${event.publishedAt}`)
+      .join("; ")}`,
+  )
 }
 
-function mapRecordToUsEvent(record: EconomicEventRecord): UsEconomicEvent {
-  return {
-    event: record.event,
-    actual: toNullableValue(record.actual),
-    forecast: toNullableValue(record.forecast),
-    previous: toNullableValue(record.previous),
-    impact: record.impact,
-  }
+function logUsMacroSelected(events: UsEconomicEvent[]): void {
+  console.log(
+    `US_MACRO_SELECTED count=${events.length} events=${events
+      .map((event) => `${event.event}@${event.publishedAt}`)
+      .join("; ")}`,
+  )
+}
+
+function logUsMacroDeduped(removedKeys: string[]): void {
+  if (!removedKeys.length) return
+  console.log(`US_MACRO_DEDUPED removed=${removedKeys.length} keys=${removedKeys.join(", ")}`)
+}
+
+function logUsMacroEmpty(): void {
+  console.log("US_MACRO_EMPTY")
 }
 
 export function formatUsEconomicEventsForPrompt(events: UsEconomicEvent[]): string {
   if (!events.length) return ""
 
-  const lines = ["Sự kiện vĩ mô Mỹ trong 24 giờ qua:"]
+  const lines = ["Sự kiện vĩ mô Mỹ tác động cao (★★★) kể từ bản tin trước:"]
 
   for (const event of events) {
-    lines.push(`- ${event.event} (tác động: ${event.impact})`)
-    if (event.actual) lines.push(`  Thực tế: ${event.actual}`)
+    lines.push(`- ${event.event}`)
+    const actual = event.actual ?? event.verifiedContent
+    if (actual) lines.push(`  Thực tế: ${actual}`)
     if (event.forecast) lines.push(`  Dự báo: ${event.forecast}`)
     if (event.previous) lines.push(`  Trước đó: ${event.previous}`)
   }
@@ -67,23 +96,67 @@ export function formatUsEconomicEventsForPrompt(events: UsEconomicEvent[]): stri
   return lines.join("\n")
 }
 
-export async function getRecentUsEconomicEvents(
-  options?: { hours?: number },
+export async function getUsMacroEventsForArticle(
+  currentDate: string,
 ): Promise<UsEconomicEvent[]> {
-  const hours = options?.hours ?? 24
-
   try {
-    const data = await getData()
-    return data.normalized
-      .filter((record) => record.country === "US")
-      .filter((record) => isMajorUsEvent(record.event))
-      .filter((record) => isWithinLastHours(record.publishedAt, hours))
-      .map(mapRecordToUsEvent)
+    const [data, articles] = await Promise.all([getData(), getDailyAnalysisList()])
+    const previousArticle = findPreviousArticle(articles, currentDate)
+    const sinceMs = resolveUsMacroSinceMs(previousArticle?.createdAt)
+    const untilMs = Date.now()
+
+    const candidates = filterUsMacroCandidates(data.normalized, sinceMs, untilMs)
+    logUsMacroCandidates(candidates)
+
+    const excludeKeys = await buildPreviousArticleDedupKeys(
+      articles,
+      previousArticle,
+      data.normalized,
+    )
+    const { events: deduped, removedKeys } = deduplicateUsMacroEvents(candidates, excludeKeys)
+    logUsMacroDeduped(removedKeys)
+
+    const selected = selectTopUsMacroEvents(deduped)
+    if (!selected.length) {
+      logUsMacroEmpty()
+      return []
+    }
+
+    logUsMacroSelected(selected)
+    return selected
   } catch (error) {
     console.warn(
       "[us-events] Failed to fetch US economic events:",
       error instanceof Error ? error.message : String(error),
     )
+    logUsMacroEmpty()
+    return []
+  }
+}
+
+/** @deprecated Use getUsMacroEventsForArticle(currentDate) */
+export async function getRecentUsEconomicEvents(
+  options?: { hours?: number; currentDate?: string },
+): Promise<UsEconomicEvent[]> {
+  if (options?.currentDate) {
+    return getUsMacroEventsForArticle(options.currentDate)
+  }
+
+  try {
+    const data = await getData()
+    const sinceMs = Date.now() - (options?.hours ?? 24) * 60 * 60 * 1000
+    const candidates = filterUsMacroCandidates(data.normalized, sinceMs)
+    logUsMacroCandidates(candidates)
+    const selected = selectTopUsMacroEvents(candidates)
+    if (!selected.length) logUsMacroEmpty()
+    else logUsMacroSelected(selected)
+    return selected
+  } catch (error) {
+    console.warn(
+      "[us-events] Failed to fetch US economic events:",
+      error instanceof Error ? error.message : String(error),
+    )
+    logUsMacroEmpty()
     return []
   }
 }

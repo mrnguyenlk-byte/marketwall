@@ -31,14 +31,6 @@ export type OpenAiGeneratorInput = DailyAnalysisPromptInput & {
   goldImage: string
 }
 
-function defaultVnindexImage(date: string): string {
-  return `/uploads/daily-analysis/${date}/vnindex.png`
-}
-
-function defaultGoldImage(date: string): string {
-  return `/uploads/daily-analysis/${date}/gold.png`
-}
-
 export function getDailyAnalysisOpenAiModel(): string {
   return process.env.DAILY_ANALYSIS_OPENAI_MODEL?.trim() || DEFAULT_MODEL
 }
@@ -218,8 +210,8 @@ export async function generateOpenAiDailyAnalysis(
   marketData?: DailyAnalysisMarketData,
   ocrData?: DailyAnalysisOcrResult | null,
 ): Promise<DailyAnalysis> {
-  const vnImage = vnindexImage ?? defaultVnindexImage(date)
-  const gImage = goldImage ?? defaultGoldImage(date)
+  const vnImage = vnindexImage ?? ""
+  const gImage = goldImage ?? ""
 
   const content = await fetchOpenAiDailyContent({
     date,

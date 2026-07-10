@@ -13,6 +13,8 @@
     "heatmap:color-debug": "npx tsx scripts/vn-change-color-debug.ts",
     "daily:test": "npx tsx scripts/test-daily-analysis.ts",
     "daily:generate": "npx tsx scripts/test-daily-analysis.ts",
+    "test": "npx tsx --test lib/economic-calendar/us-macro-core.test.ts lib/economic-calendar/us-macro-summary.test.ts",
+    "test:us-macro": "npm run test",
     "xauusd:d1:verify": "node scripts/xauusd-d1-verify.mjs",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",

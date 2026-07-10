@@ -11,7 +11,7 @@ import {
 export const DAILY_ANALYSIS_DISCLAIMER =
   "Nội dung chỉ mang tính tham khảo, không phải khuyến nghị đầu tư."
 
-/** Max words across vnindexAnalysis + goldAnalysis + usMacroSummary + watchNext. */
+/** Max words across vnindexAnalysis + goldAnalysis + watchNext (usMacroSummary is generated separately). */
 export const DAILY_ANALYSIS_BODY_WORD_LIMIT = 180
 
 export function appendDailyAnalysisDisclaimer(text: string): string {
@@ -39,7 +39,6 @@ export function countDailyAnalysisBodyWords(
   return (
     countDailyAnalysisWords(content.vnindexAnalysis) +
     countDailyAnalysisWords(content.goldAnalysis) +
-    countDailyAnalysisWords(content.usMacroSummary) +
     countDailyAnalysisWords(content.watchNext)
   )
 }
@@ -70,14 +69,14 @@ QUY TẮC NỘI DUNG:
 5. Giọng văn: tiếng Việt, chuyên nghiệp, trung lập, giáo dục.
 
 GIỚI HẠN ĐỘ DÀI:
-- Tổng vnindexAnalysis + goldAnalysis + usMacroSummary + watchNext: TỐI ĐA ${DAILY_ANALYSIS_BODY_WORD_LIMIT} từ (cả bốn trường cộng lại).
+- Tổng vnindexAnalysis + goldAnalysis + watchNext: TỐI ĐA ${DAILY_ANALYSIS_BODY_WORD_LIMIT} từ (usMacroSummary do hệ thống sinh riêng, không tính vào giới hạn).
 - summary: 2–3 câu ngắn, không tính vào giới hạn 180 từ.
 - telegramCaption: tối đa ~350 ký tự; facebookCaption: 2–3 câu ngắn; zaloMessage: 1–2 câu.
 
 CẤU TRÚC NỘI DUNG (theo thứ tự):
 1. VN-Index (vnindexAnalysis)
 2. Vàng XAUUSD (goldAnalysis)
-3. Kinh tế Mỹ (usMacroSummary)
+3. Kinh tế Mỹ (usMacroSummary) — hệ thống tự sinh mục US Macro (24h); trường usMacroSummary có thể trả về "—".
 4. Theo dõi tiếp theo (watchNext) — kịch bản/vùng cần quan sát, quản trị rủi ro
 5. Tuyên bố pháp lý — KHÔNG ghi trong watchNext; hệ thống tự thêm disclaimer khi xuất bản
 
@@ -92,7 +91,7 @@ Hướng dẫn từng trường:
 - summary: tóm tắt tổng quan 2–3 câu (bối cảnh, không khuyến nghị giao dịch).
 - vnindexAnalysis: mục 1 — phân tích VN-Index từ biểu đồ được cung cấp.
 - goldAnalysis: mục 2 — phân tích vàng XAUUSD từ biểu đồ được cung cấp.
-- usMacroSummary: mục 3 — kinh tế Mỹ chỉ từ dữ liệu/sự kiện được cung cấp.
+- usMacroSummary: trả về "—" (hệ thống điền mục US Macro 24h sau khi sinh bài).
 - watchNext: mục 4 — điểm cần theo dõi tiếp theo, kịch bản có điều kiện, quản trị rủi ro (không disclaimer).
 - telegramCaption: caption Telegram ngắn, trung lập; kết thúc bằng tuyên bố bắt buộc.
 - facebookCaption: caption Facebook 2–3 câu, trung lập, CTA xem bài trên Btrading.org; kết thúc bằng tuyên bố bắt buộc.
@@ -138,10 +137,10 @@ export function buildDailyAnalysisUserPrompt(input: DailyAnalysisPromptInput): s
       OCR_AMIBROKER_UPDATING_MESSAGE +
       "\"",
     "",
-    "Cấu trúc nội dung bài phân tích (tối đa 180 từ cho 4 mục vnindexAnalysis + goldAnalysis + usMacroSummary + watchNext):",
+    "Cấu trúc nội dung bài phân tích (tối đa 180 từ cho vnindexAnalysis + goldAnalysis + watchNext; usMacroSummary do hệ thống sinh):",
     "1. VN-Index → vnindexAnalysis",
     "2. Vàng XAUUSD → goldAnalysis",
-    "3. Kinh tế Mỹ → usMacroSummary",
+    "3. US Macro (24h) → usMacroSummary (hệ thống điền — trả về \"—\")",
     "4. Theo dõi tiếp theo → watchNext",
     "5. Disclaimer — hệ thống tự thêm; KHÔNG ghi trong watchNext",
     "",
@@ -167,19 +166,19 @@ export function buildDailyAnalysisUserPrompt(input: DailyAnalysisPromptInput): s
     if (usEventsCalendarChecked) {
       lines.push(
         "",
-        "Không có sự kiện vĩ mô Mỹ quan trọng trong 24 giờ qua — usMacroSummary nên nêu dữ liệu đang được cập nhật hoặc bối cảnh chung, không kèm số liệu bịa.",
+        "Không có sự kiện vĩ mô Mỹ tác động cao (★★★) kể từ bản tin trước — usMacroSummary trả về \"—\".",
       )
     } else {
       lines.push(
         "",
-        "Không có dữ liệu vĩ mô Mỹ hoặc sự kiện lịch kinh tế bổ sung — usMacroSummary nên nêu dữ liệu đang được cập nhật, không kèm số liệu bịa.",
+        "Không có dữ liệu vĩ mô Mỹ bổ sung — usMacroSummary trả về \"—\".",
       )
     }
   }
 
   lines.push(
     "",
-    `Giới hạn: vnindexAnalysis + goldAnalysis + usMacroSummary + watchNext ≤ ${DAILY_ANALYSIS_BODY_WORD_LIMIT} từ.`,
+    `Giới hạn: vnindexAnalysis + goldAnalysis + watchNext ≤ ${DAILY_ANALYSIS_BODY_WORD_LIMIT} từ.`,
     `Tuyên bố bắt buộc cho telegramCaption và facebookCaption: "${DAILY_ANALYSIS_DISCLAIMER}"`,
     "Trả về JSON hợp lệ với đủ các trường đã nêu.",
   )

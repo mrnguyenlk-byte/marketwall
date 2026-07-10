@@ -1,7 +1,9 @@
 import {
   formatUsEconomicEventsForPrompt,
-  getRecentUsEconomicEvents,
+  getUsMacroEventsForArticle,
+  type UsEconomicEvent,
 } from "@/lib/economic-calendar/us-events"
+import { buildUsMacroSummary } from "@/lib/economic-calendar/us-macro-summary"
 import { generateMockDailyAnalysis } from "./generator"
 import {
   emptyOcrMarketData,
@@ -33,20 +35,40 @@ export type GenerateDailyAnalysisResult = {
   model?: string
 }
 
-async function resolveUsEventsText(
-  provided?: string,
-): Promise<{ text?: string; calendarChecked: boolean }> {
-  if (provided?.trim()) {
-    return { text: provided.trim(), calendarChecked: false }
+async function resolveUsMacroContext(
+  currentDate: string,
+  providedUsEventsText?: string,
+): Promise<{
+  events: UsEconomicEvent[]
+  usMacroSummary: string
+  usEventsText?: string
+  calendarChecked: boolean
+}> {
+  if (providedUsEventsText?.trim()) {
+    return {
+      events: [],
+      usMacroSummary: buildUsMacroSummary([]),
+      usEventsText: providedUsEventsText.trim(),
+      calendarChecked: false,
+    }
   }
 
-  const events = await getRecentUsEconomicEvents({ hours: 24 })
+  const events = await getUsMacroEventsForArticle(currentDate)
   const formatted = formatUsEconomicEventsForPrompt(events)
 
   return {
-    text: formatted || undefined,
+    events,
+    usMacroSummary: buildUsMacroSummary(events),
+    usEventsText: formatted || undefined,
     calendarChecked: true,
   }
+}
+
+function applyUsMacroSummary(
+  article: DailyAnalysis,
+  usMacroSummary: string,
+): DailyAnalysis {
+  return { ...article, usMacroSummary }
 }
 
 function buildMarketDataFromOcr(
@@ -92,17 +114,23 @@ export async function generateDailyAnalysis(
     usEventsText: providedUsEventsText,
     ocrData,
   } = options
-  const { text: usEventsText, calendarChecked: usEventsCalendarChecked } =
-    await resolveUsEventsText(providedUsEventsText)
+  const {
+    usMacroSummary,
+    usEventsText,
+    calendarChecked: usEventsCalendarChecked,
+  } = await resolveUsMacroContext(date, providedUsEventsText)
   const marketData = buildMarketDataFromOcr(ocrData)
   const model = getDailyAnalysisOpenAiModel()
 
   if (!hasOpenAiApiKey()) {
     return {
-      article: attachOcrFields(
-        generateMockDailyAnalysis(date, vnindexImage, goldImage, marketData),
-        ocrData,
-        marketData,
+      article: applyUsMacroSummary(
+        attachOcrFields(
+          generateMockDailyAnalysis(date, vnindexImage, goldImage, marketData),
+          ocrData,
+          marketData,
+        ),
+        usMacroSummary,
       ),
       source: "mock",
       fallbackUsed: true,
@@ -121,7 +149,10 @@ export async function generateDailyAnalysis(
       ocrData,
     )
     return {
-      article: attachOcrFields(article, ocrData, marketData),
+      article: applyUsMacroSummary(
+        attachOcrFields(article, ocrData, marketData),
+        usMacroSummary,
+      ),
       source: "openai",
       fallbackUsed: false,
       model,
@@ -151,10 +182,13 @@ export async function generateDailyAnalysis(
     }
 
     return {
-      article: attachOcrFields(
-        generateMockDailyAnalysis(date, vnindexImage, goldImage, marketData),
-        ocrData,
-        marketData,
+      article: applyUsMacroSummary(
+        attachOcrFields(
+          generateMockDailyAnalysis(date, vnindexImage, goldImage, marketData),
+          ocrData,
+          marketData,
+        ),
+        usMacroSummary,
       ),
       source: "mock",
       fallbackUsed: true,

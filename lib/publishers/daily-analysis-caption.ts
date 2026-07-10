@@ -23,7 +23,7 @@ function truncateText(text: string, maxLen: number): string {
   return `${text.slice(0, maxLen - 1).trimEnd()}…`
 }
 
-/** Split usMacroSummary into bullet lines; single paragraphs become one or more sentences. */
+/** Split usMacroSummary into bullet lines; pairs headline with → explanation when present. */
 export function parseUsMacroBullets(usMacroSummary: string): string[] {
   const trimmed = usMacroSummary.trim()
   if (!trimmed) return []
@@ -32,6 +32,32 @@ export function parseUsMacroBullets(usMacroSummary: string): string[] {
     .split(/\n+/)
     .map((line) => line.trim())
     .filter(Boolean)
+
+  const blocks: string[] = []
+  let current = ""
+
+  for (const line of lines) {
+    if (line.startsWith("•")) {
+      if (current) blocks.push(current)
+      current = line.replace(/^•\s*/, "")
+      continue
+    }
+
+    if (line.startsWith("→")) {
+      const explanation = line.replace(/^→\s*/, "")
+      current = current ? `${current} ${explanation}` : explanation
+      continue
+    }
+
+    if (!current) {
+      current = line.replace(/^[-•*]\s*/, "")
+    } else {
+      current = `${current} ${line}`
+    }
+  }
+
+  if (current) blocks.push(current)
+  if (blocks.length > 0) return blocks
 
   if (lines.length > 1) {
     return lines.map((line) => line.replace(/^[-•*]\s*/, ""))

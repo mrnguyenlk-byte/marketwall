@@ -1,3 +1,4 @@
+import { US_MACRO_EMPTY_MESSAGE } from "@/lib/economic-calendar/us-macro-summary"
 import {
   goldPromptSentence,
   OCR_AMIBROKER_UPDATING_MESSAGE,
@@ -7,14 +8,6 @@ import {
 import { appendDailyAnalysisDisclaimer, buildDailyAnalysisCta } from "./prompt"
 import { generateDailyAnalysisSlug } from "./slug"
 import type { DailyAnalysis } from "./types"
-
-function defaultVnindexImage(date: string): string {
-  return `/uploads/daily-analysis/${date}/vnindex.png`
-}
-
-function defaultGoldImage(date: string): string {
-  return `/uploads/daily-analysis/${date}/gold.png`
-}
 
 /** Phase 1 mock generator — no OpenAI calls. */
 export function generateMockDailyAnalysis(
@@ -26,8 +19,8 @@ export function generateMockDailyAnalysis(
   const now = new Date().toISOString()
   const title = `Phân tích thị trường ngày ${date}`
   const slug = generateDailyAnalysisSlug(title, date)
-  const vnImage = vnindexImage ?? defaultVnindexImage(date)
-  const gImage = goldImage ?? defaultGoldImage(date)
+  const vnImage = vnindexImage ?? ""
+  const gImage = goldImage ?? ""
 
   const watchNext =
     "Theo dõi diễn biến tại các vùng giá quan trọng trên biểu đồ, lập kế hoạch quản trị rủi ro và chỉ điều chỉnh khi có tín hiệu xác nhận rõ ràng."
@@ -62,8 +55,7 @@ export function generateMockDailyAnalysis(
       "Thị trường chứng khoán Việt Nam và vàng XAUUSD cần đọc trong bối cảnh vĩ mô toàn cầu. Nội dung dưới đây dựa trên biểu đồ được cung cấp, mang tính tham khảo.",
     vnindexAnalysis: vnAnalysis,
     goldAnalysis,
-    usMacroSummary:
-      "Dữ liệu vĩ mô Mỹ (Fed, lợi suất, chỉ số chính) đang được cập nhật. Nên theo dõi lịch công bố sắp tới để đánh giá kịch bản.",
+    usMacroSummary: US_MACRO_EMPTY_MESSAGE,
     cta,
     telegramCaption,
     facebookCaption,
