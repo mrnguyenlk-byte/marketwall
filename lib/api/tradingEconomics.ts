@@ -13,7 +13,7 @@ type TradingEconomicsEvent = {
   Country?: string
   Currency?: string
   Event?: string
-  Importance?: number
+  Importance?: number | string
   Actual?: string | number | null
   Forecast?: string | number | null
   Previous?: string | number | null
@@ -33,14 +33,47 @@ function getApiKey(): string | null {
   }
 }
 
-function mapImpact(importance?: number): "high" | "medium" | "low" {
-  if ((importance ?? 0) >= 3) return "high"
-  if ((importance ?? 0) === 2) return "medium"
+function mapImpact(importance?: number | string): "high" | "medium" | "low" {
+  if (typeof importance === "number") {
+    if (importance >= 3) return "high"
+    if (importance === 2) return "medium"
+    return "low"
+  }
+  const raw = String(importance ?? "")
+    .trim()
+    .toLowerCase()
+  if (
+    raw === "high" ||
+    raw === "high impact" ||
+    raw === "red" ||
+    raw === "3" ||
+    raw === "3-star" ||
+    raw === "★★★"
+  ) {
+    return "high"
+  }
+  if (raw === "medium" || raw === "2") return "medium"
+  const asNum = Number.parseFloat(raw)
+  if (asNum >= 3) return "high"
+  if (asNum === 2) return "medium"
   return "low"
 }
 
+function normalizeCountry(country: string): string {
+  const raw = country.trim().toUpperCase()
+  if (
+    raw === "US" ||
+    raw === "USA" ||
+    raw === "UNITED STATES" ||
+    raw === "UNITED STATES OF AMERICA"
+  ) {
+    return "US"
+  }
+  return raw
+}
+
 function formatValue(value: string | number | null | undefined): string {
-  if (value == null || value === "") return "—"
+  if (value === null || value === undefined || value === "") return "—"
   return String(value)
 }
 
@@ -64,7 +97,7 @@ function mapEvent(row: TradingEconomicsEvent): CalendarEventRow | null {
 
     return {
       time: extractTime(row.Date),
-      country: row.Country.toUpperCase(),
+      country: normalizeCountry(row.Country),
       event: row.Event,
       impact: mapImpact(row.Importance),
       forecast: formatValue(row.Forecast),

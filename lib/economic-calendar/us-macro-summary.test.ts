@@ -9,20 +9,28 @@ import {
 import {
   compareActualToForecast,
   containsForbiddenUsMacroTerms,
+  normalizeUsMacroEventName,
   type UsEconomicEvent,
 } from "./us-macro-core"
 
 function makeEvent(overrides: Partial<UsEconomicEvent>): UsEconomicEvent {
+  const eventName = overrides.event ?? "US CPI"
+  const publishedAt = overrides.publishedAt ?? new Date().toISOString()
   return {
     id: "event-1",
-    event: "US CPI",
+    event: eventName,
+    normalizedName: normalizeUsMacroEventName(eventName),
     actual: "2.4%",
     forecast: "2.5%",
     previous: "2.6%",
     impact: "high",
-    publishedAt: new Date().toISOString(),
+    publishedAt,
+    normalizedPublishedAt: publishedAt,
     verifiedContent: null,
     ...overrides,
+    normalizedName:
+      overrides.normalizedName ??
+      normalizeUsMacroEventName(overrides.event ?? eventName),
   }
 }
 
@@ -30,7 +38,7 @@ describe("formatUsMacroEventBlock", () => {
   it("formats lower-than-forecast CPI with two lines", () => {
     const block = formatUsMacroEventBlock(makeEvent({}))
     assert.match(block, /^• CPI Mỹ: 2\.4%, thấp hơn dự báo 2\.5%\.$/m)
-    assert.match(block, /\n→ Cho thấy áp lực lạm phát đang giảm\.$/)
+    assert.match(block, /\n  → Cho thấy áp lực lạm phát hạ nhiệt\.$/)
   })
 
   it("formats higher-than-forecast headline", () => {
@@ -38,7 +46,7 @@ describe("formatUsMacroEventBlock", () => {
       makeEvent({ actual: "2.6%", forecast: "2.5%" }),
     )
     assert.match(block, /cao hơn dự báo 2\.5%/)
-    assert.match(block, /áp lực lạm phát đang tăng/)
+    assert.match(block, /áp lực lạm phát tăng/)
   })
 
   it("formats in-line forecast headline", () => {

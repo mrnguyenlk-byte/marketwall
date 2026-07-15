@@ -1,6 +1,5 @@
 import "server-only"
 
-import { fetchTradingEconomicsCalendar } from "@/lib/api/tradingEconomics"
 import { safeFetchJson } from "@/lib/providers/fetch-utils"
 import { CACHE_KEYS } from "@/lib/providers/cache"
 import { chainProviders } from "@/lib/providers/fallback"
@@ -120,7 +119,7 @@ type TradingEconomicsEvent = {
   Country?: string
   Currency?: string
   Event?: string
-  Importance?: number
+  Importance?: number | string
   Actual?: string | number | null
   Forecast?: string | number | null
   Previous?: string | number | null
@@ -128,14 +127,54 @@ type TradingEconomicsEvent = {
   LastUpdate?: string
 }
 
-function mapImpact(importance?: number): "high" | "medium" | "low" {
-  if ((importance ?? 0) >= 3) return "high"
-  if ((importance ?? 0) === 2) return "medium"
+function mapImpact(importance?: number | string): "high" | "medium" | "low" {
+  if (typeof importance === "number") {
+    if (importance >= 3) return "high"
+    if (importance === 2) return "medium"
+    return "low"
+  }
+
+  const raw = String(importance ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+
+  if (
+    raw === "high" ||
+    raw === "high impact" ||
+    raw === "red" ||
+    raw === "3" ||
+    raw === "3-star" ||
+    raw === "3 star" ||
+    raw === "★★★" ||
+    raw.includes("★★★")
+  ) {
+    return "high"
+  }
+  if (raw === "medium" || raw === "orange" || raw === "2" || raw === "★★") return "medium"
+  if ((Number.parseFloat(raw) || 0) >= 3) return "high"
+  if ((Number.parseFloat(raw) || 0) === 2) return "medium"
   return "low"
 }
 
+function normalizeCountryCode(country: string): string {
+  const raw = country.trim().toUpperCase()
+  if (
+    raw === "US" ||
+    raw === "USA" ||
+    raw === "UNITED STATES" ||
+    raw === "UNITED STATES OF AMERICA" ||
+    raw === "U.S." ||
+    raw === "U.S.A."
+  ) {
+    return "US"
+  }
+  return raw
+}
+
 function formatValue(value: string | number | null | undefined): string {
-  if (value == null || value === "") return "—"
+  // Preserve numeric zero and negatives (e.g. -0.4) — only null/undefined/"" are missing.
+  if (value === null || value === undefined || value === "") return "—"
   return String(value)
 }
 
@@ -152,8 +191,9 @@ function extractTime(isoDate: string): string {
 function mapTradingEconomicsEvent(row: TradingEconomicsEvent): EconomicEventRecord | null {
   if (!row.Event || !row.Country || !row.Date) return null
 
-  const country = row.Country.toUpperCase()
-  const publishedAt = row.LastUpdate ?? row.Date
+  const country = normalizeCountryCode(row.Country)
+  // Prefer scheduled release time (Date) for windowing; LastUpdate can lag or be fetch-time.
+  const publishedAt = row.Date
 
   return {
     id: String(row.CalendarId ?? `${country}-${row.Event}-${row.Date}`),
@@ -230,18 +270,12 @@ const CURRENCY_TO_COUNTRY: Record<string, string> = {
   MXN: "MX",
 }
 
-function mapFairEconomyImpact(impact?: string): "high" | "medium" | "low" {
-  const level = impact?.toLowerCase() ?? ""
-  if (level === "high") return "high"
-  if (level === "medium") return "medium"
-  return "low"
-}
-
 function mapFairEconomyEvent(row: FairEconomyEvent, index: number): EconomicEventRecord | null {
   if (!row.title || !row.date) return null
 
   const currency = row.country?.toUpperCase() ?? "—"
-  const country = CURRENCY_TO_COUNTRY[currency] ?? currency.slice(0, 2)
+  const mapped = CURRENCY_TO_COUNTRY[currency] ?? currency.slice(0, 2)
+  const country = normalizeCountryCode(mapped)
   const publishedAt = row.date
 
   return {
@@ -250,7 +284,7 @@ function mapFairEconomyEvent(row: FairEconomyEvent, index: number): EconomicEven
     country,
     currency,
     event: row.title,
-    impact: mapFairEconomyImpact(row.impact),
+    impact: mapImpact(row.impact),
     previous: formatValue(row.previous),
     forecast: formatValue(row.forecast),
     actual: formatValue(row.actual),
@@ -272,26 +306,9 @@ async function fetchFairEconomyCalendar(): Promise<EconomicEventRecord[] | null>
 }
 
 async function fetchTradingEconomics(): Promise<EconomicEventRecord[] | null> {
-  try {
-    const events = await fetchTradingEconomicsCalendar(20)
-    if (!events.length) return null
-
-    return events.map((event, index) => ({
-      id: `te-${event.country}-${index}-${event.event.slice(0, 24)}`,
-      time: event.time,
-      country: event.country,
-      currency: event.country.slice(0, 2),
-      event: event.event,
-      impact: event.impact,
-      previous: event.previous,
-      forecast: event.forecast,
-      actual: event.actual,
-      source: "Trading Economics",
-      publishedAt: new Date().toISOString(),
-    }))
-  } catch {
-    return null
-  }
+  // Prefer the legacy mapper path which preserves release Date as publishedAt
+  // and normalizes United States → US (CalendarEventRow path previously stamped "now").
+  return fetchTradingEconomicsLegacy()
 }
 
 async function fetchTradingEconomicsLegacy(): Promise<EconomicEventRecord[] | null> {

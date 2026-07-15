@@ -11,6 +11,7 @@ import {
   selectTopUsMacroEvents,
   usMacroEventDedupKey,
   type UsEconomicEvent,
+  type UsMacroDebugRow,
 } from "./us-macro-core"
 
 export type { UsEconomicEvent } from "./us-macro-core"
@@ -38,27 +39,50 @@ function findArticleBefore(
   )
 }
 
-async function buildPreviousArticleDedupKeys(
+function buildPreviousArticleDedupKeys(
   articles: DailyAnalysis[],
   previousArticle: DailyAnalysis | null,
   records: EconomicEventRecord[],
-): Promise<Set<string>> {
+): Set<string> {
   if (!previousArticle) return new Set()
 
   const articleBeforePrevious = findArticleBefore(articles, previousArticle)
-  const sinceMs = resolveUsMacroSinceMs(articleBeforePrevious?.createdAt)
-  const untilMs = new Date(previousArticle.createdAt).getTime()
+  const sinceMs = resolveUsMacroSinceMs(articleBeforePrevious)
+  const untilMs = resolveUsMacroSinceMs(previousArticle)
 
-  const previousWindowEvents = filterUsMacroCandidates(records, sinceMs, untilMs)
+  const { events: previousWindowEvents } = filterUsMacroCandidates(
+    records,
+    sinceMs,
+    untilMs,
+  )
   const previousSelected = selectTopUsMacroEvents(previousWindowEvents)
 
   return new Set(previousSelected.map(usMacroEventDedupKey))
 }
 
+function logUsMacroRawDebug(rows: UsMacroDebugRow[]): void {
+  for (const row of rows) {
+    console.log(
+      [
+        "US_MACRO_RAW",
+        `id=${row.id}`,
+        `name=${JSON.stringify(row.name)}`,
+        `country=${row.country}`,
+        `impact=${row.impact}`,
+        `actual=${JSON.stringify(row.actual)}`,
+        `forecast=${JSON.stringify(row.forecast)}`,
+        `publishedAt=${row.publishedAt}`,
+        `normalizedPublishedAt=${row.normalizedPublishedAt}`,
+        `rejectionReason=${row.rejectionReason}`,
+      ].join(" "),
+    )
+  }
+}
+
 function logUsMacroCandidates(events: UsEconomicEvent[]): void {
   console.log(
     `US_MACRO_CANDIDATES count=${events.length} events=${events
-      .map((event) => `${event.event}@${event.publishedAt}`)
+      .map((event) => `${event.normalizedName}@${event.normalizedPublishedAt}`)
       .join("; ")}`,
   )
 }
@@ -66,7 +90,7 @@ function logUsMacroCandidates(events: UsEconomicEvent[]): void {
 function logUsMacroSelected(events: UsEconomicEvent[]): void {
   console.log(
     `US_MACRO_SELECTED count=${events.length} events=${events
-      .map((event) => `${event.event}@${event.publishedAt}`)
+      .map((event) => `${event.normalizedName}@${event.normalizedPublishedAt}`)
       .join("; ")}`,
   )
 }
@@ -88,9 +112,15 @@ export function formatUsEconomicEventsForPrompt(events: UsEconomicEvent[]): stri
   for (const event of events) {
     lines.push(`- ${event.event}`)
     const actual = event.actual ?? event.verifiedContent
-    if (actual) lines.push(`  Thực tế: ${actual}`)
-    if (event.forecast) lines.push(`  Dự báo: ${event.forecast}`)
-    if (event.previous) lines.push(`  Trước đó: ${event.previous}`)
+    if (actual !== null && actual !== undefined && actual !== "") {
+      lines.push(`  Thực tế: ${actual}`)
+    }
+    if (event.forecast !== null && event.forecast !== undefined && event.forecast !== "") {
+      lines.push(`  Dự báo: ${event.forecast}`)
+    }
+    if (event.previous !== null && event.previous !== undefined && event.previous !== "") {
+      lines.push(`  Trước đó: ${event.previous}`)
+    }
   }
 
   return lines.join("\n")
@@ -102,13 +132,22 @@ export async function getUsMacroEventsForArticle(
   try {
     const [data, articles] = await Promise.all([getData(), getDailyAnalysisList()])
     const previousArticle = findPreviousArticle(articles, currentDate)
-    const sinceMs = resolveUsMacroSinceMs(previousArticle?.createdAt)
+    const sinceMs = resolveUsMacroSinceMs(previousArticle)
     const untilMs = Date.now()
 
-    const candidates = filterUsMacroCandidates(data.normalized, sinceMs, untilMs)
+    console.log(
+      `US_MACRO_WINDOW since=${new Date(sinceMs).toISOString()} until=${new Date(untilMs).toISOString()} tz=Asia/Ho_Chi_Minh previousDate=${previousArticle?.date ?? "none"}`,
+    )
+
+    const { events: candidates, debugRows } = filterUsMacroCandidates(
+      data.normalized,
+      sinceMs,
+      untilMs,
+    )
+    logUsMacroRawDebug(debugRows)
     logUsMacroCandidates(candidates)
 
-    const excludeKeys = await buildPreviousArticleDedupKeys(
+    const excludeKeys = buildPreviousArticleDedupKeys(
       articles,
       previousArticle,
       data.normalized,
@@ -145,7 +184,11 @@ export async function getRecentUsEconomicEvents(
   try {
     const data = await getData()
     const sinceMs = Date.now() - (options?.hours ?? 24) * 60 * 60 * 1000
-    const candidates = filterUsMacroCandidates(data.normalized, sinceMs)
+    const { events: candidates, debugRows } = filterUsMacroCandidates(
+      data.normalized,
+      sinceMs,
+    )
+    logUsMacroRawDebug(debugRows)
     logUsMacroCandidates(candidates)
     const selected = selectTopUsMacroEvents(candidates)
     if (!selected.length) logUsMacroEmpty()
