@@ -4,7 +4,16 @@ import { BrokersPageContent } from "@/components/marketwall/brokers-page"
 import { getPublicBrokerSections } from "@/lib/brokers/catalog"
 import { platformsMetadata } from "@/lib/seo"
 
+export const dynamic = "force-dynamic"
+export const revalidate = 0
+
 export const metadata = platformsMetadata
+
+export function headers() {
+  return {
+    "Cache-Control": "no-store, no-cache, must-revalidate",
+  }
+}
 
 export default async function BrokersPage() {
   const { vnBrokers, globalBrokers } = await getPublicBrokerSections()
