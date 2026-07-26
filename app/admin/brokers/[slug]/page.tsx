@@ -5,10 +5,12 @@ import { useParams, useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 
 import {
-  BrokerOfferPolicyFields,
-  EMPTY_OFFER_FORM,
-  type BrokerOfferFormFields,
-} from "@/components/admin/broker-offer-policy-fields"
+  BrokerBackcomFields,
+  EMPTY_BACKCOM_FORM,
+  backcomFormToPolicy,
+  policyToBackcomForm,
+  type BrokerBackcomFormFields,
+} from "@/components/admin/broker-backcom-fields"
 import { PageHeader } from "@/components/admin/page-header"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -22,45 +24,23 @@ type BrokerDetail = {
   websiteUrl: string
   affiliateUrl: string | null
   logoUrl: string | null
-  description: string | null
-  rating: number
-  minDeposit: string
-  minDepositValue: number
-  trustScore: number
-  spread: string
-  spreadValue: number
-  leverage: string
   isActive: boolean
-  featured: boolean
   backcomType: string | null
   backcomValue: string | null
-  rebateType: string | null
-  bonusType: string | null
-  highlightOffer: string | null
-  offerConditions: string | null
-  payoutCycle: string | null
-}
-
-function toOfferForm(broker: BrokerDetail): BrokerOfferFormFields {
-  return {
-    backcomType: broker.backcomType ?? EMPTY_OFFER_FORM.backcomType,
-    backcomValue: broker.backcomValue ?? "",
-    rebateType: broker.rebateType ?? EMPTY_OFFER_FORM.rebateType,
-    bonusType: broker.bonusType ?? EMPTY_OFFER_FORM.bonusType,
-    highlightOffer: broker.highlightOffer ?? "",
-    offerConditions: broker.offerConditions ?? "",
-    payoutCycle: broker.payoutCycle ?? EMPTY_OFFER_FORM.payoutCycle,
-  }
 }
 
 export default function AdminBrokerEditPage() {
   const params = useParams<{ slug: string }>()
   const router = useRouter()
   const [form, setForm] = useState<BrokerDetail | null>(null)
-  const [offer, setOffer] = useState<BrokerOfferFormFields>(EMPTY_OFFER_FORM)
+  const [backcom, setBackcom] = useState<BrokerBackcomFormFields>(EMPTY_BACKCOM_FORM)
   const [pending, setPending] = useState(false)
+  const [fetchingLogo, setFetchingLogo] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [logo, setLogo] = useState<File | null>(null)
+  const [autoFetchLogo, setAutoFetchLogo] = useState(false)
+
+  const isGlobal = form?.category === "global"
 
   useEffect(() => {
     async function load() {
@@ -72,7 +52,7 @@ export default function AdminBrokerEditPage() {
       }
       if (data.broker) {
         setForm(data.broker)
-        setOffer(toOfferForm(data.broker))
+        setBackcom(policyToBackcomForm(data.broker.backcomType, data.broker.backcomValue))
       }
     }
     void load()
@@ -90,18 +70,18 @@ export default function AdminBrokerEditPage() {
     formData.set("category", form.category)
     formData.set("websiteUrl", form.websiteUrl)
     formData.set("affiliateUrl", form.affiliateUrl ?? "")
-    formData.set("description", form.description ?? "")
-    formData.set("rating", String(form.rating))
-    formData.set("minDeposit", form.minDeposit)
-    formData.set("minDepositValue", String(form.minDepositValue))
-    formData.set("trustScore", String(form.trustScore))
-    formData.set("spread", form.spread)
-    formData.set("spreadValue", String(form.spreadValue))
-    formData.set("leverage", form.leverage)
     formData.set("isActive", String(form.isActive))
-    formData.set("featured", String(form.featured))
-    Object.entries(offer).forEach(([key, value]) => formData.set(key, value))
+
+    if (isGlobal) {
+      const policy = backcomFormToPolicy(backcom)
+      formData.set("backcomType", policy.backcomType ?? "none")
+      if (policy.backcomValue) formData.set("backcomValue", policy.backcomValue)
+    } else {
+      formData.set("backcomType", "none")
+    }
+
     if (logo) formData.set("logo", logo)
+    if (autoFetchLogo) formData.set("autoFetchLogo", "true")
 
     const response = await fetch(`/api/admin/brokers/${form.slug}`, {
       method: "PUT",
@@ -116,8 +96,33 @@ export default function AdminBrokerEditPage() {
     }
     if (data.broker) {
       setForm(data.broker)
-      setOffer(toOfferForm(data.broker))
+      setBackcom(policyToBackcomForm(data.broker.backcomType, data.broker.backcomValue))
+      setAutoFetchLogo(false)
+      setLogo(null)
     }
+    router.refresh()
+  }
+
+  async function onFetchLogo() {
+    if (!form) return
+    setFetchingLogo(true)
+    setError(null)
+
+    const formData = new FormData()
+    formData.set("autoFetchLogo", "true")
+
+    const response = await fetch(`/api/admin/brokers/${form.slug}`, {
+      method: "PUT",
+      body: formData,
+    })
+    const data = (await response.json()) as { error?: string; broker?: BrokerDetail }
+
+    setFetchingLogo(false)
+    if (!response.ok) {
+      setError(data.error ?? "Could not fetch logo")
+      return
+    }
+    if (data.broker) setForm(data.broker)
     router.refresh()
   }
 
@@ -143,13 +148,30 @@ export default function AdminBrokerEditPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <PageHeader title={`Edit — ${form.name}`} description={form.slug} />
+      <PageHeader
+        title={`Edit — ${form.name}`}
+        description={`${form.slug} · ${form.category === "vn" ? "Trong nước" : "Quốc tế"}`}
+      />
 
       <form onSubmit={onSave} className="space-y-4 rounded-lg border border-border/80 p-5">
-        {form.logoUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={form.logoUrl} alt="" className="h-12 w-auto rounded" />
-        ) : null}
+        <div className="flex flex-wrap items-center gap-4">
+          {form.logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={form.logoUrl}
+              alt=""
+              className="h-20 w-20 rounded-2xl border border-border bg-card object-contain p-2"
+            />
+          ) : (
+            <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-dashed border-border bg-muted/30 text-xs text-muted-foreground">
+              No logo
+            </div>
+          )}
+          <Button type="button" variant="outline" size="sm" disabled={fetchingLogo} onClick={onFetchLogo}>
+            {fetchingLogo ? "Fetching…" : "Fetch logo from website"}
+          </Button>
+        </div>
+
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="name">Name</Label>
@@ -160,6 +182,26 @@ export default function AdminBrokerEditPage() {
             />
           </div>
           <div className="space-y-2">
+            <Label htmlFor="initials">Initials</Label>
+            <Input
+              id="initials"
+              value={form.initials}
+              onChange={(e) => setForm({ ...form, initials: e.target.value })}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="category">Category</Label>
+            <select
+              id="category"
+              className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm"
+              value={form.category}
+              onChange={(e) => setForm({ ...form, category: e.target.value })}
+            >
+              <option value="vn">Trong nước (vn)</option>
+              <option value="global">Quốc tế (global)</option>
+            </select>
+          </div>
+          <div className="space-y-2">
             <Label htmlFor="websiteUrl">Website</Label>
             <Input
               id="websiteUrl"
@@ -167,47 +209,38 @@ export default function AdminBrokerEditPage() {
               onChange={(e) => setForm({ ...form, websiteUrl: e.target.value })}
             />
           </div>
-          <div className="space-y-2 sm:col-span-2">
-            <Label htmlFor="affiliateUrl">Affiliate URL</Label>
-            <Input
-              id="affiliateUrl"
-              type="url"
-              value={form.affiliateUrl ?? ""}
-              onChange={(e) => setForm({ ...form, affiliateUrl: e.target.value })}
-            />
-          </div>
-          <div className="space-y-2 sm:col-span-2">
-            <Label htmlFor="description">Description</Label>
-            <textarea
-              id="description"
-              rows={3}
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-              value={form.description ?? ""}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="rating">Rating</Label>
-            <Input
-              id="rating"
-              type="number"
-              step="0.1"
-              value={form.rating}
-              onChange={(e) => setForm({ ...form, rating: Number(e.target.value) })}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="logo">Replace logo</Label>
-            <Input
-              id="logo"
-              type="file"
-              accept="image/png,image/jpeg,image/webp"
-              onChange={(e) => setLogo(e.target.files?.[0] ?? null)}
-            />
-          </div>
+          {isGlobal ? (
+            <div className="space-y-2 sm:col-span-2">
+              <Label htmlFor="affiliateUrl">Link ref (Affiliate URL)</Label>
+              <Input
+                id="affiliateUrl"
+                type="url"
+                value={form.affiliateUrl ?? ""}
+                onChange={(e) => setForm({ ...form, affiliateUrl: e.target.value })}
+              />
+            </div>
+          ) : null}
         </div>
 
-        <BrokerOfferPolicyFields value={offer} onChange={setOffer} />
+        {isGlobal ? <BrokerBackcomFields value={backcom} onChange={setBackcom} /> : null}
+
+        <div className="space-y-2">
+          <Label htmlFor="logo">Replace logo</Label>
+          <Input
+            id="logo"
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            onChange={(e) => setLogo(e.target.files?.[0] ?? null)}
+          />
+          <label className="flex items-center gap-2 text-sm text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={autoFetchLogo}
+              onChange={(e) => setAutoFetchLogo(e.target.checked)}
+            />
+            Tự lấy logo khi lưu (nếu chưa chọn file)
+          </label>
+        </div>
 
         <label className="flex items-center gap-2 text-sm">
           <input
@@ -215,10 +248,11 @@ export default function AdminBrokerEditPage() {
             checked={form.isActive}
             onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
           />
-          Active on public site
+          Hiển thị trên trang public
         </label>
+
         {error ? <p className="text-sm text-loss">{error}</p> : null}
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button type="submit" disabled={pending}>
             {pending ? "Saving…" : "Save"}
           </Button>

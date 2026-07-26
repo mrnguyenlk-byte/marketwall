@@ -7,18 +7,20 @@ import { cn } from "@/lib/utils"
 
 export type BrokerLogoVariant = "vn" | "global"
 
-export type BrokerLogoSize = "md" | "lg" | "xl"
+export type BrokerLogoSize = "md" | "lg" | "xl" | "2xl"
 
 const SIZE_CLASS: Record<BrokerLogoSize, string> = {
   md: "h-16 w-[4.75rem] sm:h-[4.5rem] sm:w-20",
   lg: "h-24 w-28 sm:h-28 sm:w-32",
   xl: "h-28 w-32 sm:h-32 sm:w-36",
+  "2xl": "h-32 w-36 sm:h-40 sm:w-44 md:h-44 md:w-48",
 }
 
 const INITIALS_TEXT: Record<BrokerLogoSize, string> = {
   md: "text-xl sm:text-2xl",
   lg: "text-2xl sm:text-3xl",
   xl: "text-3xl sm:text-4xl",
+  "2xl": "text-4xl sm:text-5xl",
 }
 
 function resolveDomain(broker: Broker): string {
@@ -64,7 +66,7 @@ export function BrokerLogo({
   const currentSrc = showInitials ? null : sources[sourceIndex]
 
   const shellClass = cn(
-    "relative flex shrink-0 items-center justify-center overflow-hidden rounded-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] ring-1 transition-transform",
+    "relative flex shrink-0 items-center justify-center overflow-hidden rounded-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] ring-1 transition-transform duration-200 group-hover:scale-[1.03]",
     SIZE_CLASS[size],
     variant === "vn"
       ? "bg-gradient-to-br from-[#c41e3a]/30 via-secondary/50 to-card ring-[#c41e3a]/35"
@@ -95,8 +97,8 @@ export function BrokerLogo({
         alt=""
         fill
         unoptimized
-        sizes="(max-width: 640px) 112px, 144px"
-        className="object-contain p-2"
+        sizes="(max-width: 640px) 128px, 192px"
+        className="object-contain p-2.5 sm:p-3"
         onError={() => setSourceIndex((i) => i + 1)}
       />
     </span>

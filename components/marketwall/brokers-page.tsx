@@ -1,7 +1,7 @@
 "use client"
 
-import { useMemo, useState, type CSSProperties, type ReactNode } from "react"
-import { AlertTriangle, ExternalLink, Filter, Star, X } from "lucide-react"
+import { useMemo, useState, type ReactNode } from "react"
+import { AlertTriangle, Filter, X } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { useLang } from "@/lib/i18n"
 import {
@@ -10,394 +10,102 @@ import {
   vnStockPlatforms,
   filterGlobalBrokers,
   type Broker,
-  type BrokerBadge,
   type GlobalBrokerFilterId,
 } from "@/lib/broker-data"
-import { brokerOfferBadges } from "@/lib/brokers/offer-policy"
+import { globalBackcomBadge } from "@/lib/brokers/offer-policy"
 import { brokerSlug } from "@/lib/brokers/registry"
 import { cn } from "@/lib/utils"
 import { BrokerLogo } from "./BrokerLogo"
 import { DashboardCard, DashboardCardBody, WidgetHeader } from "./shared"
 
-const BADGE_STYLES: Record<BrokerBadge, string> = {
-  bestOverall: "border-primary/40 bg-primary/15 text-primary",
-  bestBeginners: "border-gain/40 bg-gain/15 text-gain",
-  lowestSpread: "border-warn/40 bg-warn/15 text-warn",
-  fastWithdrawal: "border-cyan-500/40 bg-cyan-500/10 text-cyan-400",
-}
-
-/** Card grid: 5 brokers on one row at lg+ when listing all platforms. */
-function brokerCardGridClass(count: number): string {
+function brokerLogoGridClass(count: number): string {
   if (count <= 1) return "grid-cols-1"
-  if (count === 2) return "grid-cols-1 sm:grid-cols-2"
-  if (count === 3) return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
-  if (count === 4) return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"
-  return "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5"
+  if (count === 2) return "grid-cols-2"
+  if (count === 3) return "grid-cols-2 sm:grid-cols-3"
+  if (count === 4) return "grid-cols-2 sm:grid-cols-4"
+  return "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
 }
 
-function comparisonGridStyle(count: number): CSSProperties {
-  return {
-    gridTemplateColumns: `minmax(7.5rem, 10rem) repeat(${count}, minmax(0, 1fr))`,
-  }
-}
-
-type CompareRow = {
-  id: string
-  labelKey: string
-  getValue: (broker: Broker, lang: "en" | "vi") => string | string[]
-}
-
-const VN_COMPARE_ROWS: CompareRow[] = [
-  {
-    id: "fee",
-    labelKey: "label.brokerageFee",
-    getValue: (b) => b.spread,
-  },
-  {
-    id: "offer",
-    labelKey: "label.offer",
-    getValue: (b, lang) => b.offer[lang],
-  },
-  {
-    id: "regulator",
-    labelKey: "brokers.filter.license",
-    getValue: (b, lang) => b.license[lang],
-  },
-]
-
-const GLOBAL_COMPARE_ROWS: CompareRow[] = [
-  {
-    id: "rating",
-    labelKey: "brokers.filter.rating",
-    getValue: (b) => `${b.rating.toFixed(1)} / 5 · ${b.trustScore}/100`,
-  },
-  {
-    id: "spread",
-    labelKey: "brokers.filter.spread",
-    getValue: (b) => b.spread,
-  },
-  {
-    id: "minDeposit",
-    labelKey: "brokers.filter.minDeposit",
-    getValue: (b) => b.minDeposit,
-  },
-  {
-    id: "leverage",
-    labelKey: "label.leverage",
-    getValue: (b) => b.leverage,
-  },
-  {
-    id: "promotions",
-    labelKey: "label.promotions",
-    getValue: (b, lang) =>
-      b.promotions?.map((p) => p[lang]) ?? [b.offer[lang]],
-  },
-  {
-    id: "rebatePerLot",
-    labelKey: "label.rebatePerLot",
-    getValue: (b, lang) =>
-      b.rebatePerLot?.[lang] ?? { en: "—", vi: "—" }[lang],
-  },
-  {
-    id: "marketInterest",
-    labelKey: "label.marketInterest",
-    getValue: (b, lang) => {
-      if (!b.marketInterest) return "—"
-      return {
-        en: { high: "High", medium: "Medium", low: "Low" }[b.marketInterest],
-        vi: { high: "Cao", medium: "Trung bình", low: "Thấp" }[b.marketInterest],
-      }[lang]
-    },
-  },
-  {
-    id: "regulator",
-    labelKey: "brokers.filter.license",
-    getValue: (b, lang) => b.license[lang],
-  },
-]
-
-function OfferPolicyBadges({ broker }: { broker: Broker }) {
-  const badges = brokerOfferBadges({
-    backcomType: broker.backcomType,
-    backcomValue: broker.backcomValue,
-    rebateType: broker.rebateType,
-    bonusType: broker.bonusType,
-  })
-  if (badges.length === 0) return null
+function BackcomBadge({ label }: { label: string }) {
   return (
-    <div className="flex flex-wrap justify-center gap-1.5">
-      {badges.map((label) => (
-        <Badge
-          key={label}
-          variant="outline"
-          className="h-6 rounded-md border-primary/35 bg-primary/10 px-2 text-[11px] font-semibold text-primary sm:text-xs"
-        >
-          {label}
-        </Badge>
-      ))}
-    </div>
-  )
-}
-
-function BrokerBadges({ badges }: { badges: BrokerBadge[] }) {
-  const { t } = useLang()
-  if (badges.length === 0) return null
-  return (
-    <div className="flex flex-wrap justify-center gap-1.5">
-      {badges.map((b) => (
-        <Badge
-          key={b}
-          variant="outline"
-          className={cn("h-6 rounded-md px-2 text-[11px] font-semibold sm:text-xs", BADGE_STYLES[b])}
-        >
-          {t(`brokers.badge.${b}`)}
-        </Badge>
-      ))}
-    </div>
-  )
-}
-
-function RatingPill({ broker }: { broker: Broker }) {
-  const { t } = useLang()
-  return (
-    <div className="flex flex-wrap items-center justify-center gap-1.5 text-xs">
-      <span className="inline-flex items-center gap-0.5 rounded-full bg-secondary/80 px-2 py-0.5 font-semibold text-foreground">
-        <Star className="size-3 fill-warn text-warn" aria-hidden />
-        {broker.rating.toFixed(1)}
-      </span>
-      <span className="text-[11px] text-muted-foreground">
-        {t("label.trustScore")}: {broker.trustScore}
-      </span>
-    </div>
-  )
-}
-
-function CompactCellValue({
-  value,
-  rowId,
-}: {
-  value: string | string[]
-  rowId?: string
-}) {
-  if (Array.isArray(value)) {
-    const text = value.join(" · ")
-    return (
-      <p
-        className="line-clamp-2 text-left text-[11px] leading-snug text-foreground sm:text-xs lg:text-center"
-        title={text}
-      >
-        {text}
-      </p>
-    )
-  }
-
-  if (rowId === "regulator") {
-    return (
-      <span
-        className="inline-block max-w-full truncate rounded-md border border-border/50 bg-muted/25 px-1.5 py-0.5 text-[10px] font-medium text-foreground sm:text-[11px]"
-        title={value}
-      >
-        {value}
-      </span>
-    )
-  }
-
-  return (
-    <span
-      className="text-xs font-semibold leading-snug text-foreground sm:text-sm"
-      title={value}
+    <Badge
+      variant="outline"
+      className="h-7 rounded-lg border-primary/40 bg-primary/15 px-2.5 text-xs font-bold text-primary sm:text-sm"
     >
-      {value}
-    </span>
+      {label}
+    </Badge>
   )
 }
 
-function BrokerCardHeader({
-  broker,
-  variant,
-  highlighted,
-  compact = false,
-}: {
-  broker: Broker
-  variant: "vn" | "global"
-  highlighted?: boolean
-  compact?: boolean
-}) {
-  const { t } = useLang()
+function VnLogoTile({ broker }: { broker: Broker }) {
   const slug = brokerSlug(broker.name)
+  const href = `/api/brokers/redirect?slug=${encodeURIComponent(slug)}&source=listing`
 
   return (
-    <div
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      title={broker.name}
       className={cn(
-        "group flex h-full flex-col items-center text-center transition-all duration-200",
-        compact
-          ? "min-h-[13rem] gap-2 rounded-xl border p-3 lg:min-h-[14rem] lg:p-3"
-          : "min-h-[16rem] gap-3 rounded-2xl border p-4 sm:gap-4 sm:p-5",
-        "hover:-translate-y-0.5 hover:shadow-[0_8px_28px_-10px_rgba(0,0,0,0.4)]",
-        variant === "vn"
-          ? "border-[#c41e3a]/25 bg-[#c41e3a]/[0.06] hover:border-[#c41e3a]/45 hover:shadow-[#c41e3a]/10"
-          : "border-primary/20 bg-primary/[0.06] hover:border-primary/40 hover:shadow-primary/10",
-        highlighted && "ring-2 ring-primary/40 ring-offset-2 ring-offset-background",
+        "group flex aspect-square flex-col items-center justify-center gap-3 rounded-2xl border p-4 sm:p-5",
+        "border-[#c41e3a]/25 bg-gradient-to-br from-[#c41e3a]/[0.08] via-card/80 to-card",
+        "transition-all duration-200 hover:-translate-y-1 hover:border-[#c41e3a]/50",
+        "hover:shadow-[0_12px_40px_-12px_rgba(196,30,58,0.45)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c41e3a]/60",
       )}
     >
-      <BrokerLogo broker={broker} variant={variant} size={compact ? "lg" : "xl"} />
-      <div className="w-full min-w-0 space-y-1">
-        <p
-          className={cn(
-            "truncate font-bold text-foreground",
-            compact ? "text-sm" : "text-base sm:text-lg",
-          )}
-        >
-          {broker.name}
-        </p>
-        {variant === "global" && <RatingPill broker={broker} />}
-        <OfferPolicyBadges broker={broker} />
-        <BrokerBadges badges={broker.badges} />
-        {broker.offerConditions?.trim() ? (
-          <p
-            className={cn(
-              "line-clamp-2 text-muted-foreground",
-              compact ? "text-[10px] leading-snug" : "text-[11px] leading-snug sm:text-xs",
-            )}
-            title={broker.offerConditions}
-          >
-            {broker.offerConditions}
-          </p>
-        ) : broker.highlightOffer?.trim() ? (
-          <p
-            className={cn(
-              "line-clamp-2 text-muted-foreground",
-              compact ? "text-[10px] leading-snug" : "text-[11px] leading-snug sm:text-xs",
-            )}
-            title={broker.highlightOffer}
-          >
-            {broker.highlightOffer}
-          </p>
-        ) : null}
-      </div>
-      <div className="mt-auto flex w-full flex-col gap-1.5 pt-1">
-        <a
-          href={`/brokers/${slug}`}
-          className={cn(
-            "inline-flex w-full items-center justify-center rounded-lg border border-border bg-secondary/50 font-semibold text-foreground transition-colors hover:bg-secondary/80",
-            compact ? "h-8 px-2 text-[11px]" : "h-9 px-3 text-xs sm:h-10 sm:text-sm",
-          )}
-        >
-          {t("misc.viewReview")}
-        </a>
-        <a
-          href={`/api/brokers/redirect?slug=${encodeURIComponent(slug)}&source=listing`}
-          className={cn(
-            "inline-flex w-full items-center justify-center gap-1 rounded-lg bg-primary font-semibold text-primary-foreground transition-colors hover:bg-primary/90",
-            compact ? "h-8 px-2 text-[11px]" : "h-9 px-3 text-xs sm:h-10 sm:text-sm",
-          )}
-        >
-          <ExternalLink className={compact ? "size-3" : "size-3.5"} aria-hidden />
-          {t("misc.visitBroker")}
-        </a>
-      </div>
-    </div>
+      <BrokerLogo broker={broker} variant="vn" size="2xl" />
+      <span className="sr-only">{broker.name}</span>
+    </a>
   )
 }
 
-function ComparisonTable({
-  brokers,
-  rows,
-  gridStyle,
-  className,
-}: {
-  brokers: Broker[]
-  rows: CompareRow[]
-  gridStyle: CSSProperties
-  className?: string
-}) {
-  const { t, lang } = useLang()
+function GlobalLogoTile({ broker }: { broker: Broker }) {
+  const slug = brokerSlug(broker.name)
+  const href = `/api/brokers/redirect?slug=${encodeURIComponent(slug)}&source=listing`
+  const backcom = globalBackcomBadge({
+    backcomType: broker.backcomType,
+    backcomValue: broker.backcomValue,
+  })
 
   return (
-    <div className={cn("overflow-hidden rounded-xl border border-border/80 bg-card/40 shadow-sm", className)}>
-      {rows.map((row, index) => (
-        <div
-          key={row.id}
-          className={cn(
-            "grid items-stretch",
-            index > 0 && "border-t border-border/60",
-            index % 2 === 0 ? "bg-muted/10" : "bg-transparent",
-          )}
-          style={gridStyle}
-        >
-          <div className="flex items-center border-r border-border/40 px-3 py-2">
-            <span className="text-[10px] font-semibold uppercase leading-tight tracking-wide text-muted-foreground sm:text-[11px]">
-              {t(row.labelKey)}
-            </span>
-          </div>
-          {brokers.map((broker, colIndex) => (
-            <div
-              key={`${row.id}-${broker.name}`}
-              className={cn(
-                "flex min-h-[2.5rem] items-center justify-center px-2 py-2 sm:py-2.5",
-                colIndex > 0 && "border-l border-border/40",
-              )}
-            >
-              <CompactCellValue value={row.getValue(broker, lang)} rowId={row.id} />
-            </div>
-          ))}
-        </div>
-      ))}
-    </div>
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      title={broker.name}
+      className={cn(
+        "group flex aspect-square flex-col items-center justify-center gap-3 rounded-2xl border p-4 sm:p-5",
+        "border-primary/25 bg-gradient-to-br from-primary/[0.08] via-card/80 to-card",
+        "transition-all duration-200 hover:-translate-y-1 hover:border-primary/50",
+        "hover:shadow-[0_12px_40px_-12px_rgba(var(--primary),0.35)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60",
+      )}
+    >
+      <BrokerLogo broker={broker} variant="global" size="2xl" />
+      {backcom ? <BackcomBadge label={backcom} /> : null}
+      <span className="sr-only">{broker.name}</span>
+    </a>
   )
 }
 
-function ComparisonGrid({
+function LogoGrid({
   brokers,
-  rows,
   variant,
-  highlightedNames,
 }: {
   brokers: Broker[]
-  rows: CompareRow[]
   variant: "vn" | "global"
-  highlightedNames?: Set<string>
 }) {
-  const cardGridClass = brokerCardGridClass(brokers.length)
-  const gridStyle = comparisonGridStyle(brokers.length)
+  const gridClass = brokerLogoGridClass(brokers.length)
 
   return (
-    <div className="space-y-4">
-      {/* Mobile / tablet: stacked cards + scrollable comparison */}
-      <div className="space-y-4 lg:hidden">
-        <div className={cn("grid gap-3 sm:gap-4", cardGridClass)}>
-          {brokers.map((broker) => (
-            <BrokerCardHeader
-              key={broker.name}
-              broker={broker}
-              variant={variant}
-              highlighted={highlightedNames?.has(broker.name)}
-            />
-          ))}
-        </div>
-        <div className="overflow-x-auto">
-          <div className="min-w-[36rem]">
-            <ComparisonTable brokers={brokers} rows={rows} gridStyle={gridStyle} />
-          </div>
-        </div>
-      </div>
-
-      {/* Desktop: cards aligned above column-matched comparison table */}
-      <div className="hidden space-y-3 lg:block">
-        <div className="grid gap-3" style={gridStyle}>
-          <div aria-hidden className="min-w-0" />
-          {brokers.map((broker) => (
-            <BrokerCardHeader
-              key={broker.name}
-              broker={broker}
-              variant={variant}
-              highlighted={highlightedNames?.has(broker.name)}
-              compact
-            />
-          ))}
-        </div>
-        <ComparisonTable brokers={brokers} rows={rows} gridStyle={gridStyle} />
-      </div>
+    <div className={cn("grid gap-3 sm:gap-4 md:gap-5", gridClass)}>
+      {brokers.map((broker) =>
+        variant === "vn" ? (
+          <VnLogoTile key={broker.name} broker={broker} />
+        ) : (
+          <GlobalLogoTile key={broker.name} broker={broker} />
+        ),
+      )}
     </div>
   )
 }
@@ -423,7 +131,7 @@ function GlobalFilterBar({
           <Filter className="size-4 text-primary" aria-hidden />
           <span>{t("brokers.filter.activeHint")}</span>
         </div>
-        {hasFilters && (
+        {hasFilters ? (
           <button
             type="button"
             onClick={onClear}
@@ -432,7 +140,7 @@ function GlobalFilterBar({
             <X className="size-3.5" aria-hidden />
             {t("brokers.filter.clearAll")}
           </button>
-        )}
+        ) : null}
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -457,20 +165,19 @@ function GlobalFilterBar({
         })}
       </div>
 
-      {hasFilters && (
+      {hasFilters ? (
         <p className="text-xs text-muted-foreground">
           {t("brokers.filter.resultsCount").replace("{count}", String(resultCount))}
         </p>
-      )}
+      ) : null}
     </div>
   )
 }
 
-function ComparisonSection({
+function BrokerLogoSection({
   title,
   description,
   brokers,
-  rows,
   variant,
   filterBar,
   emptyMessage,
@@ -478,16 +185,10 @@ function ComparisonSection({
   title: string
   description: string
   brokers: Broker[]
-  rows: CompareRow[]
   variant: "vn" | "global"
   filterBar?: ReactNode
   emptyMessage?: string
 }) {
-  const highlightedNames = useMemo(
-    () => new Set(brokers.map((b) => b.name)),
-    [brokers],
-  )
-
   return (
     <DashboardCard
       className={cn(
@@ -527,12 +228,7 @@ function ComparisonSection({
             <p className="text-sm text-muted-foreground">{emptyMessage}</p>
           </div>
         ) : (
-          <ComparisonGrid
-            brokers={brokers}
-            rows={rows}
-            variant={variant}
-            highlightedNames={filterBar ? highlightedNames : undefined}
-          />
+          <LogoGrid brokers={brokers} variant={variant} />
         )}
       </DashboardCardBody>
     </DashboardCard>
@@ -581,19 +277,17 @@ export function BrokersPageContent({
         </p>
       </header>
 
-      <ComparisonSection
+      <BrokerLogoSection
         title={t("platforms.vnSection")}
         description={t("platforms.vnSectionDesc")}
         brokers={vnBrokers}
-        rows={VN_COMPARE_ROWS}
         variant="vn"
       />
 
-      <ComparisonSection
+      <BrokerLogoSection
         title={t("platforms.globalSection")}
         description={t("platforms.globalSectionDesc")}
         brokers={filteredGlobalBrokers}
-        rows={GLOBAL_COMPARE_ROWS}
         variant="global"
         emptyMessage={t("brokers.filter.noResults")}
         filterBar={

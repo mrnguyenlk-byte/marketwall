@@ -1,13 +1,13 @@
 /** Shared broker promotion / rebate policy options for admin CMS + public badges. */
 
+export const BACKCOM_PERCENT_PRESETS = ["30%", "40%", "50%", "60%", "70%"] as const
+
+/** @deprecated Use BACKCOM_PERCENT_PRESETS + fixed/custom modes */
 export const BACKCOM_TYPES = [
   "none",
-  "30%",
-  "40%",
-  "50%",
-  "60%",
-  "70%",
+  ...BACKCOM_PERCENT_PRESETS,
   "custom",
+  "fixed",
 ] as const
 
 export type BackcomType = (typeof BACKCOM_TYPES)[number]
@@ -59,11 +59,20 @@ export function formatBackcomBadge(
   backcomValue: string | null | undefined,
 ): string | null {
   if (!backcomType || backcomType === "none") return null
+  if (backcomType === "fixed") {
+    const amount = backcomValue?.trim()
+    return amount ? `Backcom ${amount}` : null
+  }
   if (backcomType === "custom") {
     const custom = backcomValue?.trim()
     return custom ? `Backcom ${custom}` : null
   }
   return `Backcom ${backcomType}`
+}
+
+/** Public global cards: backcom only (no rebate/bonus). */
+export function globalBackcomBadge(policy: Partial<BrokerOfferPolicy>): string | null {
+  return formatBackcomBadge(policy.backcomType, policy.backcomValue)
 }
 
 export function formatRebateBadge(rebateType: string | null | undefined): string | null {
@@ -108,10 +117,11 @@ export function parseOptionalUrl(value: string | null | undefined): {
 
 export function readOfferPolicyFromFormData(formData: FormData): BrokerOfferPolicy {
   const backcomType = String(formData.get("backcomType") ?? "").trim() || null
-  const backcomValue = String(formData.get("backcomValue") ?? "").trim() || null
+  const backcomValueRaw = String(formData.get("backcomValue") ?? "").trim() || null
+  const needsValue = backcomType === "custom" || backcomType === "fixed"
   return {
     backcomType,
-    backcomValue: backcomType === "custom" ? backcomValue : null,
+    backcomValue: needsValue ? backcomValueRaw : null,
     rebateType: String(formData.get("rebateType") ?? "").trim() || null,
     bonusType: String(formData.get("bonusType") ?? "").trim() || null,
     highlightOffer: String(formData.get("highlightOffer") ?? "").trim() || null,

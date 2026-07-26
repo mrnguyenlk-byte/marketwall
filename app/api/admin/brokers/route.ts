@@ -1,5 +1,6 @@
 import { isAdminApiError, requireAdminApi } from "@/lib/admin/auth"
 import { brokerCreateDefaults, slugify } from "@/lib/admin/broker-defaults"
+import { persistBrokerLogoFromWebsite } from "@/lib/brokers/logo-fetch"
 import { readOfferPolicyFromFormData } from "@/lib/brokers/offer-policy"
 import { prisma } from "@/lib/prisma"
 import { isR2Configured, putR2Object } from "@/lib/r2"
@@ -70,6 +71,7 @@ export async function POST(request: Request) {
   }
 
   const logoFile = formData.get("logo")
+  const autoFetchLogo = formData.get("autoFetchLogo") === "true"
   let logoUrl: string | null = null
   if (logoFile instanceof File && logoFile.size > 0) {
     try {
@@ -77,6 +79,12 @@ export async function POST(request: Request) {
     } catch (error) {
       const message = error instanceof Error ? error.message : "Logo upload failed"
       return Response.json({ error: message }, { status: 400 })
+    }
+  } else if (autoFetchLogo && websiteUrl) {
+    try {
+      logoUrl = await persistBrokerLogoFromWebsite(slug, websiteUrl)
+    } catch {
+      // Optional — broker can still be created without logo
     }
   }
 
