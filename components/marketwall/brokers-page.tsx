@@ -1,30 +1,18 @@
 "use client"
 
-import { useMemo, useState, type ReactNode } from "react"
-import { AlertTriangle, Filter, X } from "lucide-react"
+import { AlertTriangle } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { useLang } from "@/lib/i18n"
 import {
-  GLOBAL_BROKER_FILTERS,
   globalPlatforms,
   vnStockPlatforms,
-  filterGlobalBrokers,
   type Broker,
-  type GlobalBrokerFilterId,
 } from "@/lib/broker-data"
 import { globalBackcomBadge } from "@/lib/brokers/offer-policy"
 import { brokerSlug } from "@/lib/brokers/registry"
 import { cn } from "@/lib/utils"
 import { BrokerLogo } from "./BrokerLogo"
 import { DashboardCard, DashboardCardBody, WidgetHeader } from "./shared"
-
-function brokerLogoGridClass(count: number): string {
-  if (count <= 1) return "grid-cols-1"
-  if (count === 2) return "grid-cols-2"
-  if (count === 3) return "grid-cols-2 sm:grid-cols-3"
-  if (count === 4) return "grid-cols-2 sm:grid-cols-4"
-  return "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
-}
 
 function BackcomBadge({ label }: { label: string }) {
   return (
@@ -95,10 +83,13 @@ function LogoGrid({
   brokers: Broker[]
   variant: "vn" | "global"
 }) {
-  const gridClass = brokerLogoGridClass(brokers.length)
-
   return (
-    <div className={cn("grid gap-3 sm:gap-4 md:gap-5", gridClass)}>
+    <div
+      className="grid justify-center gap-3 sm:gap-4 md:gap-5"
+      style={{
+        gridTemplateColumns: "repeat(auto-fit, minmax(9rem, 12rem))",
+      }}
+    >
       {brokers.map((broker) =>
         variant === "vn" ? (
           <VnLogoTile key={broker.name} broker={broker} />
@@ -110,83 +101,17 @@ function LogoGrid({
   )
 }
 
-function GlobalFilterBar({
-  activeFilters,
-  onToggle,
-  onClear,
-  resultCount,
-}: {
-  activeFilters: GlobalBrokerFilterId[]
-  onToggle: (id: GlobalBrokerFilterId) => void
-  onClear: () => void
-  resultCount: number
-}) {
-  const { t } = useLang()
-  const hasFilters = activeFilters.length > 0
-
-  return (
-    <div className="sticky top-0 z-20 -mx-1 space-y-3 rounded-xl border border-primary/20 bg-card/95 p-3 shadow-sm backdrop-blur-md sm:-mx-0 sm:p-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-          <Filter className="size-4 text-primary" aria-hidden />
-          <span>{t("brokers.filter.activeHint")}</span>
-        </div>
-        {hasFilters ? (
-          <button
-            type="button"
-            onClick={onClear}
-            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-          >
-            <X className="size-3.5" aria-hidden />
-            {t("brokers.filter.clearAll")}
-          </button>
-        ) : null}
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        {GLOBAL_BROKER_FILTERS.map((filterId) => {
-          const active = activeFilters.includes(filterId)
-          return (
-            <button
-              key={filterId}
-              type="button"
-              aria-pressed={active}
-              onClick={() => onToggle(filterId)}
-              className={cn(
-                "rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
-                active
-                  ? "border-primary bg-primary/20 text-primary shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]"
-                  : "border-border bg-secondary/40 text-muted-foreground hover:border-primary/40 hover:text-foreground",
-              )}
-            >
-              {t(`brokers.filter.${filterId}`)}
-            </button>
-          )
-        })}
-      </div>
-
-      {hasFilters ? (
-        <p className="text-xs text-muted-foreground">
-          {t("brokers.filter.resultsCount").replace("{count}", String(resultCount))}
-        </p>
-      ) : null}
-    </div>
-  )
-}
-
 function BrokerLogoSection({
   title,
   description,
   brokers,
   variant,
-  filterBar,
   emptyMessage,
 }: {
   title: string
   description: string
   brokers: Broker[]
   variant: "vn" | "global"
-  filterBar?: ReactNode
   emptyMessage?: string
 }) {
   return (
@@ -222,7 +147,6 @@ function BrokerLogoSection({
         <p className="max-w-4xl text-sm leading-relaxed text-muted-foreground sm:text-base">
           {description}
         </p>
-        {filterBar}
         {brokers.length === 0 && emptyMessage ? (
           <div className="rounded-xl border border-dashed border-border bg-muted/20 px-4 py-10 text-center">
             <p className="text-sm text-muted-foreground">{emptyMessage}</p>
@@ -253,18 +177,6 @@ export function BrokersPageContent({
   globalBrokers?: Broker[]
 } = {}) {
   const { t } = useLang()
-  const [activeFilters, setActiveFilters] = useState<GlobalBrokerFilterId[]>([])
-
-  const filteredGlobalBrokers = useMemo(
-    () => filterGlobalBrokers(globalBrokers, activeFilters),
-    [globalBrokers, activeFilters],
-  )
-
-  const toggleFilter = (id: GlobalBrokerFilterId) => {
-    setActiveFilters((prev) =>
-      prev.includes(id) ? prev.filter((f) => f !== id) : [...prev, id],
-    )
-  }
 
   return (
     <div className="mx-auto w-full max-w-[112rem] space-y-8 lg:space-y-10">
@@ -287,17 +199,9 @@ export function BrokersPageContent({
       <BrokerLogoSection
         title={t("platforms.globalSection")}
         description={t("platforms.globalSectionDesc")}
-        brokers={filteredGlobalBrokers}
+        brokers={globalBrokers}
         variant="global"
         emptyMessage={t("brokers.filter.noResults")}
-        filterBar={
-          <GlobalFilterBar
-            activeFilters={activeFilters}
-            onToggle={toggleFilter}
-            onClear={() => setActiveFilters([])}
-            resultCount={filteredGlobalBrokers.length}
-          />
-        }
       />
 
       <DisclaimerBlock />
