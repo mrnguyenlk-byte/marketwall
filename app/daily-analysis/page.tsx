@@ -4,6 +4,7 @@ import { DailyAnalysisPageContent } from "@/components/marketwall/daily-analysis
 import { getDailyAnalysisList } from "@/lib/daily-analysis/storage"
 import { mapArticleToListCard } from "@/lib/daily-analysis/map-to-card"
 import { dailyAnalysisMetadata } from "@/lib/seo"
+import { getSiteSettings } from "@/lib/site-settings"
 
 export const dynamic = "force-dynamic"
 export const revalidate = 0
@@ -17,7 +18,7 @@ export function headers() {
 }
 
 export default async function DailyAnalysisPage() {
-  const articles = await getDailyAnalysisList()
+  const [articles, settings] = await Promise.all([getDailyAnalysisList(), getSiteSettings()])
   const cards = articles.length > 0 ? articles.map(mapArticleToListCard) : undefined
 
   return (
@@ -25,7 +26,11 @@ export default async function DailyAnalysisPage() {
       <Header />
 
       <main className="w-full px-3 py-5 sm:px-4 lg:px-6 xl:px-8">
-        <DailyAnalysisPageContent cards={cards} />
+        <DailyAnalysisPageContent
+          cards={cards}
+          communityCtaHref={settings.communityCtaUrl}
+          communityCtaLabel={settings.communityCta}
+        />
       </main>
 
       <Footer />

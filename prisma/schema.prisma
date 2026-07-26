@@ -173,6 +173,10 @@ model SiteSettings {
   zaloLink      String?
   /// Public LIVE button / CTA URL (optional).
   liveUrl       String?
+  /// Optional TikTok / YouTube / Facebook live stream URL.
+  liveStreamUrl String?
+  /// Daily Analysis "join community" button URL (independent of telegramLink).
+  communityCtaUrl String?
   communityCta  String?  @db.Text
   footerContent String?  @db.Text
   createdAt     DateTime @default(now())

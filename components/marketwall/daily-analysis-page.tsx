@@ -7,15 +7,21 @@ import { DailyAnalysisHero } from "./daily-analysis-hero"
 
 type DailyAnalysisPageContentProps = {
   cards?: DailyAnalysisCard[]
+  communityCtaHref?: string
+  communityCtaLabel?: string | null
 }
 
-export function DailyAnalysisPageContent({ cards }: DailyAnalysisPageContentProps) {
+export function DailyAnalysisPageContent({
+  cards,
+  communityCtaHref,
+  communityCtaLabel,
+}: DailyAnalysisPageContentProps) {
   const { t } = useLang()
   const displayCards = cards?.length ? cards : DAILY_ANALYSIS_MOCK_CARDS
 
   return (
     <div className="mx-auto max-w-5xl space-y-5">
-      <DailyAnalysisHero />
+      <DailyAnalysisHero ctaHref={communityCtaHref} ctaLabel={communityCtaLabel} />
 
       <header>
         <h1 className="text-xl font-bold text-foreground lg:text-2xl">{t("sec.dailyAnalysis")}</h1>

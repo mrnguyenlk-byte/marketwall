@@ -13,8 +13,15 @@ const BULLET_KEYS = [
   "dailyAnalysis.hero.bullet3",
 ] as const
 
-export function DailyAnalysisHero() {
+export function DailyAnalysisHero({
+  ctaHref = TELEGRAM_LINK,
+  ctaLabel,
+}: {
+  ctaHref?: string
+  ctaLabel?: string | null
+} = {}) {
   const { t } = useLang()
+  const label = ctaLabel?.trim() || t("dailyAnalysis.hero.cta")
 
   return (
     <section
@@ -55,7 +62,7 @@ export function DailyAnalysisHero() {
             </ul>
           </div>
           <Link
-            href={TELEGRAM_LINK}
+            href={ctaHref}
             target="_blank"
             rel="noopener noreferrer"
             className={cn(
@@ -63,7 +70,7 @@ export function DailyAnalysisHero() {
               "h-9 w-full gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 sm:w-auto",
             )}
           >
-            {t("dailyAnalysis.hero.cta")}
+            {label}
             <ArrowUpRight className="size-3.5" aria-hidden />
           </Link>
         </div>

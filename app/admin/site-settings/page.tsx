@@ -14,6 +14,8 @@ type SettingsForm = {
   facebookLink: string
   zaloLink: string
   liveUrl: string
+  liveStreamUrl: string
+  communityCtaUrl: string
   communityCta: string
   footerContent: string
 }
@@ -26,6 +28,8 @@ export default function AdminSiteSettingsPage() {
     facebookLink: "",
     zaloLink: "",
     liveUrl: "",
+    liveStreamUrl: "",
+    communityCtaUrl: "",
     communityCta: "",
     footerContent: "",
   })
@@ -45,6 +49,8 @@ export default function AdminSiteSettingsPage() {
           facebookLink: data.settings.facebookLink ?? "",
           zaloLink: data.settings.zaloLink ?? "",
           liveUrl: data.settings.liveUrl ?? "",
+          liveStreamUrl: data.settings.liveStreamUrl ?? "",
+          communityCtaUrl: data.settings.communityCtaUrl ?? "",
           communityCta: data.settings.communityCta ?? "",
           footerContent: data.settings.footerContent ?? "",
         })
@@ -78,7 +84,7 @@ export default function AdminSiteSettingsPage() {
     <div className="mx-auto max-w-2xl space-y-6">
       <PageHeader
         title="Site Settings"
-        description="Contact, social links, and footer content. Public site falls back to defaults when empty."
+        description="Each public button has its own link. Changing one does not update the others."
       />
 
       <form onSubmit={onSave} className="space-y-4 rounded-lg border border-border/80 p-5">
@@ -99,53 +105,102 @@ export default function AdminSiteSettingsPage() {
             onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
           />
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="telegramLink">Telegram link</Label>
-          <Input
-            id="telegramLink"
-            value={form.telegramLink}
-            onChange={(e) => setForm((f) => ({ ...f, telegramLink: e.target.value }))}
-          />
+
+        <div className="space-y-3 rounded-md border border-border/60 bg-muted/20 p-3">
+          <p className="text-sm font-medium text-foreground">Contact buttons</p>
+          <div className="space-y-2">
+            <Label htmlFor="telegramLink">Telegram link</Label>
+            <Input
+              id="telegramLink"
+              type="url"
+              placeholder="https://t.me/…"
+              value={form.telegramLink}
+              onChange={(e) => setForm((f) => ({ ...f, telegramLink: e.target.value }))}
+            />
+            <p className="text-xs text-muted-foreground">Contact FAB / Contact page only.</p>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="facebookLink">Facebook link</Label>
+            <Input
+              id="facebookLink"
+              type="url"
+              value={form.facebookLink}
+              onChange={(e) => setForm((f) => ({ ...f, facebookLink: e.target.value }))}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="zaloLink">Zalo link</Label>
+            <Input
+              id="zaloLink"
+              type="url"
+              value={form.zaloLink}
+              onChange={(e) => setForm((f) => ({ ...f, zaloLink: e.target.value }))}
+            />
+            <p className="text-xs text-muted-foreground">Contact FAB / Contact page only.</p>
+          </div>
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="facebookLink">Facebook link</Label>
-          <Input
-            id="facebookLink"
-            value={form.facebookLink}
-            onChange={(e) => setForm((f) => ({ ...f, facebookLink: e.target.value }))}
-          />
+
+        <div className="space-y-3 rounded-md border border-border/60 bg-muted/20 p-3">
+          <p className="text-sm font-medium text-foreground">LIVE button</p>
+          <div className="space-y-2">
+            <Label htmlFor="liveUrl">Live Link</Label>
+            <Input
+              id="liveUrl"
+              type="url"
+              placeholder="https://…"
+              value={form.liveUrl}
+              onChange={(e) => setForm((f) => ({ ...f, liveUrl: e.target.value }))}
+            />
+            <p className="text-xs text-muted-foreground">
+              Optional. Generic destination for the LIVE nav button.
+            </p>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="liveStreamUrl">Live stream (TikTok / YouTube / Facebook)</Label>
+            <Input
+              id="liveStreamUrl"
+              type="url"
+              placeholder="https://www.tiktok.com/@…/live or YouTube / Facebook live URL"
+              value={form.liveStreamUrl}
+              onChange={(e) => setForm((f) => ({ ...f, liveStreamUrl: e.target.value }))}
+            />
+            <p className="text-xs text-muted-foreground">
+              Optional. If set, used for the LIVE button instead of Live Link above.
+            </p>
+          </div>
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="zaloLink">Zalo link</Label>
-          <Input
-            id="zaloLink"
-            value={form.zaloLink}
-            onChange={(e) => setForm((f) => ({ ...f, zaloLink: e.target.value }))}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="liveUrl">Live Link</Label>
-          <Input
-            id="liveUrl"
-            type="url"
-            placeholder="https://…"
-            value={form.liveUrl}
-            onChange={(e) => setForm((f) => ({ ...f, liveUrl: e.target.value }))}
-          />
-          <p className="text-xs text-muted-foreground">
-            Optional. Used for the LIVE button / CTA when set (must be a valid URL).
+
+        <div className="space-y-3 rounded-md border border-border/60 bg-muted/20 p-3">
+          <p className="text-sm font-medium text-foreground">
+            Daily Analysis — Tham gia cộng đồng
           </p>
+          <div className="space-y-2">
+            <Label htmlFor="communityCtaUrl">Community CTA link</Label>
+            <Input
+              id="communityCtaUrl"
+              type="url"
+              placeholder="https://t.me/… or any community URL"
+              value={form.communityCtaUrl}
+              onChange={(e) => setForm((f) => ({ ...f, communityCtaUrl: e.target.value }))}
+            />
+            <p className="text-xs text-muted-foreground">
+              Independent from Telegram link above. Only controls the Daily Analysis community
+              button.
+            </p>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="communityCta">Community CTA text</Label>
+            <textarea
+              id="communityCta"
+              rows={2}
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+              placeholder="Leave empty to use the default button label"
+              value={form.communityCta}
+              onChange={(e) => setForm((f) => ({ ...f, communityCta: e.target.value }))}
+            />
+          </div>
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="communityCta">Community CTA</Label>
-          <textarea
-            id="communityCta"
-            rows={2}
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-            value={form.communityCta}
-            onChange={(e) => setForm((f) => ({ ...f, communityCta: e.target.value }))}
-          />
-        </div>
+
         <div className="space-y-2">
           <Label htmlFor="footerContent">Footer content</Label>
           <textarea

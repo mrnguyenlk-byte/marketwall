@@ -18,10 +18,19 @@ export async function PUT(request: Request) {
 
   const body = (await request.json()) as Record<string, unknown>
 
-  const liveUrlRaw = typeof body.liveUrl === "string" ? body.liveUrl : null
-  const liveUrlParsed = parseOptionalUrl(liveUrlRaw)
+  const liveUrlParsed = parseOptionalUrl(typeof body.liveUrl === "string" ? body.liveUrl : null)
   if (!liveUrlParsed.ok) {
     return Response.json({ error: `Live Link: ${liveUrlParsed.error}` }, { status: 400 })
+  }
+
+  const liveStreamUrlParsed = parseOptionalUrl(
+    typeof body.liveStreamUrl === "string" ? body.liveStreamUrl : null,
+  )
+  if (!liveStreamUrlParsed.ok) {
+    return Response.json(
+      { error: `Live stream (TikTok/YouTube/Facebook): ${liveStreamUrlParsed.error}` },
+      { status: 400 },
+    )
   }
 
   const telegramParsed = parseOptionalUrl(
@@ -33,6 +42,9 @@ export async function PUT(request: Request) {
   const zaloParsed = parseOptionalUrl(
     typeof body.zaloLink === "string" ? body.zaloLink : null,
   )
+  const communityCtaUrlParsed = parseOptionalUrl(
+    typeof body.communityCtaUrl === "string" ? body.communityCtaUrl : null,
+  )
   if (!telegramParsed.ok) {
     return Response.json({ error: `Telegram link: ${telegramParsed.error}` }, { status: 400 })
   }
@@ -42,6 +54,12 @@ export async function PUT(request: Request) {
   if (!zaloParsed.ok) {
     return Response.json({ error: `Zalo link: ${zaloParsed.error}` }, { status: 400 })
   }
+  if (!communityCtaUrlParsed.ok) {
+    return Response.json(
+      { error: `Community CTA link: ${communityCtaUrlParsed.error}` },
+      { status: 400 },
+    )
+  }
 
   const settings = await upsertSiteSettings({
     email: typeof body.email === "string" ? body.email.trim() || null : null,
@@ -50,6 +68,8 @@ export async function PUT(request: Request) {
     facebookLink: facebookParsed.value,
     zaloLink: zaloParsed.value,
     liveUrl: liveUrlParsed.value,
+    liveStreamUrl: liveStreamUrlParsed.value,
+    communityCtaUrl: communityCtaUrlParsed.value,
     communityCta:
       typeof body.communityCta === "string" ? body.communityCta.trim() || null : null,
     footerContent:
