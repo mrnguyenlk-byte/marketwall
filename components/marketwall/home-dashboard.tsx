@@ -162,10 +162,9 @@ function DesktopHomeLayout(props: HomeDashboardProps) {
 /**
  * Mounts exactly one homepage layout for the active viewport.
  * Mobile (&lt;1024): single column, each section once.
- * Desktop (â‰¥1024): grid with sidebars; desktop-only widgets do not mount on mobile.
+ * Desktop (≥1024): grid with sidebars; desktop-only widgets do not mount on mobile.
  */
 export function HomeDashboard(props: HomeDashboardProps) {
   const isDesktop = useIsDesktopLg()
   return isDesktop ? <DesktopHomeLayout {...props} /> : <MobileHomeLayout {...props} />
 }
-
