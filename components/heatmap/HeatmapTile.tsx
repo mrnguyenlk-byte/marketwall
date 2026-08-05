@@ -5,7 +5,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { heatStyle, fmt } from "@/components/marketwall/shared"
+import { formatMarketPrice, heatStyle } from "@/components/marketwall/shared"
 import { isVnHeatmapLeader, vnHeatmapLeaderGlowStyle } from "@/lib/heatmap/leader-symbols"
 import { useLang } from "@/lib/i18n"
 import type { TreemapRect } from "@/lib/treemap/squarify"
@@ -72,7 +72,7 @@ function CompactTooltip({
       <p className="font-semibold">{asset.symbol}</p>
       <p className="max-w-[140px] truncate text-[10px] text-background/75">{asset.name[lang]}</p>
       <p className="font-mono text-[11px] tabular-nums">
-        {fmt(asset.price)} ·{" "}
+        {formatMarketPrice(asset.price, asset.marketType)} ·{" "}
         <span className={up ? "text-emerald-300" : "text-red-300"}>
           {up ? "+" : ""}
           {asset.changePercent.toFixed(2)}%
@@ -97,6 +97,7 @@ export function HeatmapTile({
   const classes = sizeClasses[size]
   const showChange = size === "large" || size === "medium"
   const showSymbol = size !== "tiny"
+  const showPrice = size === "large" && asset.price > 0
 
   const tileBody = (
     <>
@@ -119,6 +120,11 @@ export function HeatmapTile({
         >
           {up ? "+" : ""}
           {asset.changePercent.toFixed(2)}%
+        </span>
+      )}
+      {showPrice && (
+        <span className="mt-0.5 font-mono text-[10px] tabular-nums text-white/85">
+          {formatMarketPrice(asset.price, asset.marketType)}
         </span>
       )}
     </>

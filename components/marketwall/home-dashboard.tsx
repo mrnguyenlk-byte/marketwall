@@ -25,6 +25,7 @@ import { SectionErrorBoundary } from "@/components/marketwall/section-error-boun
 import { ForeignFlowSection } from "@/components/marketwall/foreign-flow-section"
 import { DomesticFlowSection } from "@/components/marketwall/domestic-flow-section"
 import { useIsDesktopLg } from "@/components/marketwall/home-viewport-gate"
+import type { HeatmapAsset } from "@/types/market"
 
 export type HomeDashboardProps = {
   dailyAnalysisCards?: DailyAnalysisCard[]
@@ -33,22 +34,31 @@ export type HomeDashboardProps = {
   newsFallback: MarketNewsItem[]
   calendarFallback: EconomicEvent[]
   fearGreedItems: FearGreedItem[]
+  initialVnHeatmap?: {
+    items: HeatmapAsset[]
+    source: "live" | "mock"
+    proprietarySource?: "cafef-eod" | "gtgd-proxy"
+    lastUpdatedAt?: string | null
+    coverageCount?: number
+    proprietaryStale?: boolean
+  }
 }
 
 function CenterCoreSections({
   dailyAnalysisCards,
   heatmapMarkets,
-}: Pick<HomeDashboardProps, "dailyAnalysisCards" | "heatmapMarkets">) {
+  initialVnHeatmap,
+}: Pick<HomeDashboardProps, "dailyAnalysisCards" | "heatmapMarkets" | "initialVnHeatmap">) {
   return (
     <>
       <SectionErrorBoundary name="daily-analysis">
         <DailyAnalysisPreview cards={dailyAnalysisCards} />
       </SectionErrorBoundary>
+      <SectionErrorBoundary name="heatmap">
+        <HeatmapSection markets={heatmapMarkets} initialVnHeatmap={initialVnHeatmap} />
+      </SectionErrorBoundary>
       <SectionErrorBoundary name="market-liquidity">
         <MarketLiquiditySection />
-      </SectionErrorBoundary>
-      <SectionErrorBoundary name="heatmap">
-        <HeatmapSection markets={heatmapMarkets} />
       </SectionErrorBoundary>
       <SectionErrorBoundary name="vn-dashboard">
         <VietnamMarketDashboard />
@@ -61,6 +71,7 @@ function MobileHomeLayout(props: HomeDashboardProps) {
   const {
     dailyAnalysisCards,
     heatmapMarkets,
+    initialVnHeatmap,
     overviewByCategory,
     newsFallback,
     calendarFallback,
@@ -71,6 +82,7 @@ function MobileHomeLayout(props: HomeDashboardProps) {
       <CenterCoreSections
         dailyAnalysisCards={dailyAnalysisCards}
         heatmapMarkets={heatmapMarkets}
+        initialVnHeatmap={initialVnHeatmap}
       />
       <SectionErrorBoundary name="foreign-flow">
         <ForeignFlowSection />
@@ -96,6 +108,7 @@ function DesktopHomeLayout(props: HomeDashboardProps) {
   const {
     dailyAnalysisCards,
     heatmapMarkets,
+    initialVnHeatmap,
     overviewByCategory,
     newsFallback,
     calendarFallback,
@@ -112,6 +125,7 @@ function DesktopHomeLayout(props: HomeDashboardProps) {
         <CenterCoreSections
           dailyAnalysisCards={dailyAnalysisCards}
           heatmapMarkets={heatmapMarkets}
+          initialVnHeatmap={initialVnHeatmap}
         />
         <SectionErrorBoundary name="foreign-flow">
           <ForeignFlowSection />

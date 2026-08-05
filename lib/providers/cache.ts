@@ -10,6 +10,12 @@ type CacheEntry<T> = {
 }
 
 const store = new Map<string, CacheEntry<unknown>>()
+/**
+ * Coalesce simultaneous cache misses for the same resource. This matters on
+ * serverless instances, where a busy page load can otherwise fan out into many
+ * identical upstream requests before the first response has populated `store`.
+ */
+const pending = new Map<string, Promise<unknown>>()
 
 export const DEFAULT_CACHE_TTL_MS = 60_000
 
@@ -97,9 +103,26 @@ export async function cachedProvider<T>(
     return { data: cached.value, source: "cache", fromCache: true }
   }
 
-  const result = await fetcher()
-  if (!result) return null
+  const existingRequest = pending.get(key) as
+    | Promise<{ data: T; source: DataSource } | null>
+    | undefined
 
-  setCached(key, result.data, result.source, options?.ttlMs)
-  return { ...result, fromCache: false }
+  if (existingRequest) {
+    const result = await existingRequest
+    if (!result) return null
+    return { ...result, source: "cache" as const, fromCache: true }
+  }
+
+  const request = fetcher()
+  pending.set(key, request)
+
+  try {
+    const result = await request
+    if (!result) return null
+
+    setCached(key, result.data, result.source, options?.ttlMs)
+    return { ...result, fromCache: false }
+  } finally {
+    pending.delete(key)
+  }
 }

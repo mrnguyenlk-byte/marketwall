@@ -207,13 +207,11 @@ export function getAvailableDetailTabs(
   },
 ): DetailTabId[] {
   const tabs: DetailTabId[] = []
-  const statsBeyondHeader = options.summaryRows.filter(
-    (row) => !["symbol", "exchange", "last", "changePct"].includes(row.key),
-  )
 
-  if (options.hasChart || statsBeyondHeader.length > 0) {
-    tabs.push("overview")
-  }
+  // Every clickable instrument needs a useful landing state. Previously an
+  // asset without a chart and optional metrics produced no tabs at all,
+  // leaving the detail modal completely blank (for example GOLD).
+  tabs.push("overview")
   if (options.hasChart) tabs.push("chart")
   if (hasRealProfile(asset)) tabs.push("profile")
   if (hasRealShareholders(asset.shareholders)) tabs.push("shareholders")

@@ -49,6 +49,17 @@ function tradingViewFor(symbol: string, marketType: MarketType): string {
     return `BINANCE:${base}USDT`
   }
   if (marketType === "vn") return `HOSE:${symbol}`
+  const globalInstrumentSymbols: Record<string, string> = {
+    GOLD: "OANDA:XAUUSD",
+    SILVER: "OANDA:XAGUSD",
+    "WTI OIL": "TVC:USOIL",
+    DXY: "TVC:DXY",
+    "S&P 500": "TVC:SPX",
+    NASDAQ: "TVC:IXIC",
+    "DOW JONES": "TVC:DJI",
+  }
+  const mapped = globalInstrumentSymbols[symbol.toUpperCase()]
+  if (mapped) return mapped
   return `NASDAQ:${symbol}`
 }
 

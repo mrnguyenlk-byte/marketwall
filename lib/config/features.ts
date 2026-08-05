@@ -5,7 +5,9 @@ export const features = {
   watchlist: true,
   liveClientFetch: true,
   /** Twelve Data WebSocket → SSE relay for live quote ticks. */
-  realtimeStream: true,
+  // Disabled by default: an SSE relay keeps a Vercel Function open per visitor.
+  // Set NEXT_PUBLIC_REALTIME_STREAM_ENABLED=true only when realtime ticks justify the cost.
+  realtimeStream: process.env.NEXT_PUBLIC_REALTIME_STREAM_ENABLED === "true",
   /** FX strength section — live via Twelve Data pairs with mock fallback. */
   currencyStrength: true,
   /** Dynamic /markets/[symbol] pages — off until symbol detail flow is stable. */

@@ -64,10 +64,6 @@ export function StockTabs({ asset, activeTab, onTabChange }: StockTabsProps) {
 
   const [nonVnChartLive, setNonVnChartLive] = useState(false)
 
-  useEffect(() => {
-    setNonVnChartLive(false)
-  }, [asset.symbol])
-
   const summaryRows = useMemo(() => getSummaryStatRows(asset, t, fmt), [asset, t])
   const historicalRows = useMemo(
     () => getHistoricalRows(asset, vnChart.data),

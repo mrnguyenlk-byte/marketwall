@@ -57,6 +57,7 @@ export default async function Page() {
           newsFallback={newsFallback}
           calendarFallback={calendarFallback}
           fearGreedItems={dashboard.fearGreedItems}
+          initialVnHeatmap={dashboard.initialVnHeatmap}
         />
       </main>
 

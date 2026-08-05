@@ -7,9 +7,17 @@ import { cn } from "@/lib/utils"
 export function fmt(n: number, opts?: Intl.NumberFormatOptions) {
   return new Intl.NumberFormat("en-US", {
     maximumFractionDigits: n >= 100 ? 1 : 4,
-    minimumFractionDigits: n >= 100 ? 1 : 2,
+    minimumFractionDigits: 0,
     ...opts,
   }).format(n)
+}
+
+/** Display prices without insignificant trailing decimals (153.0 → 153). */
+export function formatMarketPrice(n: number, marketType: "vn" | "us" | "crypto") {
+  return fmt(n, {
+    maximumFractionDigits: marketType === "vn" ? 0 : marketType === "crypto" ? 4 : 2,
+    minimumFractionDigits: 0,
+  })
 }
 
 export function signClass(v: number) {
@@ -242,17 +250,17 @@ export function heatStyle(pct: number): React.CSSProperties {
   const clamped = Math.max(-5, Math.min(5, pct))
 
   const stops: [number, number, number, number][] = [
-    [-5, 125, 48, 38],
-    [-2, 155, 62, 45],
-    [-0.5, 185, 90, 55],
-    [-0.05, 200, 130, 60],
-    [0, 210, 175, 48],
-    [0.15, 155, 168, 58],
-    [0.8, 75, 145, 55],
-    [1.5, 42, 118, 48],
-    [2.5, 28, 98, 42],
-    [3.5, 18, 82, 38],
-    [5, 14, 115, 48],
+    [-5, 120, 45, 38],
+    [-2, 156, 58, 45],
+    [-0.5, 182, 76, 50],
+    [-0.05, 123, 66, 57],
+    [0, 58, 73, 92],
+    [0.15, 58, 113, 67],
+    [0.8, 46, 137, 60],
+    [1.5, 37, 117, 48],
+    [2.5, 27, 96, 42],
+    [3.5, 18, 79, 37],
+    [5, 13, 105, 45],
   ]
 
   if (clamped <= stops[0][0]) return { backgroundColor: rgb(stops[0]) }
@@ -271,7 +279,7 @@ export function heatStyle(pct: number): React.CSSProperties {
     }
   }
 
-  return { backgroundColor: "rgb(210, 175, 48)" }
+  return { backgroundColor: "rgb(58, 73, 92)" }
 }
 
 function lerp(a: number, b: number, t: number) {
