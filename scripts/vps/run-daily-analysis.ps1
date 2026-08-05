@@ -91,7 +91,7 @@ try {
 
   if (-not $SkipCapture) {
     & (Join-Path $PSScriptRoot "capture-ami-broker-charts.ps1") -ConfigPath $ConfigPath
-    if ($LASTEXITCODE -ne 0) { throw "AmiBroker chart capture failed." }
+    if (-not $?) { throw "AmiBroker chart capture failed." }
   }
 
   Test-FreshImage $vnindexImage $maxImageAgeMinutes
