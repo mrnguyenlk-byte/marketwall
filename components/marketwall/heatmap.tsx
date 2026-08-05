@@ -35,9 +35,9 @@ import { cn } from "@/lib/utils"
 const VN_EXCHANGE_IDS: VnExchangeId[] = ["hose", "hnx", "upcom"]
 
 const DETAIL_MARKET_TABS: { id: MarketType; labelKey: string; flag: string }[] = [
-  { id: "vn", labelKey: "tab.vnMarket", flag: "ðŸ‡»ðŸ‡³" },
-  { id: "us", labelKey: "tab.usMarket", flag: "ðŸ‡ºðŸ‡¸" },
-  { id: "crypto", labelKey: "tab.cryptoMarket", flag: "â‚¿" },
+  { id: "vn", labelKey: "tab.vnMarket", flag: "🇻🇳" },
+  { id: "us", labelKey: "tab.usMarket", flag: "🇺🇸" },
+  { id: "crypto", labelKey: "tab.cryptoMarket", flag: "₿" },
 ]
 
 function ControlPill({
@@ -331,7 +331,7 @@ function HeatmapDetailSection({
       <SectionHeading
         id="heatmap-title"
         title={t("sec.heatmaps")}
-        subtitle="Theo dÃµi nhanh biáº¿n Ä‘á»™ng, dÃ²ng tiá»n vÃ  quy mÃ´ tá»«ng mÃ£"
+        subtitle="Theo dõi nhanh biến động, dòng tiền và quy mô từng mã"
       />
 
       <DashboardCard>
@@ -413,13 +413,13 @@ function HeatmapDetailSection({
 
         <DashboardCardFooter>
           <span>
-            {t("misc.delayed")} Â· {assets.length} mÃ£
-            {activeApi.data?.source === "mock" ? " Â· Nguá»“n dá»± phÃ²ng" : ""}
+            {t("misc.delayed")} · {assets.length} mã
+            {activeApi.data?.source === "mock" ? " · Nguồn dự phòng" : ""}
           </span>
           <span className="hidden items-center gap-2 sm:flex" aria-label="Heatmap color legend">
-            <i className="size-2 rounded-sm bg-[#9b3e2d]" /> Giáº£m
-            <i className="size-2 rounded-sm bg-[#3a495c]" /> KhÃ´ng Ä‘á»•i
-            <i className="size-2 rounded-sm bg-[#2a7630]" /> TÄƒng
+            <i className="size-2 rounded-sm bg-[#9b3e2d]" /> Giảm
+            <i className="size-2 rounded-sm bg-[#3a495c]" /> Không đổi
+            <i className="size-2 rounded-sm bg-[#2a7630]" /> Tăng
           </span>
         </DashboardCardFooter>
       </DashboardCard>
@@ -536,4 +536,3 @@ function LegacyHeatmapSection({
     </section>
   )
 }
-
