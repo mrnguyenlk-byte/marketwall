@@ -1,7 +1,9 @@
 [CmdletBinding()]
 param(
   [string]$ConfigPath = (Join-Path $PSScriptRoot "..\..\.vps-daily-analysis.env"),
-  [switch]$Force
+  [switch]$Force,
+  [switch]$Publish,
+  [switch]$SkipCapture
 )
 
 $ErrorActionPreference = "Stop"
@@ -38,15 +40,17 @@ function Test-FreshImage([string]$Path, [int]$MaximumAgeMinutes) {
   if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
     throw "Chart image was not found: $Path"
   }
-  $age = (New-TimeSpan -Start (Get-Item -LiteralPath $Path).LastWriteTime -End (Get-Date)).TotalMinutes
+  $file = Get-Item -LiteralPath $Path
+  if ($file.Length -lt 1024) {
+    throw "Chart image is unexpectedly small ($($file.Length) bytes): $Path"
+  }
+  $age = (New-TimeSpan -Start $file.LastWriteTime -End (Get-Date)).TotalMinutes
   if ($age -gt $MaximumAgeMinutes) {
     throw "Chart image is stale ($([Math]::Round($age, 1)) minutes old): $Path"
   }
 }
 
 $config = Read-Config $ConfigPath
-$endpoint = Require-Config $config "DAILY_ANALYSIS_ENDPOINT"
-$secret = Require-Config $config "DAILY_AUTOMATION_SECRET"
 $vnindexImage = Require-Config $config "VNINDEX_IMAGE_PATH"
 $goldImage = Require-Config $config "GOLD_IMAGE_PATH"
 $timezoneId = if ($config["TIMEZONE_ID"]) { $config["TIMEZONE_ID"] } else { "SE Asia Standard Time" }
@@ -77,8 +81,21 @@ try {
     exit 0
   }
 
+  if (-not $SkipCapture) {
+    & (Join-Path $PSScriptRoot "capture-ami-broker-charts.ps1") -ConfigPath $ConfigPath
+    if ($LASTEXITCODE -ne 0) { throw "AmiBroker chart capture failed." }
+  }
+
   Test-FreshImage $vnindexImage $maxImageAgeMinutes
   Test-FreshImage $goldImage $maxImageAgeMinutes
+
+  if (-not $Publish) {
+    Write-RunLog "Dry run completed. PNG files were created and validated; no request was sent to BTrading. Re-run with -Publish to send."
+    exit 0
+  }
+
+  $endpoint = Require-Config $config "DAILY_ANALYSIS_ENDPOINT"
+  $secret = Require-Config $config "DAILY_AUTOMATION_SECRET"
 
   $client = New-Object System.Net.Http.HttpClient
   $client.Timeout = [TimeSpan]::FromMinutes(5)

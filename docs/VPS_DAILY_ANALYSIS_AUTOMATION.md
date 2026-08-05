@@ -15,16 +15,16 @@ notepad C:\btrading-code\.vps-daily-analysis.env
 
 Set `DAILY_AUTOMATION_SECRET` to the exact secret configured as `DAILY_AUTOMATION_SECRET` in the BTrading production environment. Do not commit this file.
 
-Configure the AmiBroker-side export to write a fresh PNG for each chart before the scheduled task starts:
+Open the VN-Index and XAUUSD AmiBroker charts in separate visible windows. The runner captures each chart window itself with Windows' built-in screen capture API before it can send anything. Set `VNINDEX_WINDOW_TITLE` and `GOLD_WINDOW_TITLE` to unique fragments of the two window titles.
 
 - `C:\BTradingData\daily-analysis\vnindex.png`
 - `C:\BTradingData\daily-analysis\gold.png`
 
-If your export paths differ, change only `VNINDEX_IMAGE_PATH` and `GOLD_IMAGE_PATH` in the private config.
+The scheduled task must use **Run only when user is logged on** and the VPS display must remain unlocked; Windows cannot safely capture a desktop from a non-interactive session. If your paths differ, change the two image paths in the private config.
 
 ## 2. First validation
 
-Pull the committed runner and test it after the two images have been exported:
+Pull the committed runner and run its safe default test. It captures and validates PNG files but never contacts production or publishes:
 
 ```powershell
 Set-Location C:\btrading-code
@@ -32,15 +32,15 @@ git pull --ff-only origin main
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\vps\run-daily-analysis.ps1 -Force
 ```
 
-The response must contain either `"success":true` or `"status":"already_processed"`. A stale/missing image deliberately causes a non-zero failure and no article is published.
+The command must finish with `Dry run completed`. Only the scheduled task adds `-Publish`. A missing, ambiguous, stale, or empty image deliberately fails before any production request.
 
 ## 3. Task Scheduler registration
 
-Run this once in an elevated PowerShell session. The task runs at 17:45 Vietnam time on weekdays, after AmiBroker has exported both charts. Change the time if the data feed completes later.
+Run this once in an elevated PowerShell session. The task runs at 07:00 Vietnam time on weekdays. It creates both PNGs, validates them, then sends one authenticated request.
 
 ```powershell
-$action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -ExecutionPolicy Bypass -File C:\btrading-code\scripts\vps\run-daily-analysis.ps1"
-$trigger = New-ScheduledTaskTrigger -Weekly -DaysOfWeek Monday,Tuesday,Wednesday,Thursday,Friday -At 5:45PM
+$action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -ExecutionPolicy Bypass -File C:\btrading-code\scripts\vps\run-daily-analysis.ps1 -Publish"
+$trigger = New-ScheduledTaskTrigger -Weekly -DaysOfWeek Monday,Tuesday,Wednesday,Thursday,Friday -At 7:00AM
 $settings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit (New-TimeSpan -Minutes 10) -MultipleInstances IgnoreNew -StartWhenAvailable
 Register-ScheduledTask -TaskName "BTrading Daily Analysis" -Action $action -Trigger $trigger -Settings $settings -Description "Uploads AmiBroker charts and runs BTrading Daily Analysis" -Force
 ```
@@ -65,7 +65,7 @@ For automatic code updates, register a separate lightweight scheduled task. The 
 
 ```powershell
 $updateAction = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -ExecutionPolicy Bypass -File C:\btrading-code\scripts\vps\update-runner.ps1"
-$updateTrigger = New-ScheduledTaskTrigger -Weekly -DaysOfWeek Monday,Tuesday,Wednesday,Thursday,Friday -At 5:25PM
+$updateTrigger = New-ScheduledTaskTrigger -Weekly -DaysOfWeek Monday,Tuesday,Wednesday,Thursday,Friday -At 6:40AM
 $updateSettings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit (New-TimeSpan -Minutes 5) -MultipleInstances IgnoreNew -StartWhenAvailable
 Register-ScheduledTask -TaskName "BTrading Automation Update" -Action $updateAction -Trigger $updateTrigger -Settings $updateSettings -Description "Fast-forward update of the BTrading VPS automation runner" -Force
 ```

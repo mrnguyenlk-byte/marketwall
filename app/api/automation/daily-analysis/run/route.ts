@@ -6,6 +6,7 @@ import {
 import { ensureArticleUsesOcrValues } from "@/lib/daily-analysis/ocr-article-sync"
 import {
   appendDailyAnalysisLog,
+  getDailyAnalysisByDate,
   saveDailyAnalysis,
   saveDailyAnalysisImage,
 } from "@/lib/daily-analysis/storage"
@@ -28,6 +29,7 @@ export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
+const activeDates = new Set<string>()
 
 type RunRequestBody = {
   date?: string
@@ -51,6 +53,27 @@ function validateSecret(secret: string | undefined): boolean {
 
 function unauthorizedResponse() {
   return Response.json({ ok: false, error: "Unauthorized" }, { status: 401 })
+}
+
+async function existingRunResponse(date: string): Promise<Response | null> {
+  const existing = await getDailyAnalysisByDate(date)
+  if (!existing) return null
+
+  return Response.json({
+    success: true,
+    status: "already_processed",
+    date,
+    article: existing,
+    telegram: { ok: true, skipped: true, reason: "duplicate run" },
+    facebook: { ok: true, skipped: true, reason: "duplicate run" },
+  })
+}
+
+function inProgressResponse(date: string) {
+  return Response.json(
+    { success: true, status: "in_progress", date },
+    { status: 202 },
+  )
 }
 
 async function saveWithTelegramPublish(article: DailyAnalysis): Promise<{
@@ -135,14 +158,20 @@ async function handleMultipartRequest(request: Request) {
     )
   }
 
-  const vnindexFile = formData.get("vnindexImage")
-  const goldFile = formData.get("goldImage")
-  if (!(vnindexFile instanceof File) || !(goldFile instanceof File)) {
-    return Response.json(
-      { ok: false, error: "vnindexImage and goldImage files are required" },
-      { status: 400 },
-    )
-  }
+  const existingResponse = await existingRunResponse(date)
+  if (existingResponse) return existingResponse
+  if (activeDates.has(date)) return inProgressResponse(date)
+  activeDates.add(date)
+
+  try {
+    const vnindexFile = formData.get("vnindexImage")
+    const goldFile = formData.get("goldImage")
+    if (!(vnindexFile instanceof File) || !(goldFile instanceof File)) {
+      return Response.json(
+        { ok: false, error: "vnindexImage and goldImage files are required" },
+        { status: 400 },
+      )
+    }
 
   let vnindexImageUrl: string
   let goldImageUrl: string
@@ -197,6 +226,9 @@ async function handleMultipartRequest(request: Request) {
     telegram,
     facebook,
   })
+  } finally {
+    activeDates.delete(date)
+  }
 }
 
 async function handleJsonRequest(request: Request) {
@@ -219,16 +251,22 @@ async function handleJsonRequest(request: Request) {
     )
   }
 
-  let ocrData = null
-  if (body.vnindexImage?.trim() && body.goldImage?.trim()) {
-    const [vnindexBuffer, goldBuffer] = await Promise.all([
-      fetchImageBuffer(body.vnindexImage.trim()),
-      fetchImageBuffer(body.goldImage.trim()),
-    ])
-    if (vnindexBuffer && goldBuffer) {
-      ocrData = await extractDailyAnalysisOcr({ vnindexBuffer, goldBuffer })
+  const existingResponse = await existingRunResponse(date)
+  if (existingResponse) return existingResponse
+  if (activeDates.has(date)) return inProgressResponse(date)
+  activeDates.add(date)
+
+  try {
+    let ocrData = null
+    if (body.vnindexImage?.trim() && body.goldImage?.trim()) {
+      const [vnindexBuffer, goldBuffer] = await Promise.all([
+        fetchImageBuffer(body.vnindexImage.trim()),
+        fetchImageBuffer(body.goldImage.trim()),
+      ])
+      if (vnindexBuffer && goldBuffer) {
+        ocrData = await extractDailyAnalysisOcr({ vnindexBuffer, goldBuffer })
+      }
     }
-  }
 
   const { article, source, fallbackUsed, model } = await generateDailyAnalysis(date, {
     vnindexImage: body.vnindexImage,
@@ -272,6 +310,9 @@ async function handleJsonRequest(request: Request) {
     },
     { status: 200 },
   )
+  } finally {
+    activeDates.delete(date)
+  }
 }
 
 export async function POST(request: Request) {
