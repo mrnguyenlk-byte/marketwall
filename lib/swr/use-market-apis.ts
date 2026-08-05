@@ -123,4 +123,3 @@ export function useMarketsLoading(
   if (!features.liveClientFetch) return false
   return hooks.some((h) => h.isLoading && h.data === undefined)
 }
-
