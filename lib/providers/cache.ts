@@ -22,7 +22,7 @@ export const DEFAULT_CACHE_TTL_MS = 60_000
 /** Sprint 5 server-side TTLs (reduce Twelve Data overuse). */
 export const CACHE_TTL = {
   forex: 60_000,
-  /** Sprint 18 â€” currency strength stability window. */
+  /** Sprint 18 — currency strength stability window. */
   currencyStrength: 300_000,
   crypto: 45_000,
   heatmap: 300_000,
@@ -126,4 +126,3 @@ export async function cachedProvider<T>(
     pending.delete(key)
   }
 }
-
