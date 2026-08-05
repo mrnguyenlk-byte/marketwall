@@ -258,4 +258,3 @@ export function StockTabs({ asset, activeTab, onTabChange }: StockTabsProps) {
     </Tabs>
   )
 }
-
