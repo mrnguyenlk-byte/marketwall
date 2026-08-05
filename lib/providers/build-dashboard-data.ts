@@ -21,12 +21,21 @@ import { buildFearGreedItems } from "@/lib/providers/fear-greed-provider"
 import { fetchHeatmapMarket } from "@/lib/market/heatmap"
 import { buildVietnamMarketIndexQuoteMap } from "@/lib/vietnam-market-merge"
 import type { FearGreedItem } from "@/lib/fear-greed"
+import type { HeatmapAsset } from "@/types/market"
 
 export type DashboardData = {
   dashboardTickerBarItems: TickerBarItem[]
   overviewByCategory: Record<OverviewCategory, OverviewListItem[]>
   heatmapMarkets: HeatmapMarket[]
   fearGreedItems: FearGreedItem[]
+  initialVnHeatmap?: {
+    items: HeatmapAsset[]
+    source: "live" | "mock"
+    proprietarySource?: "cafef-eod" | "gtgd-proxy"
+    lastUpdatedAt?: string | null
+    coverageCount?: number
+    proprietaryStale?: boolean
+  }
 }
 
 function pickHeatmapMarket(
@@ -121,13 +130,15 @@ export async function buildDashboardData(): Promise<DashboardData> {
   let cryptoAssets: CryptoAsset[] = []
   let vnHeatmapMarket: HeatmapMarket | null = null
   let fearGreedItems: FearGreedItem[] = []
+  let initialVnHeatmap: DashboardData["initialVnHeatmap"]
 
   try {
-    const [vietnam, globalMarket, crypto, usHeatmap] = await Promise.all([
+    const [vietnam, globalMarket, crypto, usHeatmap, vnHeatmap] = await Promise.all([
       getVietnamMarketData(),
       getGlobalMarketData(),
       getCryptoData(),
       fetchHeatmapMarket("us"),
+      fetchHeatmapMarket("vn"),
     ])
     vietnamIndices = vietnam.indices ?? []
     globalQuotes = globalMarket.quotes ?? []
@@ -137,6 +148,14 @@ export async function buildDashboardData(): Promise<DashboardData> {
       vietnam,
       usHeatmapItems: usHeatmap.items,
     })
+    initialVnHeatmap = {
+      items: vnHeatmap.items,
+      source: vnHeatmap.source,
+      proprietarySource: vnHeatmap.proprietaryStatus?.proprietarySource,
+      lastUpdatedAt: vnHeatmap.proprietaryStatus?.lastUpdatedAt,
+      coverageCount: vnHeatmap.proprietaryStatus?.coverageCount,
+      proprietaryStale: vnHeatmap.proprietaryStatus?.isStale,
+    }
   } catch {
     vnHeatmapMarket = pickHeatmapMarket(heatmapMock.markets, "vn")
   }
@@ -166,5 +185,7 @@ export async function buildDashboardData(): Promise<DashboardData> {
       fearGreedItems.length > 0
         ? fearGreedItems
         : await buildFearGreedItems().catch(() => []),
+    initialVnHeatmap,
   }
 }
+
