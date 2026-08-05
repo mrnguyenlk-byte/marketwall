@@ -32,7 +32,7 @@ git pull --ff-only origin main
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\vps\run-daily-analysis.ps1 -ConfigPath C:\btrading-code\.vps-daily-analysis.env -Force
 ```
 
-The command must finish with `Dry run completed`. Only the scheduled task adds `-Publish`. A missing, ambiguous, stale, or empty image deliberately fails before any production request.
+The command must finish with `Dry run completed`. Only the scheduled task adds `-Publish`. A missing, ambiguous, stale, nearly black, or visually uniform/empty PNG deliberately fails before any production request; the same quality gate runs during a publish.
 
 ## 3. Task Scheduler registration
 

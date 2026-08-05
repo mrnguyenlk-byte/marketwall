@@ -7,6 +7,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+Add-Type -AssemblyName System.Drawing
 
 # Windows PowerShell 4.0 (Windows Server 2012 R2) can leave $PSScriptRoot empty
 # while binding default parameters. Resolve this only after the script is invoked.
@@ -58,6 +59,38 @@ function Test-FreshImage([string]$Path, [int]$MaximumAgeMinutes) {
   }
 }
 
+function Test-ChartImageQuality([string]$Path, [string]$Label) {
+  # Downsample first: checking 32x32 pixels is fast on Windows PowerShell 4 while
+  # still detecting a black capture or a uniform/empty PrintWindow result.
+  $source = New-Object System.Drawing.Bitmap($Path)
+  $sample = New-Object System.Drawing.Bitmap(32, 32)
+  $graphics = [System.Drawing.Graphics]::FromImage($sample)
+  try {
+    $graphics.DrawImage($source, 0, 0, 32, 32)
+    $brightness = New-Object 'System.Collections.Generic.List[double]'
+    for ($x = 0; $x -lt 32; $x++) {
+      for ($y = 0; $y -lt 32; $y++) {
+        $pixel = $sample.GetPixel($x, $y)
+        # ITU-R BT.709 relative luminance, 0 through 255.
+        [void]$brightness.Add((0.2126 * $pixel.R) + (0.7152 * $pixel.G) + (0.0722 * $pixel.B))
+      }
+    }
+
+    $mean = ($brightness | Measure-Object -Average).Average
+    $sumSquaredDifference = 0.0
+    foreach ($value in $brightness) { $sumSquaredDifference += [Math]::Pow($value - $mean, 2) }
+    $variance = $sumSquaredDifference / $brightness.Count
+
+    if ($mean -lt 3.0 -or $variance -lt 4.0) {
+      throw "$Label PNG failed quality gate (mean brightness=$([Math]::Round($mean, 2)), variance=$([Math]::Round($variance, 2))): $Path"
+    }
+  } finally {
+    $graphics.Dispose()
+    $sample.Dispose()
+    $source.Dispose()
+  }
+}
+
 $config = Read-Config $ConfigPath
 $vnindexImage = Require-Config $config "VNINDEX_IMAGE_PATH"
 $goldImage = Require-Config $config "GOLD_IMAGE_PATH"
@@ -96,6 +129,8 @@ try {
 
   Test-FreshImage $vnindexImage $maxImageAgeMinutes
   Test-FreshImage $goldImage $maxImageAgeMinutes
+  Test-ChartImageQuality $vnindexImage "VNINDEX"
+  Test-ChartImageQuality $goldImage "XAUUSD"
 
   if (-not $Publish) {
     Write-RunLog "Dry run completed. PNG files were created and validated; no request was sent to BTrading. Re-run with -Publish to send."
