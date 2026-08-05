@@ -1,9 +1,15 @@
 [CmdletBinding()]
 param(
-  [string]$ConfigPath = (Join-Path $PSScriptRoot "..\..\.vps-daily-analysis.env")
+  [string]$ConfigPath
 )
 
 $ErrorActionPreference = "Stop"
+
+if (-not $ConfigPath) {
+  $scriptPath = $MyInvocation.MyCommand.Path
+  if (-not $scriptPath) { throw "ConfigPath was not supplied and the script path could not be resolved." }
+  $ConfigPath = Join-Path (Split-Path -Parent $scriptPath) "..\..\.vps-daily-analysis.env"
+}
 Add-Type -AssemblyName System.Drawing
 Add-Type @"
 using System;

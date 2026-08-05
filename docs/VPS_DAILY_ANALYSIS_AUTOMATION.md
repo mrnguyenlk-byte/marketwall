@@ -29,7 +29,7 @@ Pull the committed runner and run its safe default test. It captures and validat
 ```powershell
 Set-Location C:\btrading-code
 git pull --ff-only origin main
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\vps\run-daily-analysis.ps1 -Force
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\vps\run-daily-analysis.ps1 -ConfigPath C:\btrading-code\.vps-daily-analysis.env -Force
 ```
 
 The command must finish with `Dry run completed`. Only the scheduled task adds `-Publish`. A missing, ambiguous, stale, or empty image deliberately fails before any production request.
@@ -39,7 +39,7 @@ The command must finish with `Dry run completed`. Only the scheduled task adds `
 Run this once in an elevated PowerShell session. The task runs at 07:00 Vietnam time on weekdays. It creates both PNGs, validates them, then sends one authenticated request.
 
 ```powershell
-$action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -ExecutionPolicy Bypass -File C:\btrading-code\scripts\vps\run-daily-analysis.ps1 -Publish"
+$action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -ExecutionPolicy Bypass -File C:\btrading-code\scripts\vps\run-daily-analysis.ps1 -ConfigPath C:\btrading-code\.vps-daily-analysis.env -Publish"
 $trigger = New-ScheduledTaskTrigger -Weekly -DaysOfWeek Monday,Tuesday,Wednesday,Thursday,Friday -At 7:00AM
 $settings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit (New-TimeSpan -Minutes 10) -MultipleInstances IgnoreNew -StartWhenAvailable
 Register-ScheduledTask -TaskName "BTrading Daily Analysis" -Action $action -Trigger $trigger -Settings $settings -Description "Uploads AmiBroker charts and runs BTrading Daily Analysis" -Force

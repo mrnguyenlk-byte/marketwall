@@ -1,12 +1,20 @@
 [CmdletBinding()]
 param(
-  [string]$ConfigPath = (Join-Path $PSScriptRoot "..\..\.vps-daily-analysis.env"),
+  [string]$ConfigPath,
   [switch]$Force,
   [switch]$Publish,
   [switch]$SkipCapture
 )
 
 $ErrorActionPreference = "Stop"
+
+# Windows PowerShell 4.0 (Windows Server 2012 R2) can leave $PSScriptRoot empty
+# while binding default parameters. Resolve this only after the script is invoked.
+if (-not $ConfigPath) {
+  $scriptPath = $MyInvocation.MyCommand.Path
+  if (-not $scriptPath) { throw "ConfigPath was not supplied and the script path could not be resolved." }
+  $ConfigPath = Join-Path (Split-Path -Parent $scriptPath) "..\..\.vps-daily-analysis.env"
+}
 
 function Write-RunLog([string]$Message) {
   $timestamp = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
