@@ -12,7 +12,7 @@ export function fmt(n: number, opts?: Intl.NumberFormatOptions) {
   }).format(n)
 }
 
-/** Display prices without insignificant trailing decimals (153.0 â†’ 153). */
+/** Display prices without insignificant trailing decimals (153.0 → 153). */
 export function formatMarketPrice(n: number, marketType: "vn" | "us" | "crypto") {
   return fmt(n, {
     maximumFractionDigits: marketType === "vn" ? 0 : marketType === "crypto" ? 4 : 2,
@@ -114,7 +114,7 @@ export function Sparkline({
   )
 }
 
-/** Unified dashboard card shell â€” radius, border, shadow, min-w-0. */
+/** Unified dashboard card shell — radius, border, shadow, min-w-0. */
 export function DashboardCard({
   className,
   children,
@@ -163,7 +163,7 @@ export function DashboardCardFooter({
   )
 }
 
-/** In-card widget header â€” fixed height band, title + optional action. */
+/** In-card widget header — fixed height band, title + optional action. */
 export function WidgetHeader({
   title,
   id,
@@ -289,4 +289,3 @@ function lerp(a: number, b: number, t: number) {
 function rgb(stop: [number, number, number, number]) {
   return `rgb(${stop[1]}, ${stop[2]}, ${stop[3]})`
 }
-
