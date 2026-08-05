@@ -19,7 +19,7 @@ export type CryptoAsset = {
   marketCapRank: number
 }
 
-/** @deprecated Use CryptoAsset â€” kept for dashboard overlay helpers */
+/** @deprecated Use CryptoAsset — kept for dashboard overlay helpers */
 export type CryptoQuote = {
   id: string
   symbol: string
@@ -246,7 +246,7 @@ export async function getHeatmapData(): Promise<ProviderResult<MarketHeatmap>> {
     {
       id: "crypto",
       labelKey: "heatmap.crypto",
-      flag: "â‚¿",
+      flag: "₿",
       tiles: crypto.heatmapTiles,
     },
     crypto.source,
@@ -262,7 +262,7 @@ export async function getHeatmapData(): Promise<ProviderResult<MarketHeatmap>> {
   }
 }
 
-/** @deprecated Sprint 14 â€” use Alternative.me via `lib/fear-greed/crypto.ts`. */
+/** @deprecated Sprint 14 — use Alternative.me via `lib/fear-greed/crypto.ts`. */
 export function deriveCryptoFearGreed(assets: CryptoAsset[]): number {
   const btc = assets.find((a) => a.id === "bitcoin" || a.symbol === "BTC")
   const change = btc?.change24h ?? 0
@@ -273,4 +273,3 @@ export function cryptoSparkline(symbol: string, trend: Trend): number[] {
   const seed = symbol.split("").reduce((a, c) => a + c.charCodeAt(0), 0)
   return spark(seed, 14, trend === "up" ? 1 : -1)
 }
-
