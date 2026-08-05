@@ -13,7 +13,7 @@ export function hasMetric(value: number | null | undefined): value is number {
 
 export function hasText(value: string | null | undefined): value is string {
   const trimmed = value?.trim()
-  return !!trimmed && trimmed !== "N/A" && trimmed !== "â€”"
+  return !!trimmed && trimmed !== "N/A" && trimmed !== "—"
 }
 
 export function isHeatmapOnlyAsset(asset: MarketAsset): boolean {
@@ -219,4 +219,3 @@ export function getAvailableDetailTabs(
   if (options.historicalRows.length > 0) tabs.push("historical")
   return tabs
 }
-
