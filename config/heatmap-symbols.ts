@@ -136,7 +136,7 @@ export const VN_HEATMAP_LIMIT = 200
 export const US_HEATMAP_LIMIT = 80
 export const CRYPTO_HEATMAP_LIMIT = 100
 
-/** API fetch universe â€” US seeds stay broad; top N chosen by dollar volume at serve time. */
+/** API fetch universe — US seeds stay broad; top N chosen by dollar volume at serve time. */
 export const US_HEATMAP_SIZE = US_HEATMAP_LIMIT
 export const CRYPTO_HEATMAP_SIZE = CRYPTO_HEATMAP_LIMIT
 
@@ -161,4 +161,3 @@ export const CRYPTO_REALTIME_SYMBOLS = [
   "DOT/USD",
   "LINK/USD",
 ] as const
-
