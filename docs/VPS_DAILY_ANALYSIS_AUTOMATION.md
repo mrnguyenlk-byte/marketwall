@@ -15,7 +15,7 @@ notepad C:\btrading-code\.vps-daily-analysis.env
 
 Set `DAILY_AUTOMATION_SECRET` to the exact secret configured as `DAILY_AUTOMATION_SECRET` in the BTrading production environment. Do not commit this file.
 
-Open the VN-Index and XAUUSD charts in the AmiBroker application. The runner enumerates the application's **child windows** with `EnumChildWindows`, then captures the two child windows whose titles exactly match `VNINDEX_WINDOW_TITLE` and `GOLD_WINDOW_TITLE`. It rejects a missing or duplicate match before any upload.
+Open the VN-Index and XAUUSD charts in the AmiBroker application. The runner enumerates the application's **child windows** with `EnumChildWindows`, then captures them directly with Win32 `PrintWindow`. Set `VNINDEX_WINDOW_TITLE` and `GOLD_WINDOW_TITLE` to the complete, exact title displayed by AmiBroker (not a symbol fragment). It rejects a missing or duplicate match before any upload.
 
 - `C:\BTradingData\daily-analysis\vnindex.png`
 - `C:\BTradingData\daily-analysis\gold.png`

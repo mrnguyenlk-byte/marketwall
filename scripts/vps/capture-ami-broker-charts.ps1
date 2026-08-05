@@ -20,6 +20,7 @@ public static class BTradingWindowCapture {
   [DllImport("user32.dll")] public static extern int GetWindowTextLength(IntPtr hWnd);
   [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern int GetWindowText(IntPtr hWnd, StringBuilder text, int maxCount);
   [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr hWnd, out RECT rect);
+  [DllImport("user32.dll", SetLastError = true)] public static extern bool PrintWindow(IntPtr hWnd, IntPtr hdcBlt, uint flags);
 
   public static List<IntPtr> GetChildWindows(IntPtr parent) {
     var result = new List<IntPtr>();
@@ -87,7 +88,17 @@ function Save-ChildWindowPng($WindowHandle, [string]$ExpectedTitle, [string]$Des
   $bitmap = New-Object System.Drawing.Bitmap($width, $height)
   $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
   try {
-    $graphics.CopyFromScreen($rect.Left, $rect.Top, 0, 0, $bitmap.Size)
+    # PrintWindow renders the child window into our bitmap; it does not depend on
+    # screen visibility, z-order, or another application covering the chart.
+    $hdc = $graphics.GetHdc()
+    try {
+      if (-not [BTradingWindowCapture]::PrintWindow($WindowHandle, $hdc, 0)) {
+        $errorCode = [Runtime.InteropServices.Marshal]::GetLastWin32Error()
+        throw "PrintWindow failed for AmiBroker child window '$ExpectedTitle' (Win32 error $errorCode)."
+      }
+    } finally {
+      $graphics.ReleaseHdc($hdc)
+    }
     $bitmap.Save($Destination, [System.Drawing.Imaging.ImageFormat]::Png)
   } finally {
     $graphics.Dispose()
@@ -109,4 +120,4 @@ $goldWindow = Find-ExactChildWindow $children $goldTitle
 
 Save-ChildWindowPng $vnWindow $vnTitle $vnPath
 Save-ChildWindowPng $goldWindow $goldTitle $goldPath
-Write-Host "Captured AmiBroker child windows '$vnTitle' and '$goldTitle'."
+Write-Host "Captured AmiBroker child windows '$vnTitle' and '$goldTitle' with PrintWindow."
