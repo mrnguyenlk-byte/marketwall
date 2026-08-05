@@ -59,18 +59,27 @@ export type HeatmapApiResponse = {
   proprietaryStale?: boolean
 }
 
-function useLiveSwr<T>(key: string | null) {
-  return useSWR<T>(features.liveClientFetch ? key : null, jsonFetcher<T>, swrOptions)
+function useLiveSwr<T>(key: string | null, fallbackData?: T) {
+  return useSWR<T>(features.liveClientFetch ? key : null, jsonFetcher<T>, {
+    ...swrOptions,
+    // The homepage already renders the selected market from server data. Avoid
+    // immediately repeating a free-provider request after hydration.
+    fallbackData,
+    revalidateOnMount: fallbackData ? false : undefined,
+  })
 }
 
-export function useHeatmapMarket(market: import("@/types/market").MarketType) {
+export function useHeatmapMarket(
+  market: import("@/types/market").MarketType,
+  fallbackData?: HeatmapApiResponse,
+) {
   const key =
     market === "vn"
       ? SWR_KEYS.heatmapVietnam
       : market === "us"
         ? SWR_KEYS.heatmapUs
         : SWR_KEYS.heatmapCrypto
-  return useLiveSwr<HeatmapApiResponse>(key)
+  return useLiveSwr<HeatmapApiResponse>(key, fallbackData)
 }
 
 export function useVietnamMarkets() {
@@ -114,3 +123,4 @@ export function useMarketsLoading(
   if (!features.liveClientFetch) return false
   return hooks.some((h) => h.isLoading && h.data === undefined)
 }
+
