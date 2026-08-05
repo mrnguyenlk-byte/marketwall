@@ -20,12 +20,13 @@ import { mergeHeatmapPriceWithRealtime } from "@/lib/realtime/merge-quotes"
 import { useRealtime } from "@/lib/realtime/realtime-context"
 import { useHeatmapMarket, useMarketsLoading, useVietnamMarkets } from "@/lib/swr/use-market-apis"
 import type { HeatmapMarket, HeatmapTile, VnExchangeId } from "@/lib/market-types"
-import type { MarketType } from "@/types/market"
+import type { HeatmapAsset, MarketType } from "@/types/market"
 import {
   DashboardCard,
   DashboardCardFooter,
   SectionHeading,
   WidgetHeader,
+  formatMarketPrice,
   heatStyle,
 } from "./shared"
 import { HeatmapGridSkeleton } from "./data-skeletons"
@@ -34,9 +35,9 @@ import { cn } from "@/lib/utils"
 const VN_EXCHANGE_IDS: VnExchangeId[] = ["hose", "hnx", "upcom"]
 
 const DETAIL_MARKET_TABS: { id: MarketType; labelKey: string; flag: string }[] = [
-  { id: "vn", labelKey: "tab.vnMarket", flag: "🇻🇳" },
-  { id: "us", labelKey: "tab.usMarket", flag: "🇺🇸" },
-  { id: "crypto", labelKey: "tab.cryptoMarket", flag: "₿" },
+  { id: "vn", labelKey: "tab.vnMarket", flag: "ðŸ‡»ðŸ‡³" },
+  { id: "us", labelKey: "tab.usMarket", flag: "ðŸ‡ºðŸ‡¸" },
+  { id: "crypto", labelKey: "tab.cryptoMarket", flag: "â‚¿" },
 ]
 
 function ControlPill({
@@ -209,7 +210,7 @@ function HeatGrid({ tiles }: { tiles: HeatmapTile[] }) {
             )}
             {showPrice && (
               <span className="font-mono text-[10px] tabular-nums text-white/85 sm:text-xs">
-                {tile.price!.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                {formatMarketPrice(tile.price!, "vn")}
               </span>
             )}
           </>
@@ -259,19 +260,41 @@ function filterVnExchanges(market: HeatmapMarket): HeatmapMarket {
   }
 }
 
-function HeatmapDetailSection({ mobileHeight }: { mobileHeight?: number }) {
+type InitialVnHeatmap = {
+  items: HeatmapAsset[]
+  source: "live" | "mock"
+  proprietarySource?: "cafef-eod" | "gtgd-proxy"
+  lastUpdatedAt?: string | null
+  coverageCount?: number
+  proprietaryStale?: boolean
+}
+
+function HeatmapDetailSection({
+  mobileHeight,
+  initialVnHeatmap,
+}: {
+  mobileHeight?: number
+  initialVnHeatmap?: InitialVnHeatmap
+}) {
   const { t, lang } = useLang()
   const { openMarketAsset } = useOpenSymbolDetail()
   const { quoteBySymbol } = useRealtime()
   const [activeMarket, setActiveMarket] = useState<MarketType>("vn")
   const [vnMode, setVnMode] = useState<VnHeatmapMode>(DEFAULT_VN_HEATMAP_MODE)
 
-  const vnHeatmap = useHeatmapMarket("vn")
-  const usHeatmap = useHeatmapMarket("us")
-  const cryptoHeatmap = useHeatmapMarket("crypto")
-
-  const activeApi =
-    activeMarket === "vn" ? vnHeatmap : activeMarket === "us" ? usHeatmap : cryptoHeatmap
+  const activeApi = useHeatmapMarket(
+    activeMarket,
+    activeMarket === "vn" && initialVnHeatmap
+      ? {
+          items: initialVnHeatmap.items,
+          source: initialVnHeatmap.source,
+          proprietarySource: initialVnHeatmap.proprietarySource,
+          lastUpdatedAt: initialVnHeatmap.lastUpdatedAt,
+          coverageCount: initialVnHeatmap.coverageCount,
+          proprietaryStale: initialVnHeatmap.proprietaryStale,
+        }
+      : undefined,
+  )
 
   const loading = features.liveClientFetch && activeApi.isLoading && !activeApi.data
 
@@ -305,7 +328,11 @@ function HeatmapDetailSection({ mobileHeight }: { mobileHeight?: number }) {
 
   return (
     <section aria-labelledby="heatmap-title" className="min-w-0">
-      <SectionHeading id="heatmap-title" title={t("sec.heatmaps")} />
+      <SectionHeading
+        id="heatmap-title"
+        title={t("sec.heatmaps")}
+        subtitle="Theo dÃµi nhanh biáº¿n Ä‘á»™ng, dÃ²ng tiá»n vÃ  quy mÃ´ tá»«ng mÃ£"
+      />
 
       <DashboardCard>
         <WidgetHeader
@@ -385,7 +412,15 @@ function HeatmapDetailSection({ mobileHeight }: { mobileHeight?: number }) {
         </HeatmapViewport>
 
         <DashboardCardFooter>
-          <span>{t("misc.delayed")}</span>
+          <span>
+            {t("misc.delayed")} Â· {assets.length} mÃ£
+            {activeApi.data?.source === "mock" ? " Â· Nguá»“n dá»± phÃ²ng" : ""}
+          </span>
+          <span className="hidden items-center gap-2 sm:flex" aria-label="Heatmap color legend">
+            <i className="size-2 rounded-sm bg-[#9b3e2d]" /> Giáº£m
+            <i className="size-2 rounded-sm bg-[#3a495c]" /> KhÃ´ng Ä‘á»•i
+            <i className="size-2 rounded-sm bg-[#2a7630]" /> TÄƒng
+          </span>
         </DashboardCardFooter>
       </DashboardCard>
     </section>
@@ -395,12 +430,14 @@ function HeatmapDetailSection({ mobileHeight }: { mobileHeight?: number }) {
 export function HeatmapSection({
   markets,
   mobileHeight,
+  initialVnHeatmap,
 }: {
   markets: HeatmapMarket[]
   mobileHeight?: number
+  initialVnHeatmap?: InitialVnHeatmap
 }) {
   if (features.heatmapDetailModal) {
-    return <HeatmapDetailSection mobileHeight={mobileHeight} />
+    return <HeatmapDetailSection mobileHeight={mobileHeight} initialVnHeatmap={initialVnHeatmap} />
   }
 
   return <LegacyHeatmapSection markets={markets} mobileHeight={mobileHeight} />
@@ -499,3 +536,4 @@ function LegacyHeatmapSection({
     </section>
   )
 }
+
