@@ -13,7 +13,7 @@ export function hasMetric(value: number | null | undefined): value is number {
 
 export function hasText(value: string | null | undefined): value is string {
   const trimmed = value?.trim()
-  return !!trimmed && trimmed !== "N/A" && trimmed !== "—"
+  return !!trimmed && trimmed !== "N/A" && trimmed !== "â€”"
 }
 
 export function isHeatmapOnlyAsset(asset: MarketAsset): boolean {
@@ -207,13 +207,11 @@ export function getAvailableDetailTabs(
   },
 ): DetailTabId[] {
   const tabs: DetailTabId[] = []
-  const statsBeyondHeader = options.summaryRows.filter(
-    (row) => !["symbol", "exchange", "last", "changePct"].includes(row.key),
-  )
 
-  if (options.hasChart || statsBeyondHeader.length > 0) {
-    tabs.push("overview")
-  }
+  // Every clickable instrument needs a useful landing state. Previously an
+  // asset without a chart and optional metrics produced no tabs at all,
+  // leaving the detail modal completely blank (for example GOLD).
+  tabs.push("overview")
   if (options.hasChart) tabs.push("chart")
   if (hasRealProfile(asset)) tabs.push("profile")
   if (hasRealShareholders(asset.shareholders)) tabs.push("shareholders")
@@ -221,3 +219,4 @@ export function getAvailableDetailTabs(
   if (options.historicalRows.length > 0) tabs.push("historical")
   return tabs
 }
+
