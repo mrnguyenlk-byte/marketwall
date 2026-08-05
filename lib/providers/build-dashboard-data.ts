@@ -188,4 +188,3 @@ export async function buildDashboardData(): Promise<DashboardData> {
     initialVnHeatmap,
   }
 }
-
