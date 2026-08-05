@@ -6,7 +6,9 @@ import {
 import { ensureArticleUsesOcrValues } from "@/lib/daily-analysis/ocr-article-sync"
 import {
   appendDailyAnalysisLog,
+  claimDailyAnalysisRun,
   getDailyAnalysisByDate,
+  releaseDailyAnalysisRun,
   saveDailyAnalysis,
   saveDailyAnalysisImage,
 } from "@/lib/daily-analysis/storage"
@@ -29,7 +31,6 @@ export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
-const activeDates = new Set<string>()
 
 type RunRequestBody = {
   date?: string
@@ -160,10 +161,11 @@ async function handleMultipartRequest(request: Request) {
 
   const existingResponse = await existingRunResponse(date)
   if (existingResponse) return existingResponse
-  if (activeDates.has(date)) return inProgressResponse(date)
-  activeDates.add(date)
+  if (!(await claimDailyAnalysisRun(date))) return inProgressResponse(date)
 
   try {
+    const justCompleted = await existingRunResponse(date)
+    if (justCompleted) return justCompleted
     const vnindexFile = formData.get("vnindexImage")
     const goldFile = formData.get("goldImage")
     if (!(vnindexFile instanceof File) || !(goldFile instanceof File)) {
@@ -227,7 +229,7 @@ async function handleMultipartRequest(request: Request) {
     facebook,
   })
   } finally {
-    activeDates.delete(date)
+    await releaseDailyAnalysisRun(date)
   }
 }
 
@@ -253,10 +255,11 @@ async function handleJsonRequest(request: Request) {
 
   const existingResponse = await existingRunResponse(date)
   if (existingResponse) return existingResponse
-  if (activeDates.has(date)) return inProgressResponse(date)
-  activeDates.add(date)
+  if (!(await claimDailyAnalysisRun(date))) return inProgressResponse(date)
 
   try {
+    const justCompleted = await existingRunResponse(date)
+    if (justCompleted) return justCompleted
     let ocrData = null
     if (body.vnindexImage?.trim() && body.goldImage?.trim()) {
       const [vnindexBuffer, goldBuffer] = await Promise.all([
@@ -311,7 +314,7 @@ async function handleJsonRequest(request: Request) {
     { status: 200 },
   )
   } finally {
-    activeDates.delete(date)
+    await releaseDailyAnalysisRun(date)
   }
 }
 

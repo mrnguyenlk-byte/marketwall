@@ -7,6 +7,7 @@ import {
   isR2Configured,
   listR2ObjectKeys,
   putR2Object,
+  putR2ObjectIfAbsent,
 } from "@/lib/r2"
 import type { DailyAnalysis, DailyAnalysisOpenAiErrorLog } from "./types"
 
@@ -17,6 +18,7 @@ const UPLOADS_DIR = path.join(process.cwd(), "public", "uploads", "daily-analysi
 const DATE_FILE_PATTERN = /^\d{4}-\d{2}-\d{2}\.json$/
 const R2_ARTICLES_PREFIX = "daily-analysis/articles/"
 const R2_LOGS_PREFIX = "daily-analysis/logs/"
+const R2_RUNS_PREFIX = "daily-analysis/runs/"
 const OPENAI_ERRORS_SUFFIX = "-openai-errors.json"
 const VN_TIMEZONE = "Asia/Ho_Chi_Minh"
 
@@ -81,6 +83,51 @@ function r2LogKey(date: string): string {
 
 function r2OpenAiErrorLogKey(date: string): string {
   return `${R2_LOGS_PREFIX}${date}${OPENAI_ERRORS_SUFFIX}`
+}
+
+function r2RunKey(date: string): string {
+  return `${R2_RUNS_PREFIX}${date}.lock`
+}
+
+function localRunLockPath(date: string): string {
+  return path.join(CONTENT_DIR, ".runs", `${date}.lock`)
+}
+
+/**
+ * Atomically reserves a date before generating/publishing it. R2 uses an S3
+ * conditional write, so concurrent Vercel instances cannot both publish.
+ */
+export async function claimDailyAnalysisRun(date: string): Promise<boolean> {
+  assertWritableStorage()
+  const payload = JSON.stringify({ date, createdAt: new Date().toISOString() })
+  if (getStorageBackend() === "r2") {
+    return putR2ObjectIfAbsent({
+      key: r2RunKey(date),
+      body: payload,
+      contentType: "application/json",
+    })
+  }
+
+  const lockPath = localRunLockPath(date)
+  await fs.mkdir(path.dirname(lockPath), { recursive: true })
+  try {
+    const handle = await fs.open(lockPath, "wx")
+    await handle.writeFile(payload, "utf-8")
+    await handle.close()
+    return true
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "EEXIST") return false
+    throw error
+  }
+}
+
+/** Releases a reservation after the request completes; safe to call repeatedly. */
+export async function releaseDailyAnalysisRun(date: string): Promise<void> {
+  if (getStorageBackend() === "r2") {
+    try { await deleteR2Object(r2RunKey(date)) } catch { /* best effort */ }
+    return
+  }
+  try { await fs.unlink(localRunLockPath(date)) } catch { /* best effort */ }
 }
 
 async function readLocalArticles(): Promise<DailyAnalysis[]> {

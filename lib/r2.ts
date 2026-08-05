@@ -95,6 +95,33 @@ export async function putR2Object(input: {
   return buildR2PublicUrl(key)
 }
 
+/** Creates an object only when its key does not already exist. */
+export async function putR2ObjectIfAbsent(input: {
+  key: string
+  body: R2ObjectBody
+  contentType: string
+}): Promise<boolean> {
+  try {
+    await getR2Client().send(
+      new PutObjectCommand({
+        Bucket: getR2Bucket(),
+        Key: input.key.replace(/^\//, ""),
+        Body: input.body,
+        ContentType: input.contentType,
+        IfNoneMatch: "*",
+      }),
+    )
+    return true
+  } catch (error) {
+    const status = (error as { $metadata?: { httpStatusCode?: number } })?.$metadata
+      ?.httpStatusCode
+    if (status === 412 || (error instanceof Error && error.name === "PreconditionFailed")) {
+      return false
+    }
+    throw error
+  }
+}
+
 export async function deleteR2Object(key: string): Promise<void> {
   const client = getR2Client()
   const bucket = getR2Bucket()
