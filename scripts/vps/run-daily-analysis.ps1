@@ -65,7 +65,7 @@ $timezoneId = if ($config["TIMEZONE_ID"]) { $config["TIMEZONE_ID"] } else { "SE 
 $maxImageAgeMinutes = if ($config["MAX_IMAGE_AGE_MINUTES"]) { [int]$config["MAX_IMAGE_AGE_MINUTES"] } else { 180 }
 $lockPath = if ($config["LOCK_PATH"]) { $config["LOCK_PATH"] } else { Join-Path $env:TEMP "btrading-daily-analysis.lock" }
 
-$mutex = New-Object System.Threading.Mutex($false, "Global\\BTradingDailyAnalysis")
+$mutex = [System.Threading.Mutex]::new($false, "Global\BTradingDailyAnalysis")
 if (-not $mutex.WaitOne(0)) {
   Write-RunLog "Another Daily Analysis run is already in progress; exiting."
   exit 0
