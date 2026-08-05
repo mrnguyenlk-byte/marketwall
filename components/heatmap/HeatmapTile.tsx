@@ -72,14 +72,14 @@ function CompactTooltip({
       <p className="font-semibold">{asset.symbol}</p>
       <p className="max-w-[140px] truncate text-[10px] text-background/75">{asset.name[lang]}</p>
       <p className="font-mono text-[11px] tabular-nums">
-        {formatMarketPrice(asset.price, asset.marketType)} Â·{" "}
+        {formatMarketPrice(asset.price, asset.marketType)} ·{" "}
         <span className={up ? "text-emerald-300" : "text-red-300"}>
           {up ? "+" : ""}
           {asset.changePercent.toFixed(2)}%
         </span>
       </p>
       {proprietaryFallback && (
-        <p className="text-[10px] text-amber-200/90">Nguá»“n: proxy GTGD</p>
+        <p className="text-[10px] text-amber-200/90">Nguồn: proxy GTGD</p>
       )}
     </div>
   )
@@ -175,4 +175,3 @@ export function HeatmapTile({
     </Tooltip>
   )
 }
-
