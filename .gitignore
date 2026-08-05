@@ -9,6 +9,7 @@ __v0_jsx-dev-runtime.ts
 # Environment variables
 .env
 .env*.local
+.vps-daily-analysis.env
 
 # Common ignores
 node_modules
