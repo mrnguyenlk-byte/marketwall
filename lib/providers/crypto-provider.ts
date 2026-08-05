@@ -19,7 +19,7 @@ export type CryptoAsset = {
   marketCapRank: number
 }
 
-/** @deprecated Use CryptoAsset — kept for dashboard overlay helpers */
+/** @deprecated Use CryptoAsset â€” kept for dashboard overlay helpers */
 export type CryptoQuote = {
   id: string
   symbol: string
@@ -35,7 +35,7 @@ export type CryptoData = {
   source: "live" | "mock"
 }
 
-const HEATMAP_SIZE = 50
+const HEATMAP_SIZE = 100
 
 const TICKER_IDS = ["bitcoin", "ethereum", "binancecoin", "solana", "ripple"] as const
 
@@ -216,7 +216,7 @@ async function fetchCoinGeckoMarkets(): Promise<CryptoAsset[] | null> {
 
   const url =
     "https://api.coingecko.com/api/v3/coins/markets" +
-    "?vs_currency=usd&order=market_cap_desc&per_page=50&page=1" +
+    "?vs_currency=usd&order=market_cap_desc&per_page=100&page=1" +
     "&sparkline=false&price_change_percentage=24h"
 
   const rows = await safeFetchJson<CoinGeckoMarketRow[]>(url, { cache: "no-store" })
@@ -246,7 +246,7 @@ export async function getHeatmapData(): Promise<ProviderResult<MarketHeatmap>> {
     {
       id: "crypto",
       labelKey: "heatmap.crypto",
-      flag: "₿",
+      flag: "â‚¿",
       tiles: crypto.heatmapTiles,
     },
     crypto.source,
@@ -262,7 +262,7 @@ export async function getHeatmapData(): Promise<ProviderResult<MarketHeatmap>> {
   }
 }
 
-/** @deprecated Sprint 14 — use Alternative.me via `lib/fear-greed/crypto.ts`. */
+/** @deprecated Sprint 14 â€” use Alternative.me via `lib/fear-greed/crypto.ts`. */
 export function deriveCryptoFearGreed(assets: CryptoAsset[]): number {
   const btc = assets.find((a) => a.id === "bitcoin" || a.symbol === "BTC")
   const change = btc?.change24h ?? 0
@@ -273,3 +273,4 @@ export function cryptoSparkline(symbol: string, trend: Trend): number[] {
   const seed = symbol.split("").reduce((a, c) => a + c.charCodeAt(0), 0)
   return spark(seed, 14, trend === "up" ? 1 : -1)
 }
+
