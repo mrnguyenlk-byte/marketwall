@@ -9,9 +9,10 @@ always excluded.
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import sys
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Any, Optional, Sequence, Tuple
 
 try:
@@ -30,6 +31,13 @@ DEFAULT_OUTPUT = os.environ.get(
     os.path.join("data", "amibroker", "XAUUSD_D1.csv"),
 )
 DEFAULT_BARS = int(os.environ.get("MT5_XAUUSD_D1_BARS", "500"))
+DEFAULT_STATUS_OUTPUT = os.environ.get(
+    "AMIBROKER_XAUUSD_STATUS_OUTPUT",
+    os.path.join(
+        os.environ.get("BTRADING_DAILY_ANALYSIS_DATA_DIR", r"C:\BTradingData\daily-analysis"),
+        "xauusd-session-status.json",
+    ),
+)
 
 
 def d1_bar_calendar_date(bar_time: int) -> date:
@@ -109,6 +117,30 @@ def write_amibroker_csv(rates: Sequence[Any], output_path: str, symbol: str) -> 
             )
 
 
+def write_session_status(output_path: str, last_closed_date: date, report_date: date) -> None:
+    """Atomically publish the session marker consumed by the 07:00 runner."""
+    os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
+    payload = {
+        "schemaVersion": 1,
+        "market": "XAUUSD",
+        "reportDate": report_date.isoformat(),
+        "latestCompletedSessionDate": last_closed_date.isoformat(),
+        # The MT5 D1 response is the authoritative session source for this updater.
+        "expectedLatestCompletedSessionDate": last_closed_date.isoformat(),
+        "updatedAtUtc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "status": "verified",
+        "source": "mt5-d1",
+    }
+    temporary_path = output_path + ".tmp"
+    with open(temporary_path, "w", encoding="utf-8", newline="\n") as handle:
+        json.dump(payload, handle, ensure_ascii=False, separators=(",", ":"))
+    os.replace(temporary_path, output_path)
+
+
+def vietnam_report_date() -> date:
+    return datetime.now(timezone(timedelta(hours=7))).date()
+
+
 def resolve_reference_now(symbol: Optional[str] = None) -> datetime:
     if mt5 is not None and symbol:
         tick = mt5.symbol_info_tick(symbol)
@@ -139,6 +171,7 @@ def update_xauusd_d1(
     symbol: str = DEFAULT_SYMBOL,
     output_path: str = DEFAULT_OUTPUT,
     bars: int = DEFAULT_BARS,
+    status_output: str = DEFAULT_STATUS_OUTPUT,
     now: Optional[datetime] = None,
 ) -> Tuple[Optional[date], Optional[date]]:
     rates = fetch_mt5_d1_rates(symbol, bars)
@@ -153,7 +186,9 @@ def update_xauusd_d1(
 
     log_d1_selection(last_closed_date, skipped_open_date)
     write_amibroker_csv(closed_rates, output_path, symbol)
+    write_session_status(status_output, last_closed_date, vietnam_report_date())
     print(f"XAUUSD_D1_EXPORTED_BARS {len(closed_rates)} -> {output_path}")
+    print(f"XAUUSD_SESSION_STATUS {last_closed_date.isoformat()} -> {status_output}")
     return last_closed_date, skipped_open_date
 
 
@@ -169,29 +204,16 @@ def _make_rate(time_ts: int, close: float) -> dict[str, float | int]:
 
 
 def run_self_test() -> None:
-    if np is None:
-        raise RuntimeError("numpy is required for self-test")
-
     now = datetime(2026, 6, 15, 12, 0, tzinfo=timezone.utc)
     yesterday = int(datetime(2026, 6, 14, 0, 0, tzinfo=timezone.utc).timestamp())
     today = int(datetime(2026, 6, 15, 0, 0, tzinfo=timezone.utc).timestamp())
     day_before = int(datetime(2026, 6, 13, 0, 0, tzinfo=timezone.utc).timestamp())
 
-    rates = np.array(
-        [
-            _make_rate(day_before, 2300.0),
-            _make_rate(yesterday, 2310.0),
-            _make_rate(today, 2320.0),
-        ],
-        dtype=[
-            ("time", "i8"),
-            ("open", "f8"),
-            ("high", "f8"),
-            ("low", "f8"),
-            ("close", "f8"),
-            ("tick_volume", "i8"),
-        ],
-    )
+    rates = [
+        _make_rate(day_before, 2300.0),
+        _make_rate(yesterday, 2310.0),
+        _make_rate(today, 2320.0),
+    ]
 
     closed, last_closed, skipped = trim_to_closed_d1_bars(rates, now)
     assert len(closed) == 2, f"expected 2 closed bars, got {len(closed)}"
@@ -203,6 +225,19 @@ def run_self_test() -> None:
     assert last_only == date(2026, 6, 14)
     assert skipped_only is None
 
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as directory:
+        marker_path = os.path.join(directory, "xauusd-session-status.json")
+        write_session_status(marker_path, date(2026, 6, 12), date(2026, 6, 15))
+        with open(marker_path, "r", encoding="utf-8") as handle:
+            marker = json.load(handle)
+        assert marker["market"] == "XAUUSD"
+        assert marker["reportDate"] == "2026-06-15"
+        assert marker["latestCompletedSessionDate"] == "2026-06-12"
+        assert marker["expectedLatestCompletedSessionDate"] == "2026-06-12"
+        assert marker["status"] == "verified"
+
     print("XAUUSD_D1_SELF_TEST ok")
 
 
@@ -211,6 +246,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     parser.add_argument("--symbol", default=DEFAULT_SYMBOL)
     parser.add_argument("--output", default=DEFAULT_OUTPUT)
     parser.add_argument("--bars", type=int, default=DEFAULT_BARS)
+    parser.add_argument("--status-output", default=DEFAULT_STATUS_OUTPUT)
     parser.add_argument(
         "--self-test",
         action="store_true",
@@ -222,7 +258,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         run_self_test()
         return 0
 
-    update_xauusd_d1(symbol=args.symbol, output_path=args.output, bars=args.bars)
+    update_xauusd_d1(symbol=args.symbol, output_path=args.output, bars=args.bars, status_output=args.status_output)
     return 0
 
 

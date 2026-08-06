@@ -34,6 +34,8 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\vps\run-daily-
 
 The command must finish with `DRY_RUN_OK`. Only the scheduled task adds `-Publish`. A missing, ambiguous, stale, nearly black, or visually uniform/empty PNG deliberately fails before any production request; the same quality gate runs during a publish. Every execution writes `START`, `DRY_RUN_OK`/`PUBLISH_CONFIRMED`/`FAILED`, and `END exitCode=…` to `C:\btrading-code\logs\daily-analysis-runner.log`.
 
+Before capture, the runner also requires `VNINDEX_SESSION_MARKER_PATH` and `GOLD_SESSION_MARKER_PATH`. Each JSON marker must be fresh, have `reportDate` equal to the current Vietnam report date, and certify that `latestCompletedSessionDate` equals the updater's `expectedLatestCompletedSessionDate` and is before the report date. This allows Friday to remain valid for a Monday report (or any market holiday) only when the updater's authoritative marker explicitly certifies it. A missing, stale, invalid, or unverified marker logs `FAILED` and blocks HTTP/publish. No chart OCR or literal previous-calendar-day assumption is used.
+
 ## 3. Task Scheduler registration
 
 Run this once in an elevated PowerShell session. The task runs at 07:00 Vietnam time on weekdays. It creates both PNGs, validates them, then sends one authenticated request.

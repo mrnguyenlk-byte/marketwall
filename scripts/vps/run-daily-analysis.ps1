@@ -3,7 +3,8 @@ param(
   [string]$ConfigPath,
   [switch]$Force,
   [switch]$Publish,
-  [switch]$SkipCapture
+  [switch]$SkipCapture,
+  [switch]$SessionMarkerSelfTest
 )
 
 $ErrorActionPreference = "Stop"
@@ -85,6 +86,46 @@ function Test-ChartImageQuality([string]$Path, [string]$Label) {
   }
 }
 
+function Test-SessionMarker([string]$Path, [string]$Market, [string]$ReportDate, [int]$MaximumAgeMinutes) {
+  if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
+    throw "$Market session marker is unavailable: $Path"
+  }
+  try { $marker = (Get-Content -LiteralPath $Path -Raw) | ConvertFrom-Json } catch { throw "$Market session marker is invalid JSON: $Path" }
+  foreach ($field in @("schemaVersion", "market", "reportDate", "latestCompletedSessionDate", "expectedLatestCompletedSessionDate", "updatedAtUtc", "status")) {
+    if (-not $marker.PSObject.Properties[$field] -or -not $marker.$field) { throw "$Market session marker is missing '$field': $Path" }
+  }
+  if ($marker.schemaVersion -ne 1 -or $marker.market -ne $Market) { throw "$Market session marker identity is invalid: $Path" }
+  if ($marker.status -ne "verified") { throw "$Market session marker is not verified: $Path" }
+  if ($marker.reportDate -ne $ReportDate) { throw "$Market session marker is for $($marker.reportDate), not report date ${ReportDate}: $Path" }
+  try {
+    $latest = [DateTime]::ParseExact([string]$marker.latestCompletedSessionDate, "yyyy-MM-dd", $null)
+    $expected = [DateTime]::ParseExact([string]$marker.expectedLatestCompletedSessionDate, "yyyy-MM-dd", $null)
+    $report = [DateTime]::ParseExact($ReportDate, "yyyy-MM-dd", $null)
+    $updatedAt = [DateTime]::Parse([string]$marker.updatedAtUtc).ToUniversalTime()
+  } catch { throw "$Market session marker contains an invalid date: $Path" }
+  if ($latest -ne $expected) { throw "$Market latest candle $($latest.ToString('yyyy-MM-dd')) is older than expected completed session $($expected.ToString('yyyy-MM-dd'))" }
+  if ($latest -ge $report) { throw "$Market latest completed candle must be before report date $ReportDate" }
+  $age = (New-TimeSpan -Start $updatedAt -End ([DateTime]::UtcNow)).TotalMinutes
+  if ($age -lt -5 -or $age -gt $MaximumAgeMinutes) { throw "$Market session marker is stale ($([Math]::Round($age, 1)) minutes): $Path" }
+  Write-RunLog "SESSION_OK market=$Market session=$($latest.ToString('yyyy-MM-dd')) reportDate=$ReportDate"
+}
+
+function Invoke-SessionMarkerSelfTest {
+  $directory = Join-Path $env:TEMP "btrading-session-marker-selftest"
+  New-Item -ItemType Directory -Path $directory -Force | Out-Null
+  $path = Join-Path $directory "marker.json"
+  try {
+    @{ schemaVersion = 1; market = "VNINDEX"; reportDate = "2026-08-10"; latestCompletedSessionDate = "2026-08-08"; expectedLatestCompletedSessionDate = "2026-08-08"; updatedAtUtc = [DateTime]::UtcNow.ToString("o"); status = "verified" } | ConvertTo-Json | Set-Content -LiteralPath $path -Encoding UTF8
+    Test-SessionMarker $path "VNINDEX" "2026-08-10" 5
+    $bad = @{ schemaVersion = 1; market = "VNINDEX"; reportDate = "2026-08-10"; latestCompletedSessionDate = "2026-08-07"; expectedLatestCompletedSessionDate = "2026-08-08"; updatedAtUtc = [DateTime]::UtcNow.ToString("o"); status = "verified" } | ConvertTo-Json
+    Set-Content -LiteralPath $path -Value $bad -Encoding UTF8
+    try { Test-SessionMarker $path "VNINDEX" "2026-08-10" 5; throw "Self-test accepted stale session" } catch { if ($_.Exception.Message -eq "Self-test accepted stale session") { throw } }
+    Write-Host "SESSION_MARKER_SELF_TEST ok"
+  } finally { Remove-Item -LiteralPath $directory -Recurse -Force -ErrorAction SilentlyContinue }
+}
+
+if ($SessionMarkerSelfTest) { Invoke-SessionMarkerSelfTest; exit 0 }
+
 $exitCode = 0
 $mutex = $null
 $lockPath = $null
@@ -96,6 +137,8 @@ try {
 
   $vnindexImage = Require-Config $config "VNINDEX_IMAGE_PATH"
   $goldImage = Require-Config $config "GOLD_IMAGE_PATH"
+  $vnindexMarker = Require-Config $config "VNINDEX_SESSION_MARKER_PATH"
+  $goldMarker = Require-Config $config "GOLD_SESSION_MARKER_PATH"
   $timezoneId = if ($config["TIMEZONE_ID"]) { $config["TIMEZONE_ID"] } else { "SE Asia Standard Time" }
   $maxImageAgeMinutes = if ($config["MAX_IMAGE_AGE_MINUTES"]) { [int]$config["MAX_IMAGE_AGE_MINUTES"] } else { 90 }
   $lockPath = if ($config["LOCK_PATH"]) { $config["LOCK_PATH"] } else { Join-Path $env:TEMP "btrading-daily-analysis.lock" }
@@ -117,6 +160,9 @@ try {
     if (-not $Force -and ($today.DayOfWeek -eq [DayOfWeek]::Saturday -or $today.DayOfWeek -eq [DayOfWeek]::Sunday)) {
       Write-RunLog "SKIPPED weekend in $timezoneId."
     } else {
+      $reportDate = $today.ToString("yyyy-MM-dd")
+      Test-SessionMarker $vnindexMarker "VNINDEX" $reportDate 120
+      Test-SessionMarker $goldMarker "XAUUSD" $reportDate 120
       if (-not $SkipCapture) {
         & (Join-Path $scriptDirectory "capture-ami-broker-charts.ps1") -ConfigPath $ConfigPath
         if (-not $?) { throw "AmiBroker chart capture failed." }
@@ -136,14 +182,14 @@ try {
         $form = New-Object System.Net.Http.MultipartFormDataContent
         try {
           $form.Add((New-Object System.Net.Http.StringContent($secret)), "secret")
-          $form.Add((New-Object System.Net.Http.StringContent($today.ToString("yyyy-MM-dd"))), "date")
+          $form.Add((New-Object System.Net.Http.StringContent($reportDate)), "date")
           foreach ($upload in @(@{ Name = "vnindexImage"; Path = $vnindexImage }, @{ Name = "goldImage"; Path = $goldImage })) {
             $stream = [System.IO.File]::OpenRead($upload.Path)
             $content = New-Object System.Net.Http.StreamContent($stream)
             $content.Headers.ContentType = [System.Net.Http.Headers.MediaTypeHeaderValue]::Parse("image/png")
             $form.Add($content, $upload.Name, [System.IO.Path]::GetFileName($upload.Path))
           }
-          Write-RunLog "POST_START date=$($today.ToString('yyyy-MM-dd')) endpoint=$endpoint"
+          Write-RunLog "POST_START date=$reportDate endpoint=$endpoint"
           $response = $client.PostAsync($endpoint, $form).GetAwaiter().GetResult()
           $body = $response.Content.ReadAsStringAsync().GetAwaiter().GetResult()
           if (-not $response.IsSuccessStatusCode) { throw "Automation API HTTP $([int]$response.StatusCode): $body" }
@@ -151,7 +197,7 @@ try {
           if (-not $result.success) { throw "Automation API did not confirm success: $body" }
           if ($result.status -eq "in_progress") { throw "Automation API is still in progress; no publish success was confirmed." }
           $status = if ($result.status) { $result.status } else { "processed" }
-          Write-RunLog "PUBLISH_CONFIRMED date=$($today.ToString('yyyy-MM-dd')) status=$status"
+          Write-RunLog "PUBLISH_CONFIRMED date=$reportDate status=$status"
         } finally {
           $form.Dispose()
           $client.Dispose()
