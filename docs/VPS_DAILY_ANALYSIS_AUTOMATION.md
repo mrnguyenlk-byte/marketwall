@@ -1,6 +1,6 @@
 # Daily Analysis automation on the Windows VPS
 
-This automation runs on the Windows VPS, posts the two current AmiBroker PNG exports to BTrading, and lets the server generate and publish the daily analysis. The API is idempotent: a second run for the same Vietnam date returns `already_processed` and does not publish again.
+This automation has one publisher: `BTrading Daily Analysis` at 07:00. At the start of every run it finds any Windows scheduled task whose action invokes `C:\btrading\capture_and_publish.py`, disables it, and refuses to publish if that legacy task cannot be disabled or verified. Gold capture at 06:00/06:32 and VNINDEX capture at 06:30 remain capture-only inputs.
 
 ## 1. VPS prerequisites
 
@@ -32,7 +32,7 @@ git pull --ff-only origin main
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\vps\run-daily-analysis.ps1 -ConfigPath C:\btrading-code\.vps-daily-analysis.env -Force
 ```
 
-The command must finish with `Dry run completed`. Only the scheduled task adds `-Publish`. A missing, ambiguous, stale, nearly black, or visually uniform/empty PNG deliberately fails before any production request; the same quality gate runs during a publish.
+The command must finish with `DRY_RUN_OK`. Only the scheduled task adds `-Publish`. A missing, ambiguous, stale, nearly black, or visually uniform/empty PNG deliberately fails before any production request; the same quality gate runs during a publish. Every execution writes `START`, `DRY_RUN_OK`/`PUBLISH_CONFIRMED`/`FAILED`, and `END exitCode=…` to `C:\btrading-code\logs\daily-analysis-runner.log`.
 
 ## 3. Task Scheduler registration
 
@@ -45,7 +45,7 @@ $settings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit (New-TimeSpan -Minu
 Register-ScheduledTask -TaskName "BTrading Daily Analysis" -Action $action -Trigger $trigger -Settings $settings -Description "Uploads AmiBroker charts and runs BTrading Daily Analysis" -Force
 ```
 
-Use an account that has access to both the export folder and the network. Verify it with:
+Use an account that can disable scheduled tasks and access both the export folder and the network. The runner handles the legacy publisher itself; do not separately schedule `capture_and_publish.py`.
 
 ```powershell
 Start-ScheduledTask -TaskName "BTrading Daily Analysis"

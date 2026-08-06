@@ -9,24 +9,31 @@ param(
 $ErrorActionPreference = "Stop"
 Add-Type -AssemblyName System.Drawing
 
-# Windows PowerShell 4.0 (Windows Server 2012 R2) can leave $PSScriptRoot empty
-# while binding default parameters. Resolve this only after the script is invoked.
+$scriptPath = $MyInvocation.MyCommand.Path
+if (-not $scriptPath) { throw "The runner script path could not be resolved." }
+$scriptDirectory = Split-Path -Parent $scriptPath
 if (-not $ConfigPath) {
-  $scriptPath = $MyInvocation.MyCommand.Path
-  if (-not $scriptPath) { throw "ConfigPath was not supplied and the script path could not be resolved." }
-  $ConfigPath = Join-Path (Split-Path -Parent $scriptPath) "..\..\.vps-daily-analysis.env"
+  $ConfigPath = Join-Path $scriptDirectory "..\..\.vps-daily-analysis.env"
 }
 
+$script:LogPath = Join-Path $env:TEMP "btrading-daily-analysis-runner.log"
+
 function Write-RunLog([string]$Message) {
-  $timestamp = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
-  Write-Host "[$timestamp] $Message"
+  $line = "[$((Get-Date).ToString('yyyy-MM-dd HH:mm:ss'))] $Message"
+  Write-Host $line
+  try {
+    $directory = Split-Path -Parent $script:LogPath
+    if ($directory) { New-Item -ItemType Directory -Path $directory -Force | Out-Null }
+    Add-Content -LiteralPath $script:LogPath -Value $line -Encoding UTF8
+  } catch {
+    Write-Host "[log-fallback] $($_.Exception.Message)"
+  }
 }
 
 function Read-Config([string]$Path) {
   if (-not (Test-Path -LiteralPath $Path)) {
     throw "Missing VPS config: $Path. Copy scripts/vps/daily-analysis.env.example and fill in its values."
   }
-
   $values = @{}
   foreach ($line in Get-Content -LiteralPath $Path) {
     $trimmed = $line.Trim()
@@ -39,29 +46,19 @@ function Read-Config([string]$Path) {
 }
 
 function Require-Config($Config, [string]$Name) {
-  if (-not $Config.ContainsKey($Name) -or -not $Config[$Name]) {
-    throw "Missing required config value: $Name"
-  }
+  if (-not $Config.ContainsKey($Name) -or -not $Config[$Name]) { throw "Missing required config value: $Name" }
   return $Config[$Name]
 }
 
 function Test-FreshImage([string]$Path, [int]$MaximumAgeMinutes) {
-  if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
-    throw "Chart image was not found: $Path"
-  }
+  if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { throw "Chart image was not found: $Path" }
   $file = Get-Item -LiteralPath $Path
-  if ($file.Length -lt 1024) {
-    throw "Chart image is unexpectedly small ($($file.Length) bytes): $Path"
-  }
+  if ($file.Length -lt 1024) { throw "Chart image is unexpectedly small ($($file.Length) bytes): $Path" }
   $age = (New-TimeSpan -Start $file.LastWriteTime -End (Get-Date)).TotalMinutes
-  if ($age -gt $MaximumAgeMinutes) {
-    throw "Chart image is stale ($([Math]::Round($age, 1)) minutes old): $Path"
-  }
+  if ($age -gt $MaximumAgeMinutes) { throw "Chart image is stale ($([Math]::Round($age, 1)) minutes old): $Path" }
 }
 
 function Test-ChartImageQuality([string]$Path, [string]$Label) {
-  # Downsample first: checking 32x32 pixels is fast on Windows PowerShell 4 while
-  # still detecting a black capture or a uniform/empty PrintWindow result.
   $source = New-Object System.Drawing.Bitmap($Path)
   $sample = New-Object System.Drawing.Bitmap(32, 32)
   $graphics = [System.Drawing.Graphics]::FromImage($sample)
@@ -71,18 +68,15 @@ function Test-ChartImageQuality([string]$Path, [string]$Label) {
     for ($x = 0; $x -lt 32; $x++) {
       for ($y = 0; $y -lt 32; $y++) {
         $pixel = $sample.GetPixel($x, $y)
-        # ITU-R BT.709 relative luminance, 0 through 255.
         [void]$brightness.Add((0.2126 * $pixel.R) + (0.7152 * $pixel.G) + (0.0722 * $pixel.B))
       }
     }
-
     $mean = ($brightness | Measure-Object -Average).Average
     $sumSquaredDifference = 0.0
     foreach ($value in $brightness) { $sumSquaredDifference += [Math]::Pow($value - $mean, 2) }
     $variance = $sumSquaredDifference / $brightness.Count
-
     if ($mean -lt 3.0 -or $variance -lt 4.0) {
-      throw "$Label PNG failed quality gate (mean brightness=$([Math]::Round($mean, 2)), variance=$([Math]::Round($variance, 2))): $Path"
+      throw "$Label PNG failed quality gate (mean=$([Math]::Round($mean, 2)), variance=$([Math]::Round($variance, 2))): $Path"
     }
   } finally {
     $graphics.Dispose()
@@ -91,82 +85,121 @@ function Test-ChartImageQuality([string]$Path, [string]$Label) {
   }
 }
 
-$config = Read-Config $ConfigPath
-$vnindexImage = Require-Config $config "VNINDEX_IMAGE_PATH"
-$goldImage = Require-Config $config "GOLD_IMAGE_PATH"
-$timezoneId = if ($config["TIMEZONE_ID"]) { $config["TIMEZONE_ID"] } else { "SE Asia Standard Time" }
-$maxImageAgeMinutes = if ($config["MAX_IMAGE_AGE_MINUTES"]) { [int]$config["MAX_IMAGE_AGE_MINUTES"] } else { 180 }
-$lockPath = if ($config["LOCK_PATH"]) { $config["LOCK_PATH"] } else { Join-Path $env:TEMP "btrading-daily-analysis.lock" }
-
-$mutex = New-Object -TypeName System.Threading.Mutex -ArgumentList @($false, "BTradingDailyAnalysis")
-if (-not $mutex.WaitOne(0)) {
-  Write-RunLog "Another Daily Analysis run is already in progress; exiting."
-  exit 0
+function Get-LegacyPublisherTasks {
+  $legacyPath = "C:\btrading\capture_and_publish.py"
+  $matches = @()
+  foreach ($task in @(Get-ScheduledTask)) {
+    if ($task.State -eq "Disabled") { continue }
+    foreach ($action in @($task.Actions)) {
+      $commandLine = "{0} {1}" -f $action.Execute, $action.Arguments
+      if ($commandLine.IndexOf($legacyPath, [StringComparison]::OrdinalIgnoreCase) -ge 0) {
+        $matches += $task
+        break
+      }
+    }
+  }
+  return @($matches)
 }
 
+function Disable-LegacyPublisher {
+  $matches = Get-LegacyPublisherTasks
+  foreach ($task in $matches) {
+    Write-RunLog "Disabling legacy publisher task: $($task.TaskPath)$($task.TaskName)"
+    Disable-ScheduledTask -InputObject $task | Out-Null
+  }
+  $remaining = Get-LegacyPublisherTasks
+  if ($remaining.Count -gt 0) {
+    $names = ($remaining | ForEach-Object { "$($_.TaskPath)$($_.TaskName)" }) -join ", "
+    throw "Legacy publisher remains enabled or cannot be verified: $names"
+  }
+  if ($matches.Count -gt 0) { Write-RunLog "Legacy publisher disabled; only the 07:00 runner may publish." }
+}
+
+$exitCode = 0
+$mutex = $null
+$lockPath = $null
+$mutexHeld = $false
 try {
-  if (Test-Path -LiteralPath $lockPath) {
-    $lockAgeMinutes = (New-TimeSpan -Start (Get-Item -LiteralPath $lockPath).LastWriteTime -End (Get-Date)).TotalMinutes
-    if ($lockAgeMinutes -lt 30) {
-      Write-RunLog "Recent lock file exists; exiting."
-      exit 0
+  $config = Read-Config $ConfigPath
+  if ($config["LOG_PATH"]) { $script:LogPath = $config["LOG_PATH"] }
+  Write-RunLog "START publish=$Publish config=$ConfigPath"
+
+  $vnindexImage = Require-Config $config "VNINDEX_IMAGE_PATH"
+  $goldImage = Require-Config $config "GOLD_IMAGE_PATH"
+  $timezoneId = if ($config["TIMEZONE_ID"]) { $config["TIMEZONE_ID"] } else { "SE Asia Standard Time" }
+  $maxImageAgeMinutes = if ($config["MAX_IMAGE_AGE_MINUTES"]) { [int]$config["MAX_IMAGE_AGE_MINUTES"] } else { 90 }
+  $lockPath = if ($config["LOCK_PATH"]) { $config["LOCK_PATH"] } else { Join-Path $env:TEMP "btrading-daily-analysis.lock" }
+
+  $mutex = New-Object -TypeName System.Threading.Mutex -ArgumentList @($false, "BTradingDailyAnalysis")
+  $mutexHeld = $mutex.WaitOne(0)
+  if (-not $mutexHeld) {
+    Write-RunLog "SKIPPED another runner is active."
+  } else {
+    if (Test-Path -LiteralPath $lockPath) {
+      $lockAgeMinutes = (New-TimeSpan -Start (Get-Item -LiteralPath $lockPath).LastWriteTime -End (Get-Date)).TotalMinutes
+      if ($lockAgeMinutes -lt 30) { throw "Recent runner lock exists ($([Math]::Round($lockAgeMinutes, 1)) minutes): $lockPath" }
+      Remove-Item -LiteralPath $lockPath -Force
     }
-    Remove-Item -LiteralPath $lockPath -Force
-  }
-  New-Item -ItemType File -Path $lockPath -Force | Out-Null
+    New-Item -ItemType File -Path $lockPath -Force | Out-Null
 
-  $timezone = [TimeZoneInfo]::FindSystemTimeZoneById($timezoneId)
-  $today = [TimeZoneInfo]::ConvertTimeFromUtc([DateTime]::UtcNow, $timezone)
-  if (-not $Force -and ($today.DayOfWeek -eq [DayOfWeek]::Saturday -or $today.DayOfWeek -eq [DayOfWeek]::Sunday)) {
-    Write-RunLog "Weekend in $timezoneId; exiting. Use -Force for a manual run."
-    exit 0
-  }
+    $timezone = [TimeZoneInfo]::FindSystemTimeZoneById($timezoneId)
+    $today = [TimeZoneInfo]::ConvertTimeFromUtc([DateTime]::UtcNow, $timezone)
+    if (-not $Force -and ($today.DayOfWeek -eq [DayOfWeek]::Saturday -or $today.DayOfWeek -eq [DayOfWeek]::Sunday)) {
+      Write-RunLog "SKIPPED weekend in $timezoneId."
+    } else {
+      Disable-LegacyPublisher
+      if (-not $SkipCapture) {
+        & (Join-Path $scriptDirectory "capture-ami-broker-charts.ps1") -ConfigPath $ConfigPath
+        if (-not $?) { throw "AmiBroker chart capture failed." }
+      }
+      Test-FreshImage $vnindexImage $maxImageAgeMinutes
+      Test-FreshImage $goldImage $maxImageAgeMinutes
+      Test-ChartImageQuality $vnindexImage "VNINDEX"
+      Test-ChartImageQuality $goldImage "XAUUSD"
 
-  if (-not $SkipCapture) {
-    & (Join-Path $PSScriptRoot "capture-ami-broker-charts.ps1") -ConfigPath $ConfigPath
-    if (-not $?) { throw "AmiBroker chart capture failed." }
-  }
-
-  Test-FreshImage $vnindexImage $maxImageAgeMinutes
-  Test-FreshImage $goldImage $maxImageAgeMinutes
-  Test-ChartImageQuality $vnindexImage "VNINDEX"
-  Test-ChartImageQuality $goldImage "XAUUSD"
-
-  if (-not $Publish) {
-    Write-RunLog "Dry run completed. PNG files were created and validated; no request was sent to BTrading. Re-run with -Publish to send."
-    exit 0
-  }
-
-  $endpoint = Require-Config $config "DAILY_ANALYSIS_ENDPOINT"
-  $secret = Require-Config $config "DAILY_AUTOMATION_SECRET"
-
-  $client = New-Object System.Net.Http.HttpClient
-  $client.Timeout = [TimeSpan]::FromMinutes(5)
-  $form = New-Object System.Net.Http.MultipartFormDataContent
-  try {
-    $form.Add((New-Object System.Net.Http.StringContent($secret)), "secret")
-    $form.Add((New-Object System.Net.Http.StringContent($today.ToString("yyyy-MM-dd"))), "date")
-
-    foreach ($upload in @(@{ Name = "vnindexImage"; Path = $vnindexImage }, @{ Name = "goldImage"; Path = $goldImage })) {
-      $stream = [System.IO.File]::OpenRead($upload.Path)
-      $content = New-Object System.Net.Http.StreamContent($stream)
-      $content.Headers.ContentType = [System.Net.Http.Headers.MediaTypeHeaderValue]::Parse("image/png")
-      $form.Add($content, $upload.Name, [System.IO.Path]::GetFileName($upload.Path))
+      if (-not $Publish) {
+        Write-RunLog "DRY_RUN_OK charts captured and validated; no HTTP request was made."
+      } else {
+        $endpoint = Require-Config $config "DAILY_ANALYSIS_ENDPOINT"
+        $secret = Require-Config $config "DAILY_AUTOMATION_SECRET"
+        $client = New-Object System.Net.Http.HttpClient
+        $client.Timeout = [TimeSpan]::FromMinutes(5)
+        $form = New-Object System.Net.Http.MultipartFormDataContent
+        try {
+          $form.Add((New-Object System.Net.Http.StringContent($secret)), "secret")
+          $form.Add((New-Object System.Net.Http.StringContent($today.ToString("yyyy-MM-dd"))), "date")
+          foreach ($upload in @(@{ Name = "vnindexImage"; Path = $vnindexImage }, @{ Name = "goldImage"; Path = $goldImage })) {
+            $stream = [System.IO.File]::OpenRead($upload.Path)
+            $content = New-Object System.Net.Http.StreamContent($stream)
+            $content.Headers.ContentType = [System.Net.Http.Headers.MediaTypeHeaderValue]::Parse("image/png")
+            $form.Add($content, $upload.Name, [System.IO.Path]::GetFileName($upload.Path))
+          }
+          Write-RunLog "POST_START date=$($today.ToString('yyyy-MM-dd')) endpoint=$endpoint"
+          $response = $client.PostAsync($endpoint, $form).GetAwaiter().GetResult()
+          $body = $response.Content.ReadAsStringAsync().GetAwaiter().GetResult()
+          if (-not $response.IsSuccessStatusCode) { throw "Automation API HTTP $([int]$response.StatusCode): $body" }
+          try { $result = $body | ConvertFrom-Json } catch { throw "Automation API returned invalid JSON: $body" }
+          if (-not $result.success) { throw "Automation API did not confirm success: $body" }
+          if ($result.status -eq "in_progress") { throw "Automation API is still in progress; no publish success was confirmed." }
+          $status = if ($result.status) { $result.status } else { "processed" }
+          Write-RunLog "PUBLISH_CONFIRMED date=$($today.ToString('yyyy-MM-dd')) status=$status"
+        } finally {
+          $form.Dispose()
+          $client.Dispose()
+        }
+      }
     }
-
-    Write-RunLog "Uploading charts for $($today.ToString('yyyy-MM-dd'))..."
-    $response = $client.PostAsync($endpoint, $form).GetAwaiter().GetResult()
-    $body = $response.Content.ReadAsStringAsync().GetAwaiter().GetResult()
-    if (-not $response.IsSuccessStatusCode) {
-      throw "Automation API returned HTTP $([int]$response.StatusCode): $body"
-    }
-    Write-RunLog "Completed: $body"
-  } finally {
-    $form.Dispose()
-    $client.Dispose()
   }
+} catch {
+  $exitCode = 1
+  Write-RunLog "FAILED $($_.Exception.Message)"
 } finally {
-  if (Test-Path -LiteralPath $lockPath) { Remove-Item -LiteralPath $lockPath -Force }
-  $mutex.ReleaseMutex()
-  $mutex.Dispose()
+  if ($lockPath -and (Test-Path -LiteralPath $lockPath)) { Remove-Item -LiteralPath $lockPath -Force -ErrorAction SilentlyContinue }
+  if ($mutex) {
+    if ($mutexHeld) { $mutex.ReleaseMutex() }
+    $mutex.Dispose()
+  }
+  Write-RunLog "END exitCode=$exitCode"
 }
+
+exit $exitCode
