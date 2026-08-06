@@ -1,6 +1,6 @@
 # Daily Analysis automation on the Windows VPS
 
-This automation has one publisher: `BTrading Daily Analysis` at 07:00. At the start of every run it finds any Windows scheduled task whose action invokes `C:\btrading\capture_and_publish.py`, disables it, and refuses to publish if that legacy task cannot be disabled or verified. Gold capture at 06:00/06:32 and VNINDEX capture at 06:30 remain capture-only inputs.
+This automation publishes the Daily Analysis at 07:00. Gold capture at 06:00/06:32 and VNINDEX capture at 06:30 remain capture-only inputs. The runner does not inspect, disable, or otherwise modify unrelated Scheduled Tasks or legacy programs.
 
 ## 1. VPS prerequisites
 
@@ -45,7 +45,7 @@ $settings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit (New-TimeSpan -Minu
 Register-ScheduledTask -TaskName "BTrading Daily Analysis" -Action $action -Trigger $trigger -Settings $settings -Description "Uploads AmiBroker charts and runs BTrading Daily Analysis" -Force
 ```
 
-Use an account that can disable scheduled tasks and access both the export folder and the network. The runner handles the legacy publisher itself; do not separately schedule `capture_and_publish.py`.
+Use an account that can access both the export folder and the network.
 
 ```powershell
 Start-ScheduledTask -TaskName "BTrading Daily Analysis"

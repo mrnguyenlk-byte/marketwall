@@ -85,36 +85,6 @@ function Test-ChartImageQuality([string]$Path, [string]$Label) {
   }
 }
 
-function Get-LegacyPublisherTasks {
-  $legacyPath = "C:\btrading\capture_and_publish.py"
-  $matches = @()
-  foreach ($task in @(Get-ScheduledTask)) {
-    if ($task.State -eq "Disabled") { continue }
-    foreach ($action in @($task.Actions)) {
-      $commandLine = "{0} {1}" -f $action.Execute, $action.Arguments
-      if ($commandLine.IndexOf($legacyPath, [StringComparison]::OrdinalIgnoreCase) -ge 0) {
-        $matches += $task
-        break
-      }
-    }
-  }
-  return @($matches)
-}
-
-function Disable-LegacyPublisher {
-  $matches = Get-LegacyPublisherTasks
-  foreach ($task in $matches) {
-    Write-RunLog "Disabling legacy publisher task: $($task.TaskPath)$($task.TaskName)"
-    Disable-ScheduledTask -InputObject $task | Out-Null
-  }
-  $remaining = Get-LegacyPublisherTasks
-  if ($remaining.Count -gt 0) {
-    $names = ($remaining | ForEach-Object { "$($_.TaskPath)$($_.TaskName)" }) -join ", "
-    throw "Legacy publisher remains enabled or cannot be verified: $names"
-  }
-  if ($matches.Count -gt 0) { Write-RunLog "Legacy publisher disabled; only the 07:00 runner may publish." }
-}
-
 $exitCode = 0
 $mutex = $null
 $lockPath = $null
@@ -147,7 +117,6 @@ try {
     if (-not $Force -and ($today.DayOfWeek -eq [DayOfWeek]::Saturday -or $today.DayOfWeek -eq [DayOfWeek]::Sunday)) {
       Write-RunLog "SKIPPED weekend in $timezoneId."
     } else {
-      Disable-LegacyPublisher
       if (-not $SkipCapture) {
         & (Join-Path $scriptDirectory "capture-ami-broker-charts.ps1") -ConfigPath $ConfigPath
         if (-not $?) { throw "AmiBroker chart capture failed." }
