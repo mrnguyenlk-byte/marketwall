@@ -202,6 +202,7 @@ export async function publishTelegramMarketAlert(
     {
       chat_id: env.channelId,
       text,
+      parse_mode: "HTML",
       disable_web_page_preview: true,
     },
   )
