@@ -69,7 +69,7 @@ try {
   if ($LASTEXITCODE -ne 0) {
     throw "Legacy publisher exited with code $LASTEXITCODE"
   }
-  Write-RunLog "PUBLISH_CONFIRMED legacy process exited successfully."
+  Write-RunLog "LEGACY_PROCESS_OK exitCode=0; verify the published article separately."
   exit 0
 } catch {
   Write-RunLog "FAILED $($_.Exception.Message)"
