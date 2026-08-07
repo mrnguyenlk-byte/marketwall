@@ -1,4 +1,7 @@
-import { buildDashboardData } from "@/lib/providers/build-dashboard-data"
+import {
+  buildDashboardData,
+  type DashboardData,
+} from "@/lib/providers/build-dashboard-data"
 import { getMockData as getMarketMock } from "@/lib/providers/market-provider"
 import { getMockData as getHeatmapMock } from "@/lib/providers/heatmap-provider"
 import { getMockData as getNewsMock } from "@/lib/providers/news-provider"
@@ -13,6 +16,8 @@ import { mapLatestToPreviewCards } from "@/lib/daily-analysis/map-to-card"
 
 export const dynamic = "force-dynamic"
 
+const DASHBOARD_BOOT_TIMEOUT_MS = 2_500
+
 function pickHeatmapMarket(
   markets: HeatmapMarket[],
   id: HeatmapMarket["id"],
@@ -20,22 +25,38 @@ function pickHeatmapMarket(
   return markets.find((market) => market.id === id) ?? null
 }
 
+function buildDashboardFallback(): DashboardData {
+  const marketMock = getMarketMock()
+  const heatmapMock = getHeatmapMock()
+  const vnMarket = pickHeatmapMarket(heatmapMock.markets, "vn")
+  return {
+    dashboardTickerBarItems: marketMock.dashboardTickerBarItems,
+    overviewByCategory: marketMock.overviewByCategory,
+    heatmapMarkets: vnMarket ? [vnMarket] : [],
+    fearGreedItems: fearGreedData,
+  }
+}
+
+async function resolveQuickly<T>(task: Promise<T>, fallback: T): Promise<T> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(fallback), DASHBOARD_BOOT_TIMEOUT_MS)
+    task
+      .then((value) => {
+        clearTimeout(timer)
+        resolve(value)
+      })
+      .catch(() => {
+        clearTimeout(timer)
+        resolve(fallback)
+      })
+  })
+}
+
 export default async function DashboardPage() {
-  const [dashboardResult, latestDailyAnalysis] = await Promise.all([
-    buildDashboardData().catch(() => {
-      const marketMock = getMarketMock()
-      const heatmapMock = getHeatmapMock()
-      const vnMarket = pickHeatmapMarket(heatmapMock.markets, "vn")
-      return {
-        dashboardTickerBarItems: marketMock.dashboardTickerBarItems,
-        overviewByCategory: marketMock.overviewByCategory,
-        heatmapMarkets: vnMarket ? [vnMarket] : [],
-        fearGreedItems: fearGreedData,
-      }
-    }),
-    getLatestDailyAnalysis(),
+  const [dashboard, latestDailyAnalysis] = await Promise.all([
+    resolveQuickly(buildDashboardData(), buildDashboardFallback()),
+    resolveQuickly(getLatestDailyAnalysis(), null),
   ])
-  const dashboard = dashboardResult
   const newsFallback = getNewsMock().items
   const calendarFallback = getCalendarMock().events
   const dailyAnalysisPreviewCards = latestDailyAnalysis
