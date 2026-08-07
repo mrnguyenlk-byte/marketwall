@@ -32,13 +32,14 @@ export function LandingPage() {
             <a href="#ecosystem">Hệ sinh thái</a>
             <a href="#academy">Học viện</a>
             <a href="#analysis">Phân tích</a>
+            <Link href="/dashboard">Dashboard</Link>
           </div>
-          <a
-            href="#contact"
-            className="rounded-lg border border-white/15 px-4 py-2.5 text-[13px] font-extrabold text-slate-100"
+          <Link
+            href="/dashboard"
+            className="rounded-lg bg-[linear-gradient(135deg,#f3d57b,#d99c39)] px-4 py-2.5 text-[13px] font-extrabold text-[#171108]"
           >
-            Liên hệ trực tiếp →
-          </a>
+            Vào Dashboard →
+          </Link>
         </nav>
 
         <section className="relative py-16 text-center sm:py-20">
@@ -175,6 +176,12 @@ export function LandingPage() {
         <p className="mt-3 whitespace-nowrap text-slate-400 max-sm:whitespace-normal">
           Bản tin BTrading tập trung vào điều vừa xảy ra, điều sắp diễn ra và những vùng thị trường cần quan sát.
         </p>
+        <Link
+          href="/dashboard"
+          className="mt-7 inline-flex rounded-lg border border-[#e8bc55]/60 px-4 py-3 text-[13px] font-extrabold text-[#f4d77e]"
+        >
+          Mở BTrading Dashboard →
+        </Link>
       </section>
 
       <section id="contact" className="mx-auto w-[min(1120px,calc(100%-42px))]">
