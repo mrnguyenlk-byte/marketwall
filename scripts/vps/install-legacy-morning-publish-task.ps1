@@ -14,8 +14,8 @@ $powerShell = Join-Path $env:SystemRoot "System32\WindowsPowerShell\v1.0\powersh
 $arguments = '-NoProfile -ExecutionPolicy Bypass -File "' + $RunnerPath + '"'
 $action = New-ScheduledTaskAction -Execute $powerShell -Argument $arguments
 $trigger = New-ScheduledTaskTrigger -Weekly -DaysOfWeek Monday,Tuesday,Wednesday,Thursday,Friday -At 7:00AM
-$principal = New-ScheduledTaskPrincipal -UserId "$env:USERDOMAIN\$env:USERNAME" -LogonType Interactive -RunLevel Highest
+$principal = New-ScheduledTaskPrincipal -UserId "$env:USERDOMAIN\$env:USERNAME" -LogonType S4U -RunLevel Highest
 $settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -MultipleInstances IgnoreNew -ExecutionTimeLimit (New-TimeSpan -Minutes 20)
 
-Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Description "Runs the original BTrading publisher only after VNINDEX and XAUUSD logs confirm the expected closed session." -Force | Out-Null
+Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Description "Runs the original BTrading publisher in the background only after VNINDEX and XAUUSD logs confirm the expected closed session." -Force | Out-Null
 Get-ScheduledTask -TaskName $TaskName | Select-Object TaskName, State
