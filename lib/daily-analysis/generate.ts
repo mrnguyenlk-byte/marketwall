@@ -1,9 +1,12 @@
 import {
   formatUsEconomicEventsForPrompt,
-  getUsMacroEventsForArticle,
+  getUsMacroEventsWithStatus,
   type UsEconomicEvent,
 } from "@/lib/economic-calendar/us-events"
 import { buildUsMacroSummary } from "@/lib/economic-calendar/us-macro-summary"
+
+const US_MACRO_UNVERIFIED_MESSAGE =
+  "• Dữ liệu kinh tế Mỹ chưa xác minh được từ nguồn lịch chính thức. BTrading sẽ cập nhật khi có dữ liệu tin cậy."
 import { generateMockDailyAnalysis } from "./generator"
 import {
   emptyOcrMarketData,
@@ -53,14 +56,17 @@ async function resolveUsMacroContext(
     }
   }
 
-  const events = await getUsMacroEventsForArticle(currentDate)
+  const { events, calendarChecked } =
+    await getUsMacroEventsWithStatus(currentDate)
   const formatted = formatUsEconomicEventsForPrompt(events)
 
   return {
     events,
-    usMacroSummary: buildUsMacroSummary(events),
+    usMacroSummary: calendarChecked
+      ? buildUsMacroSummary(events)
+      : US_MACRO_UNVERIFIED_MESSAGE,
     usEventsText: formatted || undefined,
-    calendarChecked: true,
+    calendarChecked,
   }
 }
 
