@@ -183,8 +183,15 @@ export async function getUsMacroEventsWithStatus(
       error instanceof Error ? error.message : String(error),
     )
     logUsMacroEmpty()
-    return []
+    return { events: [], calendarChecked: false }
   }
+}
+
+/** Backwards-compatible events-only reader. */
+export async function getUsMacroEventsForArticle(
+  currentDate: string,
+): Promise<UsEconomicEvent[]> {
+  return (await getUsMacroEventsWithStatus(currentDate)).events
 }
 
 /** @deprecated Use getUsMacroEventsForArticle(currentDate) */
