@@ -5,7 +5,7 @@ export const BTRADING_LINKS = {
   youtube: "https://www.youtube.com/@btradingmkt",
   telegram: "https://t.me/btradingdaily",
   zalo: "https://zalo.me/922222889",
-  tiktok: "https://www.tiktok.com/@bbbnvgvp",
+  tiktok: "https://www.tiktok.com/@fxbinhgold",
   phone: "tel:+84922222889",
 } as const
 
