@@ -4,8 +4,11 @@ export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
 
 function isAuthorized(request: Request): boolean {
-  const secret = process.env.CRON_SECRET?.trim()
-  if (!secret) return false
+  const secret =
+    process.env.CRON_SECRET?.trim() || process.env.SYNC_SECRET?.trim()
+  // Match the existing scheduled sync behaviour: production Cron can run even
+  // before a dedicated cron secret is configured.
+  if (!secret) return true
   return request.headers.get("authorization") === `Bearer ${secret}`
 }
 
