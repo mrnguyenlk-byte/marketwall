@@ -1,15 +1,17 @@
 import Image from "next/image"
 import Link from "next/link"
 
+import { BTRADING_LINKS } from "@/lib/brand-links"
+
 const contentChannels = [
-  { label: "YouTube", className: "bg-[#ff0033]", href: "#" },
+  { label: "YouTube", className: "bg-[#ff0033]", href: BTRADING_LINKS.youtube },
   {
     label: "TikTok",
     className:
       "bg-[linear-gradient(135deg,#22d3ee_0_3%,#111_4%_93%,#ff3b6b_94%)]",
-    href: "#",
+    href: BTRADING_LINKS.tiktok,
   },
-  { label: "Facebook", className: "bg-[#1877f2]", href: "#" },
+  { label: "Facebook", className: "bg-[#1877f2]", href: BTRADING_LINKS.facebook },
 ]
 
 export function LandingPage() {
@@ -64,7 +66,7 @@ export function LandingPage() {
             </p>
             <div className="mt-7 flex flex-wrap justify-center gap-3">
               <a
-                href="https://zalo.me/btradingad"
+                href={BTRADING_LINKS.zalo}
                 className="rounded-lg bg-[linear-gradient(135deg,#f3d57b,#d99c39)] px-4 py-3 text-[13px] font-extrabold text-[#171108]"
               >
                 Nhận hỗ trợ trực tiếp
@@ -159,7 +161,7 @@ export function LandingPage() {
               <p className="mt-1 text-sm text-slate-300">Video kiến thức, góc nhìn thị trường và các bài học dành cho trader.</p>
             </div>
           </div>
-          <a href="#" className="rounded-lg bg-[linear-gradient(135deg,#f3d57b,#d99c39)] px-4 py-3 text-center text-[13px] font-extrabold text-[#171108]">
+          <a href={BTRADING_LINKS.youtube} target="_blank" rel="noreferrer" className="rounded-lg bg-[linear-gradient(135deg,#f3d57b,#d99c39)] px-4 py-3 text-center text-[13px] font-extrabold text-[#171108]">
             Khám phá học viện →
           </a>
         </div>
@@ -190,8 +192,8 @@ export function LandingPage() {
               </a>
             ))}
             <p className="col-span-full mt-2 text-[10px] font-extrabold tracking-[1.35px] text-slate-400">LIÊN HỆ TRỰC TIẾP</p>
-            <a href="https://zalo.me/btradingad" className="rounded-lg bg-[#0068ff] px-2 py-3 text-center text-xs font-extrabold text-white">Zalo</a>
-            <a href="https://t.me/btradingad" className="col-span-2 rounded-lg bg-[#229ed9] px-2 py-3 text-center text-xs font-extrabold text-white">Telegram</a>
+            <a href={BTRADING_LINKS.zalo} className="rounded-lg bg-[#0068ff] px-2 py-3 text-center text-xs font-extrabold text-white">Zalo</a>
+            <a href={BTRADING_LINKS.telegram} className="col-span-2 rounded-lg bg-[#229ed9] px-2 py-3 text-center text-xs font-extrabold text-white">Telegram</a>
           </div>
         </div>
       </section>
