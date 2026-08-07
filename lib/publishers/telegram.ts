@@ -187,3 +187,29 @@ export async function publishDailyAnalysisToTelegram(
   )
   return sendPhoto(env.token, env.channelId, photo, caption)
 }
+
+
+/** Publish a short, source-attributed market alert to the configured channel. */
+export async function publishTelegramMarketAlert(
+  text: string,
+): Promise<TelegramPublishResult> {
+  const env = telegramEnv()
+  if (!env) return { ok: false, error: "skipped: missing env" }
+
+  const result = await telegramRequest<TelegramSendPhotoResponse>(
+    env.token,
+    "sendMessage",
+    {
+      chat_id: env.channelId,
+      text,
+      disable_web_page_preview: true,
+    },
+  )
+  if ("error" in result) return { ok: false, error: result.error }
+
+  const { response, payload } = result
+  if (!response.ok || !payload.ok || !payload.result?.message_id) {
+    return { ok: false, error: payload.description ?? `HTTP ${response.status}` }
+  }
+  return { ok: true, messageId: payload.result.message_id }
+}
