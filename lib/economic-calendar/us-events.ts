@@ -126,11 +126,25 @@ export function formatUsEconomicEventsForPrompt(events: UsEconomicEvent[]): stri
   return lines.join("\n")
 }
 
-export async function getUsMacroEventsForArticle(
+export type UsMacroEventsResult = {
+  events: UsEconomicEvent[]
+  /** True only when a real calendar provider was successfully queried. */
+  calendarChecked: boolean
+}
+
+export async function getUsMacroEventsWithStatus(
   currentDate: string,
-): Promise<UsEconomicEvent[]> {
+): Promise<UsMacroEventsResult> {
   try {
     const [data, articles] = await Promise.all([getData(), getDailyAnalysisList()])
+
+    // Never turn a provider outage into a market statement. Mock records are
+    // useful for the dashboard UI, but must not be used in published analysis.
+    if (data.source === "mock") {
+      console.warn("US_MACRO_UNVERIFIED provider=mock")
+      return { events: [], calendarChecked: false }
+    }
+
     const previousArticle = findPreviousArticle(articles, currentDate)
     const sinceMs = resolveUsMacroSinceMs(previousArticle)
     const untilMs = Date.now()
@@ -158,11 +172,11 @@ export async function getUsMacroEventsForArticle(
     const selected = selectTopUsMacroEvents(deduped)
     if (!selected.length) {
       logUsMacroEmpty()
-      return []
+      return { events: [], calendarChecked: true }
     }
 
     logUsMacroSelected(selected)
-    return selected
+    return { events: selected, calendarChecked: true }
   } catch (error) {
     console.warn(
       "[us-events] Failed to fetch US economic events:",
