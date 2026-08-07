@@ -4,6 +4,7 @@ param(
   [string]$PythonCommand = "python",
   [string]$GoldCsvPath = "C:\AmiBroker_AutoData\XAUUSD_D1_AB.csv",
   [string]$VnindexCsvPath = "C:\AmiBroker_AutoData\VNINDEX_D1_AB.csv",
+  [string]$AutomationConfigPath = "C:\btrading-code\.vps-daily-analysis.env",
   [string]$LogPath = "C:\BTradingData\daily-analysis\legacy-morning-publish.log"
 )
 
@@ -41,6 +42,27 @@ function Get-LatestImportedDate([string]$Path, [string]$Label) {
   return ($dates | Sort-Object -Descending | Select-Object -First 1)
 }
 
+function Load-LegacySecret([string]$Path) {
+  if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
+    throw "Automation config was not found: $Path"
+  }
+
+  foreach ($line in Get-Content -LiteralPath $Path) {
+    $trimmed = $line.Trim()
+    if (-not $trimmed -or $trimmed.StartsWith("#")) { continue }
+    $parts = $trimmed.Split("=", 2)
+    if ($parts.Count -eq 2 -and $parts[0].Trim() -eq "DAILY_AUTOMATION_SECRET") {
+      $value = $parts[1].Trim().Trim('"')
+      if ($value) {
+        $env:BTRADING_DAILY_SECRET = $value
+        return
+      }
+    }
+  }
+
+  throw "DAILY_AUTOMATION_SECRET is missing from $Path"
+}
+
 function Get-ExpectedSessionDate([DateTime]$ReportDate) {
   $candidate = $ReportDate.Date.AddDays(-1)
   while ($candidate.DayOfWeek -eq [DayOfWeek]::Saturday -or $candidate.DayOfWeek -eq [DayOfWeek]::Sunday) {
@@ -69,6 +91,7 @@ try {
     throw "Legacy publisher was not found: $LegacyScriptPath"
   }
 
+  Load-LegacySecret $AutomationConfigPath
   Write-RunLog "START legacy publisher expectedSession=$($expected.ToString('yyyy-MM-dd'))"
   & $PythonCommand $LegacyScriptPath
   if ($LASTEXITCODE -ne 0) {
