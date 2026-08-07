@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils"
 import { LiveNavLink } from "./live-nav-link"
 
 const NAV_ITEMS: { key: string; href: string; match?: string }[] = [
-  { key: "nav.dashboard", href: "/" },
+  { key: "nav.dashboard", href: "/dashboard" },
   { key: "nav.dailyAnalysis", href: "/daily-analysis", match: "/daily-analysis" },
   { key: "nav.brokers", href: "/brokers", match: "/brokers" },
   { key: "nav.contact", href: "/contact", match: "/contact" },
@@ -43,7 +43,7 @@ export function Header({ tickerItems }: HeaderProps) {
           {NAV_ITEMS.map((item) => {
             const active = item.match
               ? pathname === item.match
-              : item.href === "/" && pathname === "/"
+              : item.href === "/dashboard" && pathname === "/dashboard"
             return (
               <a
                 key={item.key}
