@@ -81,7 +81,7 @@ export function Header({ tickerItems }: HeaderProps) {
         {NAV_ITEMS.map((item) => {
           const active = item.match
             ? pathname === item.match
-            : item.href === "/" && pathname === "/"
+            : item.href === "/dashboard" && pathname === "/dashboard"
           return (
             <a
               key={item.key}
