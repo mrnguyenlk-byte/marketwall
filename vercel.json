@@ -3,10 +3,6 @@
     {
       "path": "/api/sync/proprietary-eod",
       "schedule": "30 10 * * 1-5"
-    },
-    {
-      "path": "/api/cron/telegram-market-alerts",
-      "schedule": "*/15 * * * *"
     }
   ]
 }
