@@ -193,7 +193,7 @@ export function LandingPage() {
             ))}
             <p className="col-span-full mt-2 text-[10px] font-extrabold tracking-[1.35px] text-slate-400">LIÊN HỆ TRỰC TIẾP</p>
             <a href={BTRADING_LINKS.zalo} className="rounded-lg bg-[#0068ff] px-2 py-3 text-center text-xs font-extrabold text-white">Zalo</a>
-            <a href={BTRADING_LINKS.telegram} className="col-span-2 rounded-lg bg-[#229ed9] px-2 py-3 text-center text-xs font-extrabold text-white">Telegram</a>
+            <a href={BTRADING_LINKS.telegram} className="col-span-2 rounded-lg bg-[#229ed9] px-2 py-3 text-center text-xs font-extrabold text-white">Telegram</a>\n            <a href={BTRADING_LINKS.phone} className="col-span-full rounded-lg bg-[#e8bc55] px-2 py-3 text-center text-xs font-extrabold text-[#171108]">Gọi 0922 222 889</a>
           </div>
         </div>
       </section>
