@@ -21,23 +21,23 @@ function pickHeatmapMarket(
 }
 
 export default async function DashboardPage() {
-  let dashboard
-  try {
-    dashboard = await buildDashboardData()
-  } catch {
-    const marketMock = getMarketMock()
-    const heatmapMock = getHeatmapMock()
-    const vnMarket = pickHeatmapMarket(heatmapMock.markets, "vn")
-    dashboard = {
-      dashboardTickerBarItems: marketMock.dashboardTickerBarItems,
-      overviewByCategory: marketMock.overviewByCategory,
-      heatmapMarkets: vnMarket ? [vnMarket] : [],
-      fearGreedItems: fearGreedData,
-    }
-  }
+  const [dashboardResult, latestDailyAnalysis] = await Promise.all([
+    buildDashboardData().catch(() => {
+      const marketMock = getMarketMock()
+      const heatmapMock = getHeatmapMock()
+      const vnMarket = pickHeatmapMarket(heatmapMock.markets, "vn")
+      return {
+        dashboardTickerBarItems: marketMock.dashboardTickerBarItems,
+        overviewByCategory: marketMock.overviewByCategory,
+        heatmapMarkets: vnMarket ? [vnMarket] : [],
+        fearGreedItems: fearGreedData,
+      }
+    }),
+    getLatestDailyAnalysis(),
+  ])
+  const dashboard = dashboardResult
   const newsFallback = getNewsMock().items
   const calendarFallback = getCalendarMock().events
-  const latestDailyAnalysis = await getLatestDailyAnalysis()
   const dailyAnalysisPreviewCards = latestDailyAnalysis
     ? mapLatestToPreviewCards(latestDailyAnalysis)
     : undefined
