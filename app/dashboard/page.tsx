@@ -35,6 +35,7 @@ function buildDashboardFallback(): DashboardData {
     overviewByCategory: marketMock.overviewByCategory,
     heatmapMarkets: vnMarket ? [vnMarket] : [],
     fearGreedItems: fearGreedData,
+    initialVnHeatmap: undefined,
   }
 }
 
