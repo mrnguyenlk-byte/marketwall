@@ -2,8 +2,8 @@
 param(
   [string]$LegacyScriptPath = "C:\btrading\capture_and_publish.py",
   [string]$PythonCommand = "python",
-  [string]$GoldLogPath = "C:\AmiBroker_AutoData\xauusd_task.log",
-  [string]$VnindexLogPath = "C:\AmiBroker_AutoData\vnindex_update.log",
+  [string]$GoldCsvPath = "C:\AmiBroker_AutoData\XAUUSD_D1_AB.csv",
+  [string]$VnindexCsvPath = "C:\AmiBroker_AutoData\VNINDEX_D1_AB.csv",
   [string]$LogPath = "C:\BTradingData\daily-analysis\legacy-morning-publish.log"
 )
 
@@ -17,23 +17,28 @@ function Write-RunLog([string]$Message) {
   Add-Content -LiteralPath $LogPath -Value $line -Encoding UTF8
 }
 
-function Get-LatestClosedDate([string]$Path, [string]$Pattern, [string]$Label) {
+function Get-LatestImportedDate([string]$Path, [string]$Label) {
   if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
-    throw "$Label log was not found: $Path"
+    throw "$Label imported CSV was not found: $Path"
   }
 
-  $matches = Select-String -LiteralPath $Path -Pattern $Pattern -AllMatches
-  if (-not $matches) {
-    throw "$Label log has no closed-candle date: $Path"
+  $rows = @(Import-Csv -LiteralPath $Path)
+  if ($rows.Count -eq 0) {
+    throw "$Label imported CSV has no data rows: $Path"
   }
 
-  $last = $matches[$matches.Count - 1]
-  $match = [regex]::Match($last.Line, $Pattern)
-  if (-not $match.Success) {
-    throw "$Label date could not be parsed: $($last.Line)"
+  $dates = @()
+  foreach ($row in $rows) {
+    $rawDate = [string]$row.Date
+    if (-not $rawDate) { continue }
+    try { $dates += [DateTime]::Parse($rawDate).Date } catch { }
   }
 
-  return [DateTime]::ParseExact($match.Groups[1].Value, "yyyy-MM-dd", $null).Date
+  if ($dates.Count -eq 0) {
+    throw "$Label imported CSV has no valid Date values: $Path"
+  }
+
+  return ($dates | Sort-Object -Descending | Select-Object -First 1)
 }
 
 function Get-ExpectedSessionDate([DateTime]$ReportDate) {
@@ -52,8 +57,8 @@ try {
   }
 
   $expected = Get-ExpectedSessionDate $now
-  $vnindexDate = Get-LatestClosedDate $VnindexLogPath "VNINDEX_D1_LAST_CLOSED_DATE\s+(\d{4}-\d{2}-\d{2})" "VNINDEX"
-  $goldDate = Get-LatestClosedDate $GoldLogPath "XAUUSD_D1_LAST_CLOSED_DATE\s+(\d{4}-\d{2}-\d{2})" "XAUUSD"
+  $vnindexDate = Get-LatestImportedDate $VnindexCsvPath "VNINDEX"
+  $goldDate = Get-LatestImportedDate $GoldCsvPath "XAUUSD"
 
   if ($vnindexDate -ne $expected -or $goldDate -ne $expected) {
     Write-RunLog "BLOCKED expected=$($expected.ToString('yyyy-MM-dd')) vnindex=$($vnindexDate.ToString('yyyy-MM-dd')) gold=$($goldDate.ToString('yyyy-MM-dd'))"
