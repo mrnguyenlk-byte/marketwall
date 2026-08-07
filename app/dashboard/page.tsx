@@ -16,6 +16,7 @@ import { mapLatestToPreviewCards } from "@/lib/daily-analysis/map-to-card"
 
 export const dynamic = "force-dynamic"
 
+// The dashboard shell must never wait on slow third-party market feeds.
 const DASHBOARD_BOOT_TIMEOUT_MS = 2_500
 
 function pickHeatmapMarket(
