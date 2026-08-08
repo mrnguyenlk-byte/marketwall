@@ -4,26 +4,36 @@ import { fetchWithTimeout } from "@/lib/providers/fetch-utils"
 
 export type NormalizedNewsItem = {
   title: string
+  description?: string
   source: string
+  sourceTier?: 1 | 2
   url: string
   publishedAt: string
   category: string
 }
 
-const RSS_FEEDS: { url: string; source: string; category: string }[] = [
+const RSS_FEEDS: {
+  url: string
+  source: string
+  sourceTier: 1 | 2
+  category: string
+}[] = [
   {
     url: "https://finance.yahoo.com/news/rssindex",
     source: "Yahoo Finance",
+    sourceTier: 2,
     category: "markets",
   },
   {
     url: "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000664",
     source: "CNBC Markets",
+    sourceTier: 1,
     category: "markets",
   },
   {
     url: "https://feeds.marketwatch.com/marketwatch/topstories/",
     source: "MarketWatch",
+    sourceTier: 2,
     category: "markets",
   },
 ]
@@ -51,6 +61,7 @@ function itemPublishedAt(item: Parser.Item): string {
 function parseFeed(
   feed: Parser.Output<{ mediaContent?: string }>,
   source: string,
+  sourceTier: 1 | 2,
   category: string,
 ): NormalizedNewsItem[] {
   const items: NormalizedNewsItem[] = []
@@ -62,7 +73,9 @@ function parseFeed(
 
     items.push({
       title,
+      description: (item.contentSnippet ?? item.content ?? "").trim().slice(0, 800),
       source,
+      sourceTier,
       url,
       publishedAt: itemPublishedAt(item),
       category,
@@ -99,7 +112,7 @@ export async function fetchNewsFromRss(): Promise<NormalizedNewsItem[]> {
       if (!res.ok) throw new Error(`RSS ${feed.source} failed: ${res.status}`)
       const xml = await res.text()
       const parsed = await parser.parseString(xml)
-      return parseFeed(parsed, feed.source, feed.category)
+      return parseFeed(parsed, feed.source, feed.sourceTier, feed.category)
     }),
   )
 
