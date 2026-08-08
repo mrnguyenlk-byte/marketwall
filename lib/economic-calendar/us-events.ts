@@ -1,64 +1,15 @@
 import "server-only"
 
-import { getDailyAnalysisList } from "@/lib/daily-analysis/storage"
-import type { DailyAnalysis } from "@/lib/daily-analysis/types"
 import { getData } from "@/lib/providers/calendar-provider"
-import type { EconomicEventRecord } from "@/lib/providers/types"
 import {
-  deduplicateUsMacroEvents,
   filterUsMacroCandidates,
-  resolveUsMacroSinceMs,
   selectTopUsMacroEvents,
-  usMacroEventDedupKey,
   type UsEconomicEvent,
   type UsMacroDebugRow,
 } from "./us-macro-core"
 
 export type { UsEconomicEvent } from "./us-macro-core"
 export { US_MACRO_MAX_EVENTS } from "./us-macro-core"
-
-function findPreviousArticle(
-  articles: DailyAnalysis[],
-  currentDate: string,
-): DailyAnalysis | null {
-  return (
-    articles
-      .filter((article) => article.date < currentDate)
-      .sort((a, b) => b.date.localeCompare(a.date))[0] ?? null
-  )
-}
-
-function findArticleBefore(
-  articles: DailyAnalysis[],
-  article: DailyAnalysis,
-): DailyAnalysis | null {
-  return (
-    articles
-      .filter((candidate) => candidate.date < article.date)
-      .sort((a, b) => b.date.localeCompare(a.date))[0] ?? null
-  )
-}
-
-function buildPreviousArticleDedupKeys(
-  articles: DailyAnalysis[],
-  previousArticle: DailyAnalysis | null,
-  records: EconomicEventRecord[],
-): Set<string> {
-  if (!previousArticle) return new Set()
-
-  const articleBeforePrevious = findArticleBefore(articles, previousArticle)
-  const sinceMs = resolveUsMacroSinceMs(articleBeforePrevious)
-  const untilMs = resolveUsMacroSinceMs(previousArticle)
-
-  const { events: previousWindowEvents } = filterUsMacroCandidates(
-    records,
-    sinceMs,
-    untilMs,
-  )
-  const previousSelected = selectTopUsMacroEvents(previousWindowEvents)
-
-  return new Set(previousSelected.map(usMacroEventDedupKey))
-}
 
 function logUsMacroRawDebug(rows: UsMacroDebugRow[]): void {
   for (const row of rows) {
@@ -95,11 +46,6 @@ function logUsMacroSelected(events: UsEconomicEvent[]): void {
   )
 }
 
-function logUsMacroDeduped(removedKeys: string[]): void {
-  if (!removedKeys.length) return
-  console.log(`US_MACRO_DEDUPED removed=${removedKeys.length} keys=${removedKeys.join(", ")}`)
-}
-
 function logUsMacroEmpty(): void {
   console.log("US_MACRO_EMPTY")
 }
@@ -133,10 +79,10 @@ export type UsMacroEventsResult = {
 }
 
 export async function getUsMacroEventsWithStatus(
-  currentDate: string,
+  _currentDate: string,
 ): Promise<UsMacroEventsResult> {
   try {
-    const [data, articles] = await Promise.all([getData(), getDailyAnalysisList()])
+    const data = await getData()
 
     // Never turn a provider outage into a market statement. Mock records are
     // useful for the dashboard UI, but must not be used in published analysis.
@@ -145,12 +91,11 @@ export async function getUsMacroEventsWithStatus(
       return { events: [], calendarChecked: false }
     }
 
-    const previousArticle = findPreviousArticle(articles, currentDate)
-    const sinceMs = resolveUsMacroSinceMs(previousArticle)
     const untilMs = Date.now()
+    const sinceMs = untilMs - 24 * 60 * 60 * 1000
 
     console.log(
-      `US_MACRO_WINDOW since=${new Date(sinceMs).toISOString()} until=${new Date(untilMs).toISOString()} tz=Asia/Ho_Chi_Minh previousDate=${previousArticle?.date ?? "none"}`,
+      `US_MACRO_WINDOW since=${new Date(sinceMs).toISOString()} until=${new Date(untilMs).toISOString()} tz=Asia/Ho_Chi_Minh mode=rolling-24h`,
     )
 
     const { events: candidates, debugRows } = filterUsMacroCandidates(
@@ -161,15 +106,7 @@ export async function getUsMacroEventsWithStatus(
     logUsMacroRawDebug(debugRows)
     logUsMacroCandidates(candidates)
 
-    const excludeKeys = buildPreviousArticleDedupKeys(
-      articles,
-      previousArticle,
-      data.normalized,
-    )
-    const { events: deduped, removedKeys } = deduplicateUsMacroEvents(candidates, excludeKeys)
-    logUsMacroDeduped(removedKeys)
-
-    const selected = selectTopUsMacroEvents(deduped)
+    const selected = selectTopUsMacroEvents(candidates)
     if (!selected.length) {
       logUsMacroEmpty()
       return { events: [], calendarChecked: true }
