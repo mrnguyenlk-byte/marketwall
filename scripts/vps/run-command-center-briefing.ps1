@@ -40,12 +40,28 @@ function Get-LatestCsvDate([string]$Path, [string]$Market) {
   return $latest
 }
 
+function Test-RetryableNetworkError([Exception]$ErrorObject) {
+  $current = $ErrorObject
+  while ($current) {
+    if ($current -is [System.Net.Http.HttpRequestException] -or
+        $current -is [System.Net.WebException] -or
+        $current -is [System.TimeoutException] -or
+        $current -is [System.Threading.Tasks.TaskCanceledException]) {
+      return $true
+    }
+    $current = $current.InnerException
+  }
+  return $false
+}
+
 $config = Read-Config $ConfigPath
 $logPath = if ($config["COMMAND_CENTER_LOG_PATH"]) { $config["COMMAND_CENTER_LOG_PATH"] } else { "C:\BTradingData\logs\command-center-briefing.log" }
 $statePath = if ($config["COMMAND_CENTER_STATE_PATH"]) { $config["COMMAND_CENTER_STATE_PATH"] } else { "C:\BTradingData\command-center" }
 $endpoint = if ($config["COMMAND_CENTER_AUTO_PUBLISH_ENDPOINT"]) { $config["COMMAND_CENTER_AUTO_PUBLISH_ENDPOINT"] } else { "https://btrading-command-center.binh-nguyen-1597.chatgpt.site/api/briefings/auto-publish" }
 $secret = [string]$config["DAILY_AUTOMATION_SECRET"]
 if (-not $secret) { throw "DAILY_AUTOMATION_SECRET is missing from $ConfigPath" }
+$accessToken = [string]$config["COMMAND_CENTER_ACCESS_TOKEN"]
+if (-not $DryRun -and -not $accessToken) { throw "COMMAND_CENTER_ACCESS_TOKEN is missing from $ConfigPath" }
 $vnCsv = if ($config["VNINDEX_CSV_PATH"]) { $config["VNINDEX_CSV_PATH"] } else { "C:\AmiBroker_AutoData\VNINDEX_D1_AB.csv" }
 $goldCsv = if ($config["GOLD_CSV_PATH"]) { $config["GOLD_CSV_PATH"] } else { "C:\AmiBroker_AutoData\XAUUSD_D1_AB.csv" }
 $timezoneId = if ($config["TIMEZONE_ID"]) { $config["TIMEZONE_ID"] } else { "SE Asia Standard Time" }
@@ -86,14 +102,38 @@ try {
   $client.Timeout = [TimeSpan]::FromMinutes(10)
   try {
     $client.DefaultRequestHeaders.Add("x-btrading-secret", $secret)
-    if ($config["COMMAND_CENTER_ACCESS_TOKEN"]) { $client.DefaultRequestHeaders.Add("OAI-Sites-Authorization", "Bearer $($config['COMMAND_CENTER_ACCESS_TOKEN'])") }
-    $payload = New-Object -TypeName System.Net.Http.StringContent -ArgumentList @('{"source":"command-center-0730"}', [Text.Encoding]::UTF8, "application/json")
-    Write-RunLog "POST_START flow=command-center-0730 endpoint=$endpoint"
-    $response = $client.PostAsync($endpoint, $payload).GetAwaiter().GetResult()
-    $body = $response.Content.ReadAsStringAsync().GetAwaiter().GetResult()
-    if (-not $response.IsSuccessStatusCode) { throw "Command Center HTTP $([int]$response.StatusCode): $($body.Substring(0, [Math]::Min(500, $body.Length)))" }
-    try { $result = $body | ConvertFrom-Json } catch { throw "Command Center returned invalid JSON." }
-    if ($result.status -ne "published" -and $result.reason -ne "already_published") { throw "Command Center did not confirm publication: $body" }
+    $client.DefaultRequestHeaders.Add("OAI-Sites-Authorization", "Bearer $accessToken")
+    $result = $null
+    for ($attempt = 1; $attempt -le 3; $attempt++) {
+      $response = $null
+      $body = ""
+      try {
+        $payload = New-Object -TypeName System.Net.Http.StringContent -ArgumentList @('{}', [Text.Encoding]::UTF8, "application/json")
+        Write-RunLog "POST_START flow=command-center-0730 attempt=$attempt endpoint=$endpoint"
+        $response = $client.PostAsync($endpoint, $payload).GetAwaiter().GetResult()
+        $body = $response.Content.ReadAsStringAsync().GetAwaiter().GetResult()
+        $statusCode = [int]$response.StatusCode
+        if ($response.IsSuccessStatusCode) {
+          try { $result = $body | ConvertFrom-Json } catch { throw "Command Center returned invalid JSON." }
+          break
+        }
+        if ($statusCode -lt 500) {
+          throw "Command Center HTTP $statusCode (not retryable): $($body.Substring(0, [Math]::Min(500, $body.Length)))"
+        }
+        if ($attempt -ge 3) {
+          throw "Command Center HTTP $statusCode after 3 attempts: $($body.Substring(0, [Math]::Min(500, $body.Length)))"
+        }
+        Write-RunLog "RETRY_WAIT flow=command-center-0730 attempt=$attempt reason=http-$statusCode delaySeconds=300"
+      } catch {
+        if (-not (Test-RetryableNetworkError $_.Exception) -or $attempt -ge 3) { throw }
+        Write-RunLog "RETRY_WAIT flow=command-center-0730 attempt=$attempt reason=network delaySeconds=300"
+      } finally {
+        if ($response) { $response.Dispose() }
+      }
+      Start-Sleep -Seconds 300
+    }
+    if ($null -eq $result) { throw "Command Center did not return a publication result." }
+    if ($result.status -ne "published" -and $result.reason -ne "already_published") { throw "Command Center did not confirm publication: $($result | ConvertTo-Json -Compress)" }
     "confirmed=$((Get-Date).ToString('o')) status=$($result.status) reason=$($result.reason)" | Set-Content -LiteralPath $successMarker -Encoding UTF8
     Write-RunLog "PUBLISH_CONFIRMED flow=command-center-0730 status=$($result.status) reason=$($result.reason)"
   } finally { $client.Dispose() }
