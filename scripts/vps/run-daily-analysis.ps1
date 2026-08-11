@@ -3,12 +3,13 @@ param(
   [string]$ConfigPath,
   [switch]$Force,
   [switch]$Publish,
-  [switch]$SkipCapture,
-  [switch]$SessionMarkerSelfTest
+  [switch]$SkipCapture
 )
 
 $ErrorActionPreference = "Stop"
 Add-Type -AssemblyName System.Drawing
+Add-Type -AssemblyName System.Net.Http
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 $scriptPath = $MyInvocation.MyCommand.Path
 if (-not $scriptPath) { throw "The runner script path could not be resolved." }
@@ -28,6 +29,14 @@ function Write-RunLog([string]$Message) {
     Add-Content -LiteralPath $script:LogPath -Value $line -Encoding UTF8
   } catch {
     Write-Host "[log-fallback] $($_.Exception.Message)"
+  }
+}
+
+function Rotate-RunLog([string]$Path) {
+  if ((Test-Path -LiteralPath $Path -PathType Leaf) -and (Get-Item -LiteralPath $Path).Length -gt 5242880) {
+    $archive = "$Path.1"
+    Remove-Item -LiteralPath $archive -Force -ErrorAction SilentlyContinue
+    Move-Item -LiteralPath $Path -Destination $archive -Force
   }
 }
 
@@ -86,59 +95,45 @@ function Test-ChartImageQuality([string]$Path, [string]$Label) {
   }
 }
 
-function Test-SessionMarker([string]$Path, [string]$Market, [string]$ReportDate, [int]$MaximumAgeMinutes) {
-  if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
-    throw "$Market session marker is unavailable: $Path"
+function Get-ExpectedSessionDate([DateTime]$ReportDate) {
+  $candidate = $ReportDate.Date.AddDays(-1)
+  while ($candidate.DayOfWeek -eq [DayOfWeek]::Saturday -or $candidate.DayOfWeek -eq [DayOfWeek]::Sunday) {
+    $candidate = $candidate.AddDays(-1)
   }
-  try { $marker = (Get-Content -LiteralPath $Path -Raw) | ConvertFrom-Json } catch { throw "$Market session marker is invalid JSON: $Path" }
-  foreach ($field in @("schemaVersion", "market", "reportDate", "latestCompletedSessionDate", "expectedLatestCompletedSessionDate", "updatedAtUtc", "status")) {
-    if (-not $marker.PSObject.Properties[$field] -or -not $marker.$field) { throw "$Market session marker is missing '$field': $Path" }
-  }
-  if ($marker.schemaVersion -ne 1 -or $marker.market -ne $Market) { throw "$Market session marker identity is invalid: $Path" }
-  if ($marker.status -ne "verified") { throw "$Market session marker is not verified: $Path" }
-  if ($marker.reportDate -ne $ReportDate) { throw "$Market session marker is for $($marker.reportDate), not report date ${ReportDate}: $Path" }
-  try {
-    $latest = [DateTime]::ParseExact([string]$marker.latestCompletedSessionDate, "yyyy-MM-dd", $null)
-    $expected = [DateTime]::ParseExact([string]$marker.expectedLatestCompletedSessionDate, "yyyy-MM-dd", $null)
-    $report = [DateTime]::ParseExact($ReportDate, "yyyy-MM-dd", $null)
-    $updatedAt = [DateTime]::Parse([string]$marker.updatedAtUtc).ToUniversalTime()
-  } catch { throw "$Market session marker contains an invalid date: $Path" }
-  if ($latest -ne $expected) { throw "$Market latest candle $($latest.ToString('yyyy-MM-dd')) is older than expected completed session $($expected.ToString('yyyy-MM-dd'))" }
-  if ($latest -ge $report) { throw "$Market latest completed candle must be before report date $ReportDate" }
-  $age = (New-TimeSpan -Start $updatedAt -End ([DateTime]::UtcNow)).TotalMinutes
-  if ($age -lt -5 -or $age -gt $MaximumAgeMinutes) { throw "$Market session marker is stale ($([Math]::Round($age, 1)) minutes): $Path" }
-  Write-RunLog "SESSION_OK market=$Market session=$($latest.ToString('yyyy-MM-dd')) reportDate=$ReportDate"
+  return $candidate
 }
 
-function Invoke-SessionMarkerSelfTest {
-  $directory = Join-Path $env:TEMP "btrading-session-marker-selftest"
-  New-Item -ItemType Directory -Path $directory -Force | Out-Null
-  $path = Join-Path $directory "marker.json"
-  try {
-    @{ schemaVersion = 1; market = "VNINDEX"; reportDate = "2026-08-10"; latestCompletedSessionDate = "2026-08-08"; expectedLatestCompletedSessionDate = "2026-08-08"; updatedAtUtc = [DateTime]::UtcNow.ToString("o"); status = "verified" } | ConvertTo-Json | Set-Content -LiteralPath $path -Encoding UTF8
-    Test-SessionMarker $path "VNINDEX" "2026-08-10" 5
-    $bad = @{ schemaVersion = 1; market = "VNINDEX"; reportDate = "2026-08-10"; latestCompletedSessionDate = "2026-08-07"; expectedLatestCompletedSessionDate = "2026-08-08"; updatedAtUtc = [DateTime]::UtcNow.ToString("o"); status = "verified" } | ConvertTo-Json
-    Set-Content -LiteralPath $path -Value $bad -Encoding UTF8
-    try { Test-SessionMarker $path "VNINDEX" "2026-08-10" 5; throw "Self-test accepted stale session" } catch { if ($_.Exception.Message -eq "Self-test accepted stale session") { throw } }
-    Write-Host "SESSION_MARKER_SELF_TEST ok"
-  } finally { Remove-Item -LiteralPath $directory -Recurse -Force -ErrorAction SilentlyContinue }
+function Get-LatestCsvDate([string]$Path, [string]$Market) {
+  if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { throw "$Market CSV was not found: $Path" }
+  $latest = $null
+  foreach ($row in @(Import-Csv -LiteralPath $Path)) {
+    $raw = [string]$row.Date
+    if (-not $raw) { continue }
+    try {
+      $parsed = [DateTime]::Parse($raw).Date
+      if ($null -eq $latest -or $parsed -gt $latest) { $latest = $parsed }
+    } catch { }
+  }
+  if ($null -eq $latest) { throw "$Market CSV has no valid Date values: $Path" }
+  return $latest
 }
-
-if ($SessionMarkerSelfTest) { Invoke-SessionMarkerSelfTest; exit 0 }
 
 $exitCode = 0
 $mutex = $null
 $lockPath = $null
 $mutexHeld = $false
+$healthPath = "C:\BTradingData\logs\daily-analysis-health.json"
 try {
   $config = Read-Config $ConfigPath
   if ($config["LOG_PATH"]) { $script:LogPath = $config["LOG_PATH"] }
+  Rotate-RunLog $script:LogPath
   Write-RunLog "START publish=$Publish config=$ConfigPath"
 
   $vnindexImage = Require-Config $config "VNINDEX_IMAGE_PATH"
   $goldImage = Require-Config $config "GOLD_IMAGE_PATH"
-  $vnindexMarker = Require-Config $config "VNINDEX_SESSION_MARKER_PATH"
-  $goldMarker = Require-Config $config "GOLD_SESSION_MARKER_PATH"
+  $vnindexCsv = if ($config["VNINDEX_CSV_PATH"]) { $config["VNINDEX_CSV_PATH"] } else { "C:\AmiBroker_AutoData\VNINDEX_D1_AB.csv" }
+  $goldCsv = if ($config["GOLD_CSV_PATH"]) { $config["GOLD_CSV_PATH"] } else { "C:\AmiBroker_AutoData\XAUUSD_D1_AB.csv" }
+  $healthPath = if ($config["HEALTH_PATH"]) { $config["HEALTH_PATH"] } else { "C:\BTradingData\logs\daily-analysis-health.json" }
   $timezoneId = if ($config["TIMEZONE_ID"]) { $config["TIMEZONE_ID"] } else { "SE Asia Standard Time" }
   $maxImageAgeMinutes = if ($config["MAX_IMAGE_AGE_MINUTES"]) { [int]$config["MAX_IMAGE_AGE_MINUTES"] } else { 90 }
   $lockPath = if ($config["LOCK_PATH"]) { $config["LOCK_PATH"] } else { Join-Path $env:TEMP "btrading-daily-analysis.lock" }
@@ -161,8 +156,13 @@ try {
       Write-RunLog "SKIPPED weekend in $timezoneId."
     } else {
       $reportDate = $today.ToString("yyyy-MM-dd")
-      Test-SessionMarker $vnindexMarker "VNINDEX" $reportDate 120
-      Test-SessionMarker $goldMarker "XAUUSD" $reportDate 120
+      $expectedSession = Get-ExpectedSessionDate $today
+      $vnindexSession = Get-LatestCsvDate $vnindexCsv "VNINDEX"
+      $goldSession = Get-LatestCsvDate $goldCsv "XAUUSD"
+      if ($vnindexSession -ne $expectedSession -or $goldSession -ne $expectedSession) {
+        throw "SESSION_BLOCKED expected=$($expectedSession.ToString('yyyy-MM-dd')) vnindex=$($vnindexSession.ToString('yyyy-MM-dd')) gold=$($goldSession.ToString('yyyy-MM-dd'))"
+      }
+      Write-RunLog "SESSION_OK expected=$($expectedSession.ToString('yyyy-MM-dd')) vnindex=$($vnindexSession.ToString('yyyy-MM-dd')) gold=$($goldSession.ToString('yyyy-MM-dd'))"
       if (-not $SkipCapture) {
         & (Join-Path $scriptDirectory "capture-ami-broker-charts.ps1") -ConfigPath $ConfigPath
         if (-not $?) { throw "AmiBroker chart capture failed." }
@@ -183,6 +183,8 @@ try {
         try {
           $form.Add((New-Object System.Net.Http.StringContent($secret)), "secret")
           $form.Add((New-Object System.Net.Http.StringContent($reportDate)), "date")
+          $form.Add((New-Object System.Net.Http.StringContent($vnindexSession.ToString("yyyy-MM-dd"))), "vnindexSessionDate")
+          $form.Add((New-Object System.Net.Http.StringContent($goldSession.ToString("yyyy-MM-dd"))), "goldSessionDate")
           foreach ($upload in @(@{ Name = "vnindexImage"; Path = $vnindexImage }, @{ Name = "goldImage"; Path = $goldImage })) {
             $stream = [System.IO.File]::OpenRead($upload.Path)
             $content = New-Object System.Net.Http.StreamContent($stream)
@@ -215,6 +217,11 @@ try {
     $mutex.Dispose()
   }
   Write-RunLog "END exitCode=$exitCode"
+  try {
+    $healthDirectory = Split-Path -Parent $healthPath
+    if ($healthDirectory) { New-Item -ItemType Directory -Path $healthDirectory -Force | Out-Null }
+    @{ checkedAt = (Get-Date).ToString("o"); exitCode = $exitCode; logPath = $script:LogPath } | ConvertTo-Json | Set-Content -LiteralPath $healthPath -Encoding UTF8
+  } catch { }
 }
 
 exit $exitCode

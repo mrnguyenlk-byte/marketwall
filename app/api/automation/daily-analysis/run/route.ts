@@ -34,10 +34,54 @@ const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
 
 type RunRequestBody = {
   date?: string
+  vnindexSessionDate?: string
+  goldSessionDate?: string
   vnindexImage?: string
   goldImage?: string
   usMacroData?: string
   secret?: string
+}
+
+function expectedSessionDate(reportDate: string): string {
+  const candidate = new Date(`${reportDate}T00:00:00.000Z`)
+  do {
+    candidate.setUTCDate(candidate.getUTCDate() - 1)
+  } while (candidate.getUTCDay() === 0 || candidate.getUTCDay() === 6)
+  return candidate.toISOString().slice(0, 10)
+}
+
+function validateChartSessions(
+  reportDate: string,
+  vnindexSessionDate: string,
+  goldSessionDate: string,
+): Response | null {
+  const expected = expectedSessionDate(reportDate)
+  if (
+    !isValidDate(vnindexSessionDate) ||
+    !isValidDate(goldSessionDate) ||
+    vnindexSessionDate !== expected ||
+    goldSessionDate !== expected
+  ) {
+    console.error("[daily-analysis] SESSION_BLOCKED", {
+      reportDate,
+      expected,
+      vnindexSessionDate,
+      goldSessionDate,
+    })
+    return Response.json(
+      {
+        ok: false,
+        status: "session_blocked",
+        error: "Chart candle dates do not match the expected completed session",
+        reportDate,
+        expectedSessionDate: expected,
+        vnindexSessionDate,
+        goldSessionDate,
+      },
+      { status: 422 },
+    )
+  }
+  return null
 }
 
 function isValidDate(date: string): boolean {
@@ -159,6 +203,18 @@ async function handleMultipartRequest(request: Request) {
     )
   }
 
+  const vnindexSessionDate = String(formData.get("vnindexSessionDate") ?? "").trim()
+  const goldSessionDate = String(formData.get("goldSessionDate") ?? "").trim()
+  if (vnindexSessionDate || goldSessionDate) {
+    const sessionError = validateChartSessions(date, vnindexSessionDate, goldSessionDate)
+    if (sessionError) return sessionError
+  } else {
+    // Temporary compatibility for the original Python publisher. Its PowerShell
+    // wrapper performs the same CSV gate before launching Python. New runners
+    // always send both fields and receive this server-side second gate.
+    console.warn("[daily-analysis] LEGACY_SESSION_GATE", { reportDate: date })
+  }
+
   const existingResponse = await existingRunResponse(date)
   if (existingResponse) return existingResponse
   if (!(await claimDailyAnalysisRun(date))) return inProgressResponse(date)
@@ -251,6 +307,16 @@ async function handleJsonRequest(request: Request) {
       { ok: false, error: "Invalid date — expected YYYY-MM-DD" },
       { status: 400 },
     )
+  }
+
+
+  if (body.vnindexImage?.trim() || body.goldImage?.trim()) {
+    const sessionError = validateChartSessions(
+      date,
+      body.vnindexSessionDate?.trim() ?? "",
+      body.goldSessionDate?.trim() ?? "",
+    )
+    if (sessionError) return sessionError
   }
 
   const existingResponse = await existingRunResponse(date)

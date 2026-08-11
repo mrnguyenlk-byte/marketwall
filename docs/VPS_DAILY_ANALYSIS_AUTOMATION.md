@@ -32,9 +32,9 @@ git pull --ff-only origin main
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\vps\run-daily-analysis.ps1 -ConfigPath C:\btrading-code\.vps-daily-analysis.env -Force
 ```
 
-The command must finish with `DRY_RUN_OK`. Only the scheduled task adds `-Publish`. A missing, ambiguous, stale, nearly black, or visually uniform/empty PNG deliberately fails before any production request; the same quality gate runs during a publish. Every execution writes `START`, `DRY_RUN_OK`/`PUBLISH_CONFIRMED`/`FAILED`, and `END exitCode=…` to `C:\btrading-code\logs\daily-analysis-runner.log`.
+The command must finish with `DRY_RUN_OK`. Only the scheduled task adds `-Publish`. A missing, ambiguous, stale, nearly black, or visually uniform/empty PNG deliberately fails before any production request; the same quality gate runs during a publish. Every execution writes `START`, `DRY_RUN_OK`/`PUBLISH_CONFIRMED`/`FAILED`, and `END exitCode=…` to `C:\BTradingData\logs\daily-analysis-runner.log`.
 
-Before capture, the runner also requires `VNINDEX_SESSION_MARKER_PATH` and `GOLD_SESSION_MARKER_PATH`. Each JSON marker must be fresh, have `reportDate` equal to the current Vietnam report date, and certify that `latestCompletedSessionDate` equals the updater's `expectedLatestCompletedSessionDate` and is before the report date. This allows Friday to remain valid for a Monday report (or any market holiday) only when the updater's authoritative marker explicitly certifies it. A missing, stale, invalid, or unverified marker logs `FAILED` and blocks HTTP/publish. No chart OCR or literal previous-calendar-day assumption is used.
+Before capture, the runner reads the latest `Date` value directly from `VNINDEX_CSV_PATH` and `GOLD_CSV_PATH`. Both must equal the latest completed weekday before the report date (Friday for a Monday report). A missing, invalid or mismatched CSV logs `SESSION_BLOCKED`/`FAILED` and exits before creating an HTTP client. The same two dates are included in the upload, and the website validates them again before any image is written to R2.
 
 ## 3. Task Scheduler registration
 
@@ -73,6 +73,20 @@ Register-ScheduledTask -TaskName "BTrading Automation Update" -Action $updateAct
 ```
 
 This runs before the publishing task. Keep it separate: a failed code update must not prevent a known-good publishing task from completing.
+
+## Moving to another VPS
+
+Keep application code in Git and keep only `.vps-daily-analysis.env` outside Git. On a replacement VPS:
+
+1. Install Git, Python/MT5/AmiBroker and clone the repository to `C:\btrading-code`.
+2. Copy only `.vps-daily-analysis.env` and the existing AmiBroker/MT5 data configuration.
+3. Run the idempotent installer once as Administrator:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\btrading-code\scripts\vps\install-btrading-vps.ps1
+```
+
+The installer creates the 06:40 updater and 07:00 publisher and runs a read-only health check. It never publishes during installation. The health result is stored at `C:\BTradingData\logs\daily-analysis-health.json`; the persistent runner log is `C:\BTradingData\logs\daily-analysis-runner.log` and rotates at 5 MB.
 
 ## Failure behavior
 
