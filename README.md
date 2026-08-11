@@ -1,5 +1,12 @@
 # financial-market-dashboard
 
+## Production operations
+
+The canonical runtime, scheduler, destination and recovery map is maintained in
+[`docs/BTRADING_SYSTEM_ARCHITECTURE.md`](docs/BTRADING_SYSTEM_ARCHITECTURE.md).
+Check that document before changing any automation or reporting a workflow as
+active.
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [v0](https://v0.app).
 
 ## Built with v0

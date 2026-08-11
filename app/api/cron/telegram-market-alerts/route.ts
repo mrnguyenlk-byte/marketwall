@@ -5,13 +5,14 @@ export const runtime = "nodejs"
 
 function isAuthorized(request: Request): boolean {
   const secrets = [
+    process.env.TELEGRAM_ALERT_CRON_SECRET?.trim(),
     process.env.CRON_SECRET?.trim(),
     process.env.SYNC_SECRET?.trim(),
     process.env.DAILY_AUTOMATION_SECRET?.trim(),
   ].filter((value): value is string => Boolean(value))
-  // Match the existing scheduled sync behaviour: production Cron can run even
-  // before a dedicated cron secret is configured.
-  if (!secrets.length) return true
+  // Fail closed. Having a deployed endpoint without configured credentials must
+  // never turn it into a public Telegram publisher.
+  if (!secrets.length) return false
   const authorization = request.headers.get("authorization")
   const headerSecret = request.headers.get("x-btrading-secret")
   return secrets.some(
@@ -19,7 +20,7 @@ function isAuthorized(request: Request): boolean {
   )
 }
 
-export async function GET(request: Request) {
+async function handleRequest(request: Request) {
   if (!isAuthorized(request)) {
     return Response.json({ ok: false, error: "Unauthorized" }, { status: 401 })
   }
@@ -27,3 +28,6 @@ export async function GET(request: Request) {
   const result = await runTelegramMarketAlerts()
   return Response.json({ ok: result.status !== "failed", ...result })
 }
+
+export const GET = handleRequest
+export const POST = handleRequest
