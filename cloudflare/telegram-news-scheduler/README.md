@@ -1,7 +1,7 @@
 # BTrading Telegram news scheduler
 
 This Cloudflare Worker is the only scheduler for the Telegram market-news flow.
-It runs every 15 minutes and calls the authenticated BTrading API. Content
+It runs every minute and calls the authenticated BTrading API. Content
 selection, translation, publication gates, Telegram delivery and R2
 idempotency remain in the BTrading application.
 

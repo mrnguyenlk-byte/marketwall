@@ -346,4 +346,25 @@ export async function getData(): Promise<EconomicCalendarData> {
   )
 }
 
+/**
+ * Live economic-calendar read for the Telegram breaking-news monitor.
+ * It deliberately bypasses the ten-minute dashboard cache so an Actual value
+ * can be detected on the next one-minute Cloudflare poll.
+ */
+export async function getFreshData(): Promise<EconomicCalendarData> {
+  const resolved = await chainProviders(
+    [
+      { name: "trading-economics-api", fetch: fetchTradingEconomics },
+      { name: "fair-economy", fetch: fetchFairEconomyCalendar },
+      { name: "trading-economics-legacy", fetch: fetchTradingEconomicsLegacy },
+    ],
+    () => MOCK_RECORDS,
+  )
+
+  return buildCalendarData(
+    resolved.data,
+    resolved.source === "mock" ? "mock" : resolved.source,
+  )
+}
+
 export { toEconomicEvents } from "@/lib/providers/mappers"

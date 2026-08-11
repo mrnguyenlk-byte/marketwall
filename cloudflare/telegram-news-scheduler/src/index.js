@@ -99,7 +99,7 @@ const worker = {
       return Response.json({
         ok: true,
         service: "btrading-telegram-news-scheduler",
-        schedule: "every 15 minutes",
+        schedule: "every minute",
       })
     }
     return new Response("Not Found", { status: 404 })

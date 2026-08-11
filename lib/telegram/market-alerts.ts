@@ -4,7 +4,7 @@ import { createHash } from "crypto"
 import OpenAI from "openai"
 
 import { fetchNewsFromRss, type NormalizedNewsItem } from "@/lib/news/rss"
-import { getData as getCalendarData } from "@/lib/providers/calendar-provider"
+import { getFreshData as getCalendarData } from "@/lib/providers/calendar-provider"
 import { getData as getGlobalMarketData } from "@/lib/providers/global-market-provider"
 import type { EconomicEventRecord } from "@/lib/providers/types"
 import {
@@ -110,8 +110,8 @@ function newsKey(item: NormalizedNewsItem): string {
   return `${ALERT_PREFIX}${item.category === "trump" ? "trump" : "news"}-${createHash("sha256").update(item.url).digest("hex")}.json`
 }
 
-function chooseEconomicCandidate(records: EconomicEventRecord[]): EconomicCandidate | null {
-  const record = records
+function chooseEconomicCandidates(records: EconomicEventRecord[]): EconomicCandidate[] {
+  return records
     .filter((row) => isImportantCountry(row) && row.impact === "high")
     .filter((row) => {
       const forecastOptional = /\b(fomc|rate decision|interest rate decision)\b/i.test(row.event)
@@ -122,11 +122,14 @@ function chooseEconomicCandidate(records: EconomicEventRecord[]): EconomicCandid
         isRecentIso(row.publishedAt, NEWS_MAX_AGE_MS)
       )
     })
-    .sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt))[0]
-
-  return record
-    ? { kind: "economic", record, eventAt: record.publishedAt, key: economicKey(record) }
-    : null
+    .sort((a, b) => Date.parse(a.publishedAt) - Date.parse(b.publishedAt))
+    .slice(0, 8)
+    .map((record) => ({
+      kind: "economic" as const,
+      record,
+      eventAt: record.publishedAt,
+      key: economicKey(record),
+    }))
 }
 
 function significantTokens(title: string): Set<string> {
@@ -149,40 +152,29 @@ function hasIndependentCorroboration(item: NormalizedNewsItem, items: Normalized
   })
 }
 
-function chooseNewsCandidate(items: NormalizedNewsItem[]): NewsCandidate | null {
-  const item = items
+function chooseNewsCandidates(items: NormalizedNewsItem[]): NewsCandidate[] {
+  return items
     .filter((row) => row.category !== "trump" && row.sourceTier === 1)
     .filter((row) => IMPORTANT_PATTERN.test(`${row.title} ${row.description ?? ""}`))
     .filter((row) => isRecentIso(row.publishedAt, NEWS_MAX_AGE_MS))
     .filter((row) => !SENSITIVE_PATTERN.test(row.title) || hasIndependentCorroboration(row, items))
-    .sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt))[0]
-
-  return item ? { kind: "news", item, key: newsKey(item) } : null
+    .sort((a, b) => Date.parse(a.publishedAt) - Date.parse(b.publishedAt))
+    .slice(0, 5)
+    .map((item) => ({ kind: "news" as const, item, key: newsKey(item) }))
 }
 
-function chooseTrumpCandidate(items: NormalizedNewsItem[]): NewsCandidate | null {
-  const item = items
+function chooseTrumpCandidates(items: NormalizedNewsItem[]): NewsCandidate[] {
+  return items
     .filter((row) => row.category === "trump")
     .filter((row) => TRUMP_MARKET_PATTERN.test(`${row.title} ${row.description ?? ""}`))
     .filter((row) => isRecentIso(row.publishedAt, TRUMP_MAX_AGE_MS))
-    .sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt))[0]
-
-  return item ? { kind: "trump", item, key: newsKey(item) } : null
+    .sort((a, b) => Date.parse(a.publishedAt) - Date.parse(b.publishedAt))
+    .slice(0, 5)
+    .map((item) => ({ kind: "trump" as const, item, key: newsKey(item) }))
 }
 
 function escapeHtml(value: string): string {
   return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
-}
-
-function vietnamTime(iso: string): string {
-  return new Intl.DateTimeFormat("vi-VN", {
-    timeZone: "Asia/Ho_Chi_Minh",
-    hour: "2-digit",
-    minute: "2-digit",
-    day: "2-digit",
-    month: "2-digit",
-    hour12: false,
-  }).format(new Date(iso))
 }
 
 function vietnamDateHour(date: Date): { date: string; hour: number; minute: number } {
@@ -207,9 +199,6 @@ function vietnamDateHour(date: Date): { date: string; hour: number; minute: numb
 function formatEconomicAlert(candidate: EconomicCandidate): string {
   const { record } = candidate
   const country = record.country.trim() || record.currency.trim()
-  const sourceUrl = /forex factory|fair economy/i.test(record.source)
-    ? "https://www.forexfactory.com/calendar"
-    : "https://tradingeconomics.com/calendar"
   return [
     `🔴 <b>${escapeHtml(record.event)} — ${escapeHtml(country)}</b>`,
     "",
@@ -219,10 +208,7 @@ function formatEconomicAlert(candidate: EconomicCandidate): string {
     "",
     "Tác động: Chênh lệch giữa thực tế và dự báo có thể ảnh hưởng đến tiền tệ, lợi suất, Gold và tâm lý rủi ro toàn cầu.",
     "",
-    `Nguồn: ${escapeHtml(record.source)} · ${vietnamTime(candidate.eventAt)} (giờ Việt Nam)`,
-    sourceUrl,
-    "",
-    "⚠️ Thông tin tham khảo, không phải khuyến nghị đầu tư.",
+    `Nguồn: ${escapeHtml(record.source)}`,
   ].join("\n")
 }
 
@@ -296,10 +282,7 @@ function formatNewsAlert(candidate: NewsCandidate, draft: AlertDraft): string {
     note,
     `Tác động: ${escapeHtml(draft.marketImpactVi)}`,
     "",
-    `Nguồn: ${escapeHtml(candidate.item.source)} · ${vietnamTime(candidate.item.publishedAt)} (giờ Việt Nam)`,
-    candidate.item.url,
-    "",
-    "⚠️ Thông tin tham khảo, không phải khuyến nghị đầu tư.",
+    `Nguồn: ${escapeHtml(candidate.item.source)}`,
   ].filter(Boolean).join("\n")
 }
 
@@ -337,16 +320,13 @@ async function publishHourlyGold(now: Date): Promise<PublishedAlert | { skipped:
       ? ((gold.price - previous.price) / previous.price) * 100
       : null
     const lines = [
-      `📣 <b>Cập nhật giá vàng ${vietnamTime(now.toISOString())}</b>`,
+      "📣 <b>Cập nhật giá vàng</b>",
       "",
       `Giá tham chiếu: <b>${gold.price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD/oz</b>`,
       hourlyChange == null ? "So với 1 giờ trước: chưa có mốc hợp lệ" : `So với 1 giờ trước: ${signedPercent(hourlyChange)}`,
       `So với đóng cửa trước: ${signedPercent(gold.changePercent)}`,
       "",
       "Nguồn: Yahoo Finance · Gold Futures (GC=F)",
-      `Cập nhật nguồn: ${vietnamTime(gold.updatedAt)} (giờ Việt Nam)`,
-      "",
-      "⚠️ Giá tham chiếu có thể khác báo giá XAUUSD của từng sàn.",
     ]
     const result = await publishTelegramMarketAlert(lines.join("\n"))
     if (!result.ok) throw new Error(result.error)
@@ -367,14 +347,13 @@ async function chooseCandidates(): Promise<Candidate[]> {
   const [calendar, news] = await Promise.all([getCalendarData(), fetchNewsFromRss()])
   const candidates: Candidate[] = []
   if (calendar.source !== "mock") {
-    const economic = chooseEconomicCandidate(calendar.normalized)
-    if (economic) candidates.push(economic)
+    candidates.push(...chooseEconomicCandidates(calendar.normalized))
   }
-  const trump = chooseTrumpCandidate(news)
-  if (trump) candidates.push(trump)
-  const international = chooseNewsCandidate(news)
-  if (international && !candidates.some((candidate) => candidate.key === international.key)) {
-    candidates.push(international)
+  candidates.push(...chooseTrumpCandidates(news))
+  for (const international of chooseNewsCandidates(news)) {
+    if (!candidates.some((candidate) => candidate.key === international.key)) {
+      candidates.push(international)
+    }
   }
   return candidates
 }
@@ -413,9 +392,9 @@ async function publishCandidate(candidate: Candidate): Promise<PublishedAlert | 
 }
 
 /**
- * One invocation may publish one hourly gold snapshot plus at most one item in
- * each editorial lane (economic, Trump, international). Every item is claimed
- * in R2 before Telegram is called, so concurrent/retried runs cannot duplicate it.
+ * One invocation may publish one hourly Gold snapshot plus a bounded batch of
+ * fresh economic, Trump and international items. Every item is claimed in R2
+ * before Telegram is called, so concurrent/retried runs cannot duplicate it.
  */
 export async function runTelegramMarketAlerts(): Promise<MarketAlertRunResult> {
   if (!isR2Configured()) {

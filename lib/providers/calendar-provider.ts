@@ -2,6 +2,7 @@ import "server-only"
 
 export {
   getData,
+  getFreshData,
   getMockData,
   toEconomicEvents,
   type CalendarData,
