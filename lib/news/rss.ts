@@ -36,9 +36,30 @@ const RSS_FEEDS: {
     sourceTier: 2,
     category: "markets",
   },
+  {
+    url: "https://www.ft.com/markets?format=rss",
+    source: "Financial Times Markets",
+    sourceTier: 1,
+    category: "markets",
+  },
+  {
+    url: "https://www.ft.com/world?format=rss",
+    source: "Financial Times World",
+    sourceTier: 1,
+    category: "world",
+  },
+  {
+    // Public archive of @realDonaldTrump posts. Items remain subject to the
+    // market-impact gate before publication; this feed is never treated as
+    // confirmation of claims made inside a post.
+    url: "https://www.trumpstruth.org/feed",
+    source: "Trump's Truth archive",
+    sourceTier: 2,
+    category: "trump",
+  },
 ]
 
-const MAX_ITEMS = 20
+const MAX_ITEMS = 60
 
 const parser = new Parser({
   customFields: {

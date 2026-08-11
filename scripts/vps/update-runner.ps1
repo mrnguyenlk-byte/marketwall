@@ -47,3 +47,23 @@ if ((Test-Path -LiteralPath $configPath) -and (Test-Path -LiteralPath $installer
     Write-Warning "07:30 task not installed: COMMAND_CENTER_ACCESS_TOKEN is missing from $configPath"
   }
 }
+
+# Keep the Telegram market-news monitor independently scheduled. It reuses the
+# existing daily automation secret and does not modify either morning flow.
+$telegramInstallerPath = Join-Path $RepositoryPath "scripts\vps\install-telegram-market-alerts-task.ps1"
+if ((Test-Path -LiteralPath $configPath) -and (Test-Path -LiteralPath $telegramInstallerPath)) {
+  $hasDailySecret = $false
+  foreach ($line in Get-Content -LiteralPath $configPath) {
+    if ($line -match '^DAILY_AUTOMATION_SECRET=(.+)$' -and $matches[1].Trim()) {
+      $hasDailySecret = $true
+      break
+    }
+  }
+  if ($hasDailySecret) {
+    & $telegramInstallerPath -RepositoryPath $RepositoryPath -ConfigPath $configPath
+    if (-not $?) { throw "Could not install Telegram market alerts task." }
+    Write-Host "Verified BTrading Telegram Market Alerts task."
+  } else {
+    Write-Warning "Telegram alerts task not installed: DAILY_AUTOMATION_SECRET is missing from $configPath"
+  }
+}
