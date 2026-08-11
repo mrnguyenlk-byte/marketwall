@@ -7,8 +7,9 @@ Command Center briefing. A failure here cannot stop either morning flow.
 
 - Windows Task: `BTrading Telegram Market Alerts`
 - Poll interval: every 15 minutes, `Asia/Ho_Chi_Minh`
-- Gold update: at most once per local hour from 06:00 through 23:00, only when
-  the Yahoo Finance `GC=F` quote is live and no older than 45 minutes
+- Gold update: at most once per local hour, including the US session after
+  midnight Vietnam time, only when the Yahoo Finance `GC=F` quote is live and
+  no older than 45 minutes. Closed/stale markets are skipped.
 - Economic/news/Trump items: event-driven; only new, high-impact items pass
 - Log: `C:\BTradingData\logs\telegram-market-alerts.log`
 

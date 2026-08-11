@@ -310,7 +310,7 @@ function signedPercent(value: number): string {
 
 function goldHourKey(now: Date): string | null {
   const local = vietnamDateHour(now)
-  if (local.hour < 6 || local.hour > 23 || local.minute >= 15) return null
+  if (local.minute >= 15) return null
   return `${ALERT_PREFIX}gold-${local.date}-${String(local.hour).padStart(2, "0")}.json`
 }
 

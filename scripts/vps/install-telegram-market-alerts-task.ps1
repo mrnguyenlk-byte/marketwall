@@ -32,7 +32,7 @@ $trigger = New-ScheduledTaskTrigger -Once -At $firstRun -RepetitionInterval (New
 $principal = New-ScheduledTaskPrincipal -UserId "$env:USERDOMAIN\$env:USERNAME" -LogonType S4U -RunLevel Highest
 $settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -ExecutionTimeLimit (New-TimeSpan -Minutes 5) -MultipleInstances IgnoreNew
 
-Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Description "Checks BTrading Telegram gold/news lanes every 15 minutes; gold publishes at most once per hour from 06:00-23:00 Asia/Ho_Chi_Minh." -Force | Out-Null
+Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Description "Checks BTrading Telegram gold/news lanes every 15 minutes; gold publishes at most once per Asia/Ho_Chi_Minh hour when the live quote is fresh." -Force | Out-Null
 $info = Get-ScheduledTaskInfo -TaskName $TaskName
 [PSCustomObject]@{
   TaskName = $TaskName
@@ -40,4 +40,3 @@ $info = Get-ScheduledTaskInfo -TaskName $TaskName
   TimezoneId = [TimeZoneInfo]::Local.Id
   NextRunTime = $info.NextRunTime
 }
-
