@@ -374,8 +374,22 @@ async function publishCandidate(candidate: Candidate): Promise<PublishedAlert | 
       source = candidate.record.source
     } else {
       const draft = await translateAndSummarize(candidate)
-      if (!draft || (draft.priority !== "critical" && draft.priority !== "high")) {
+      if (!draft) {
         await deleteR2Object(candidate.key)
+        return { skipped: `${candidate.kind} item could not be evaluated` }
+      }
+      if (draft.priority !== "critical" && draft.priority !== "high") {
+        await putR2Object({
+          key: candidate.key,
+          body: JSON.stringify({
+            status: "rejected",
+            kind: candidate.kind,
+            priority: draft.priority,
+            sourceUrl: candidate.item.url,
+            evaluatedAt: new Date().toISOString(),
+          }),
+          contentType: "application/json",
+        })
         return { skipped: `${candidate.kind} item did not pass the high-impact gate` }
       }
       text = formatNewsAlert(candidate, draft)
