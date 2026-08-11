@@ -25,7 +25,18 @@ async function handleRequest(request: Request) {
     return Response.json({ ok: false, error: "Unauthorized" }, { status: 401 })
   }
 
-  const result = await runTelegramMarketAlerts()
+  let scheduledTime: string | undefined
+  if (request.method === "POST") {
+    try {
+      const body = (await request.json()) as { scheduledTime?: unknown }
+      if (typeof body.scheduledTime === "string") scheduledTime = body.scheduledTime
+    } catch {
+      // A missing/empty body is valid for manual authenticated health checks.
+    }
+  }
+  const parsedTime = scheduledTime ? new Date(scheduledTime) : new Date()
+  const now = Number.isNaN(parsedTime.getTime()) ? new Date() : parsedTime
+  const result = await runTelegramMarketAlerts({ now })
   return Response.json({ ok: result.status !== "failed", ...result })
 }
 

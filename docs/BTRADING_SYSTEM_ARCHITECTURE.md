@@ -13,7 +13,7 @@ and destination have all been verified.
 | Proprietary EOD sync | Market data providers used by `/api/sync/proprietary-eod` | Vercel Cron, `10:30 UTC` weekdays (`17:30` Vietnam) | Dashboard/R2 | Provider sync state | Vercel runtime logs |
 | Morning analysis 07:00 | MT5 + AmiBroker CSV and chart windows on VPS | Windows task `Btrading Daily Analysis`, `07:00` Vietnam weekdays | BTrading article plus the destinations implemented by `/api/automation/daily-analysis/run` | R2 daily run lock and article date | `C:\BTradingData\logs\daily-analysis-runner.log` plus R2/Vercel logs |
 | Command Center 07:30 | The same validated chart inputs, read independently | Windows task `BTrading Command Center Briefing 0730`, `07:30` Vietnam weekdays | Command Center configured Telegram/Facebook destinations | Namespace `command-center-0730` and independent VPS marker | `C:\BTradingData\logs\command-center-briefing.log` plus Command Center logs |
-| Telegram market news | Calendar, RSS, Gold quote and OpenAI editorial gate in BTrading | Cloudflare Worker `btrading-telegram-news-scheduler`, every minute | Telegram market-news channel | R2 claim per event and per Gold hour | Cloudflare Workers Logs plus endpoint result/reasons |
+| Telegram market news | Calendar, RSS, Gold quote and OpenAI editorial gate in BTrading | Cloudflare Worker `btrading-telegram-news-scheduler`, one-minute coordinator: economic schedule 15m plus T-2/T+30 release window, international RSS 2m, Trump RSS 3m, Gold hourly | Telegram market-news channel | R2 claim per event and per Gold hour | Cloudflare Workers Logs include `polledLanes`, endpoint result and skip reasons |
 
 ## Hard boundaries
 
@@ -21,6 +21,10 @@ and destination have all been verified.
   MT5, AmiBroker, chart capture, and the two chart-based morning flows.
 - Telegram market news must not use Windows Task Scheduler, RDP state, MT5,
   AmiBroker, or any VPS file.
+- The one-minute Cloudflare trigger is a lightweight coordinator, not a full
+  refresh of every provider. Do not add another news scheduler on Vercel or VPS.
+- OpenAI evaluates only previously unseen RSS candidates. Rejected candidates
+  remain persisted in R2 so a later run cannot spend tokens on them again.
 - Telegram messages keep the source URL and source timestamp internally for
   verification, but display only the short source name. They do not display a
   raw source link, source timestamp or investment-warning footer.

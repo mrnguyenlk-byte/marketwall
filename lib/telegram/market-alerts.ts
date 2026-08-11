@@ -15,12 +15,24 @@ import {
   putR2ObjectIfAbsent,
 } from "@/lib/r2"
 import { publishTelegramMarketAlert } from "@/lib/publishers/telegram"
+import {
+  getMarketAlertRunPlan,
+  getVietnamDateHour,
+  type MarketAlertLane,
+  type MarketAlertRunPlan,
+} from "@/lib/telegram/market-alert-schedule"
+
+export { getMarketAlertRunPlan } from "@/lib/telegram/market-alert-schedule"
 
 const ALERT_PREFIX = "telegram-market-alerts/"
 const GOLD_STATE_KEY = `${ALERT_PREFIX}gold-latest.json`
+const ECONOMIC_SCHEDULE_KEY = `${ALERT_PREFIX}economic-schedule.json`
 const NEWS_MAX_AGE_MS = 3 * 60 * 60 * 1000
 const TRUMP_MAX_AGE_MS = 6 * 60 * 60 * 1000
 const GOLD_MAX_AGE_MS = 45 * 60 * 1000
+const ECONOMIC_SCHEDULE_REFRESH_MS = 15 * 60 * 1000
+const ECONOMIC_EARLY_POLL_MS = 2 * 60 * 1000
+const ECONOMIC_LATE_POLL_MS = 30 * 60 * 1000
 const IMPORTANT_PATTERN =
   /\b(fed|fomc|central bank|interest rates?|rate decision|cpi|inflation|pce|payrolls?|nonfarm|nfp|unemployment|jobless|gdp|pmi|tariff|trade war|sanctions?|ceasefire|war|attack|missile|oil|opec|gold|treasury|yield|currency|dollar|euro|yen|ecb|boj|boe|pboc|china|russia|ukraine|iran|israel|election|government|president|prime minister|debt|budget|default|bank|financial crisis)\b/i
 const SENSITIVE_PATTERN =
@@ -67,6 +79,11 @@ type GoldState = {
   publishedAt: string
 }
 
+type EconomicScheduleState = {
+  refreshedAt: string
+  records: EconomicEventRecord[]
+}
+
 type PublishedAlert = {
   kind: Candidate["kind"] | "gold"
   source: string
@@ -74,9 +91,9 @@ type PublishedAlert = {
 }
 
 export type MarketAlertRunResult =
-  | { status: "published"; published: PublishedAlert[]; skippedReasons: string[] }
-  | { status: "skipped"; reason: string; skippedReasons: string[] }
-  | { status: "failed"; reason: string; published: PublishedAlert[]; skippedReasons: string[] }
+  | { status: "published"; published: PublishedAlert[]; skippedReasons: string[]; polledLanes: MarketAlertLane[] }
+  | { status: "skipped"; reason: string; skippedReasons: string[]; polledLanes: MarketAlertLane[] }
+  | { status: "failed"; reason: string; published: PublishedAlert[]; skippedReasons: string[]; polledLanes: MarketAlertLane[] }
 
 function ageMs(value: string): number {
   const time = Date.parse(value)
@@ -177,22 +194,61 @@ function escapeHtml(value: string): string {
   return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
 }
 
-function vietnamDateHour(date: Date): { date: string; hour: number; minute: number } {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Ho_Chi_Minh",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  }).formatToParts(date)
-  const value = (type: Intl.DateTimeFormatPartTypes) =>
-    parts.find((part) => part.type === type)?.value ?? ""
+function isEconomicReleaseWindow(
+  records: EconomicEventRecord[],
+  now: Date,
+): boolean {
+  return records.some((record) => {
+    if (!isImportantCountry(record) || record.impact !== "high" || hasValue(record.actual)) {
+      return false
+    }
+    const releaseAt = Date.parse(record.publishedAt)
+    if (!Number.isFinite(releaseAt)) return false
+    const delta = now.getTime() - releaseAt
+    return delta >= -ECONOMIC_EARLY_POLL_MS && delta <= ECONOMIC_LATE_POLL_MS
+  })
+}
+
+async function getEconomicCandidatesForRun(
+  now: Date,
+): Promise<{ candidates: EconomicCandidate[]; reason: string }> {
+  const stored = await getR2ObjectJson<EconomicScheduleState>(ECONOMIC_SCHEDULE_KEY)
+  const refreshedAt = stored ? Date.parse(stored.refreshedAt) : Number.NaN
+  const scheduleExpired =
+    !stored ||
+    !Number.isFinite(refreshedAt) ||
+    now.getTime() - refreshedAt >= ECONOMIC_SCHEDULE_REFRESH_MS
+  const releaseWindow = stored ? isEconomicReleaseWindow(stored.records, now) : false
+
+  if (!scheduleExpired && !releaseWindow) {
+    return {
+      // Reuse recent Actual values from R2 so a Telegram failure can retry on
+      // the next minute without another provider request. The per-event R2
+      // claim makes already published releases a cheap duplicate skip.
+      candidates: chooseEconomicCandidates(stored.records),
+      reason: "economic calendar is outside a release window; cached releases reused",
+    }
+  }
+
+  const calendar = await getCalendarData()
+  if (calendar.source === "mock") {
+    return { candidates: [], reason: "live economic calendar is unavailable" }
+  }
+
+  await putR2Object({
+    key: ECONOMIC_SCHEDULE_KEY,
+    body: JSON.stringify({
+      refreshedAt: now.toISOString(),
+      records: calendar.normalized,
+    } satisfies EconomicScheduleState),
+    contentType: "application/json",
+  })
+
   return {
-    date: `${value("year")}-${value("month")}-${value("day")}`,
-    hour: Number(value("hour")),
-    minute: Number(value("minute")),
+    candidates: chooseEconomicCandidates(calendar.normalized),
+    reason: releaseWindow
+      ? "economic calendar polled inside a release window"
+      : "economic schedule refreshed",
   }
 }
 
@@ -292,19 +348,14 @@ function signedPercent(value: number): string {
 }
 
 function goldHourKey(now: Date): string | null {
-  const local = vietnamDateHour(now)
-  if (local.minute >= 15) return null
+  const local = getVietnamDateHour(now)
+  if (local.minute >= 5) return null
   return `${ALERT_PREFIX}gold-${local.date}-${String(local.hour).padStart(2, "0")}.json`
 }
 
 async function publishHourlyGold(now: Date): Promise<PublishedAlert | { skipped: string }> {
   const key = goldHourKey(now)
   if (!key) return { skipped: "gold update is outside the hourly publication window" }
-
-  const market = await getGlobalMarketData()
-  const gold = market.quotes.find((quote) => quote.symbol === "GOLD")
-  if (!gold || gold.source !== "live") return { skipped: "gold live quote is unavailable" }
-  if (!isRecentIso(gold.updatedAt, GOLD_MAX_AGE_MS)) return { skipped: "gold quote is stale" }
 
   const claimed = await putR2ObjectIfAbsent({
     key,
@@ -314,6 +365,17 @@ async function publishHourlyGold(now: Date): Promise<PublishedAlert | { skipped:
   if (!claimed) return { skipped: "gold hour already published" }
 
   try {
+    const market = await getGlobalMarketData()
+    const gold = market.quotes.find((quote) => quote.symbol === "GOLD")
+    if (!gold || gold.source !== "live") {
+      await deleteR2Object(key)
+      return { skipped: "gold live quote is unavailable" }
+    }
+    if (!isRecentIso(gold.updatedAt, GOLD_MAX_AGE_MS)) {
+      await deleteR2Object(key)
+      return { skipped: "gold quote is stale" }
+    }
+
     const previous = await getR2ObjectJson<GoldState>(GOLD_STATE_KEY)
     const previousAge = previous ? now.getTime() - Date.parse(previous.publishedAt) : Number.POSITIVE_INFINITY
     const hourlyChange = previous && previousAge >= 0 && previousAge <= 2 * 60 * 60 * 1000 && previous.price
@@ -343,19 +405,33 @@ async function publishHourlyGold(now: Date): Promise<PublishedAlert | { skipped:
   }
 }
 
-async function chooseCandidates(): Promise<Candidate[]> {
-  const [calendar, news] = await Promise.all([getCalendarData(), fetchNewsFromRss()])
+async function chooseCandidates(
+  now: Date,
+  plan: MarketAlertRunPlan,
+): Promise<{ candidates: Candidate[]; reasons: string[] }> {
+  const pollInternational = plan.lanes.includes("international-news")
+  const pollTrump = plan.lanes.includes("trump")
+  const [economic, internationalNews, trumpNews] = await Promise.all([
+    getEconomicCandidatesForRun(now),
+    pollInternational
+      ? fetchNewsFromRss({ categories: ["markets", "world"] })
+      : Promise.resolve([]),
+    pollTrump
+      ? fetchNewsFromRss({ categories: ["trump"] })
+      : Promise.resolve([]),
+  ])
   const candidates: Candidate[] = []
-  if (calendar.source !== "mock") {
-    candidates.push(...chooseEconomicCandidates(calendar.normalized))
-  }
-  candidates.push(...chooseTrumpCandidates(news))
-  for (const international of chooseNewsCandidates(news)) {
+  candidates.push(...economic.candidates)
+  candidates.push(...chooseTrumpCandidates(trumpNews))
+  for (const international of chooseNewsCandidates(internationalNews)) {
     if (!candidates.some((candidate) => candidate.key === international.key)) {
       candidates.push(international)
     }
   }
-  return candidates
+  const reasons = [economic.reason]
+  if (!pollInternational) reasons.push("international RSS is paced to every two minutes")
+  if (!pollTrump) reasons.push("Trump RSS is paced to every three minutes")
+  return { candidates, reasons }
 }
 
 async function publishCandidate(candidate: Candidate): Promise<PublishedAlert | { skipped: string }> {
@@ -410,34 +486,56 @@ async function publishCandidate(candidate: Candidate): Promise<PublishedAlert | 
  * fresh economic, Trump and international items. Every item is claimed in R2
  * before Telegram is called, so concurrent/retried runs cannot duplicate it.
  */
-export async function runTelegramMarketAlerts(): Promise<MarketAlertRunResult> {
+export async function runTelegramMarketAlerts(
+  options: { now?: Date } = {},
+): Promise<MarketAlertRunResult> {
+  const now = options.now ?? new Date()
+  const plan = getMarketAlertRunPlan(now)
   if (!isR2Configured()) {
-    return { status: "skipped", reason: "R2 is not configured", skippedReasons: [] }
+    return {
+      status: "skipped",
+      reason: "R2 is not configured",
+      skippedReasons: [],
+      polledLanes: plan.lanes,
+    }
   }
 
   const published: PublishedAlert[] = []
   const skippedReasons: string[] = []
   try {
-    const goldResult = await publishHourlyGold(new Date())
-    if ("skipped" in goldResult) skippedReasons.push(goldResult.skipped)
-    else published.push(goldResult)
+    if (plan.lanes.includes("gold")) {
+      const goldResult = await publishHourlyGold(now)
+      if ("skipped" in goldResult) skippedReasons.push(goldResult.skipped)
+      else published.push(goldResult)
+    } else {
+      skippedReasons.push("gold is paced to one successful update per hour")
+    }
 
-    const candidates = await chooseCandidates()
-    if (!candidates.length) skippedReasons.push("no verified recent high-impact news item")
-    for (const candidate of candidates) {
+    const selection = await chooseCandidates(now, plan)
+    skippedReasons.push(...selection.reasons)
+    if (!selection.candidates.length) skippedReasons.push("no verified recent high-impact news item")
+    for (const candidate of selection.candidates) {
       const result = await publishCandidate(candidate)
       if ("skipped" in result) skippedReasons.push(result.skipped)
       else published.push(result)
     }
 
-    if (published.length) return { status: "published", published, skippedReasons }
-    return { status: "skipped", reason: "nothing passed publication gates", skippedReasons }
+    if (published.length) {
+      return { status: "published", published, skippedReasons, polledLanes: plan.lanes }
+    }
+    return {
+      status: "skipped",
+      reason: "nothing passed publication gates",
+      skippedReasons,
+      polledLanes: plan.lanes,
+    }
   } catch (error) {
     return {
       status: "failed",
       reason: error instanceof Error ? error.message : String(error),
       published,
       skippedReasons,
+      polledLanes: plan.lanes,
     }
   }
 }

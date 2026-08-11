@@ -61,6 +61,12 @@ const RSS_FEEDS: {
 
 const MAX_ITEMS = 60
 
+export type NewsFeedCategory = "markets" | "world" | "trump"
+
+export type FetchNewsFromRssOptions = {
+  categories?: NewsFeedCategory[]
+}
+
 const parser = new Parser({
   customFields: {
     item: [["media:content", "mediaContent"]],
@@ -120,9 +126,18 @@ function dedupeByTitle(items: NormalizedNewsItem[]): NormalizedNewsItem[] {
   return out
 }
 
-export async function fetchNewsFromRss(): Promise<NormalizedNewsItem[]> {
+export async function fetchNewsFromRss(
+  options: FetchNewsFromRssOptions = {},
+): Promise<NormalizedNewsItem[]> {
+  const categories = options.categories?.length
+    ? new Set<string>(options.categories)
+    : null
+  const feeds = categories
+    ? RSS_FEEDS.filter((feed) => categories.has(feed.category))
+    : RSS_FEEDS
+
   const results = await Promise.allSettled(
-    RSS_FEEDS.map(async (feed) => {
+    feeds.map(async (feed) => {
       const res = await fetchWithTimeout(feed.url, {
         headers: {
           Accept: "application/rss+xml, application/xml, text/xml, */*",

@@ -44,6 +44,7 @@ async function invokeBTrading(env, scheduledTime, attempt) {
       durationMs: Date.now() - startedAt,
       result: payload?.status ?? null,
       reason: payload?.reason ?? null,
+      polledLanes: payload?.polledLanes ?? null,
       skippedReasons: payload?.skippedReasons ?? null,
     })
 
@@ -67,6 +68,7 @@ async function runScheduled(env, scheduledTime) {
         scheduledTime,
         attempt,
         result: payload?.status ?? "ok",
+        polledLanes: payload?.polledLanes ?? null,
         publishedCount: Array.isArray(payload?.published) ? payload.published.length : 0,
       })
       return
@@ -99,7 +101,13 @@ const worker = {
       return Response.json({
         ok: true,
         service: "btrading-telegram-news-scheduler",
-        schedule: "every minute",
+        schedule: "one-minute coordinator",
+        lanes: {
+          economic: "15-minute schedule refresh; one-minute polling from T-2 to T+30 around pending high-impact releases",
+          internationalNews: "every two minutes",
+          trump: "every three minutes",
+          gold: "once per hour",
+        },
       })
     }
     return new Response("Not Found", { status: 404 })
