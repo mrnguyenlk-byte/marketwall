@@ -4,8 +4,9 @@ import { createHash } from "crypto"
 import OpenAI from "openai"
 
 import { fetchNewsFromRss, type NormalizedNewsItem } from "@/lib/news/rss"
+import { getDailyAnalysisByDate } from "@/lib/daily-analysis/storage"
 import { getFreshData as getCalendarData } from "@/lib/providers/calendar-provider"
-import { getData as getGlobalMarketData } from "@/lib/providers/global-market-provider"
+import { getQuote } from "@/lib/twelvedata/client"
 import type { EconomicEventRecord } from "@/lib/providers/types"
 import {
   deleteR2Object,
@@ -85,7 +86,7 @@ type EconomicScheduleState = {
 }
 
 type PublishedAlert = {
-  kind: Candidate["kind"] | "gold"
+  kind: Candidate["kind"] | "gold" | "morning-monitor"
   source: string
   messageId: number
 }
@@ -127,9 +128,13 @@ function newsKey(item: NormalizedNewsItem): string {
   return `${ALERT_PREFIX}${item.category === "trump" ? "trump" : "news"}-${createHash("sha256").update(item.url).digest("hex")}.json`
 }
 
-function chooseEconomicCandidates(records: EconomicEventRecord[]): EconomicCandidate[] {
+export function chooseEconomicCandidates(records: EconomicEventRecord[]): EconomicCandidate[] {
   return records
-    .filter((row) => isImportantCountry(row) && row.impact === "high")
+    .filter(
+      (row) =>
+        isImportantCountry(row) &&
+        (row.impact === "high" || row.impact === "medium"),
+    )
     .filter((row) => {
       const forecastOptional = /\b(fomc|rate decision|interest rate decision)\b/i.test(row.event)
       return (
@@ -199,7 +204,11 @@ function isEconomicReleaseWindow(
   now: Date,
 ): boolean {
   return records.some((record) => {
-    if (!isImportantCountry(record) || record.impact !== "high" || hasValue(record.actual)) {
+    if (
+      !isImportantCountry(record) ||
+      (record.impact !== "high" && record.impact !== "medium") ||
+      hasValue(record.actual)
+    ) {
       return false
     }
     const releaseAt = Date.parse(record.publishedAt)
@@ -207,6 +216,52 @@ function isEconomicReleaseWindow(
     const delta = now.getTime() - releaseAt
     return delta >= -ECONOMIC_EARLY_POLL_MS && delta <= ECONOMIC_LATE_POLL_MS
   })
+}
+
+async function monitorMorningBriefing(now: Date): Promise<PublishedAlert | { skipped: string }> {
+  const local = getVietnamDateHour(now)
+  const weekday = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    weekday: "short",
+  }).format(now)
+  if (weekday === "Sat" || weekday === "Sun" || local.hour !== 7 || local.minute < 15) {
+    return { skipped: "morning briefing monitor is outside its weekday alert window" }
+  }
+
+  const key = `${ALERT_PREFIX}morning-monitor-${local.date}.json`
+  const claimed = await putR2ObjectIfAbsent({
+    key,
+    body: JSON.stringify({ status: "checking", checkedAt: now.toISOString() }),
+    contentType: "application/json",
+  })
+  if (!claimed) return { skipped: "morning briefing status already checked" }
+
+  const article = await getDailyAnalysisByDate(local.date)
+  if (article) {
+    await putR2Object({
+      key,
+      body: JSON.stringify({ status: "ok", checkedAt: now.toISOString(), slug: article.slug }),
+      contentType: "application/json",
+    })
+    return { skipped: "07:00 morning briefing is present" }
+  }
+
+  const result = await publishTelegramMarketAlert([
+    "⚠️ <b>Bản tin 07:00 đang tạm hoãn</b>",
+    "",
+    "Hệ thống chưa nhận đủ hai chart VNINDEX và XAUUSD đúng phiên. Bản tin sẽ không được đăng bằng dữ liệu cũ.",
+    "Kỹ thuật đã ghi nhận để kiểm tra tác vụ VPS và nguồn nến.",
+  ].join("\n"))
+  if (!result.ok) {
+    await deleteR2Object(key)
+    throw new Error(result.error)
+  }
+  await putR2Object({
+    key,
+    body: JSON.stringify({ status: "alerted", checkedAt: now.toISOString(), messageId: result.messageId }),
+    contentType: "application/json",
+  })
+  return { kind: "morning-monitor", source: "BTrading automation", messageId: result.messageId }
 }
 
 async function getEconomicCandidatesForRun(
@@ -255,8 +310,9 @@ async function getEconomicCandidatesForRun(
 function formatEconomicAlert(candidate: EconomicCandidate): string {
   const { record } = candidate
   const country = record.country.trim() || record.currency.trim()
+  const impactLabel = record.impact === "high" ? "🔴 3★" : "🟡 2★"
   return [
-    `🔴 <b>${escapeHtml(record.event)} — ${escapeHtml(country)}</b>`,
+    `${impactLabel} <b>${escapeHtml(record.event)} — ${escapeHtml(country)}</b>`,
     "",
     `Thực tế: <b>${escapeHtml(String(record.actual))}</b>`,
     `Dự báo: ${escapeHtml(hasValue(record.forecast) ? String(record.forecast) : "chưa có")}`,
@@ -365,11 +421,10 @@ async function publishHourlyGold(now: Date): Promise<PublishedAlert | { skipped:
   if (!claimed) return { skipped: "gold hour already published" }
 
   try {
-    const market = await getGlobalMarketData()
-    const gold = market.quotes.find((quote) => quote.symbol === "GOLD")
-    if (!gold || gold.source !== "live") {
+    const gold = await getQuote("XAU/USD")
+    if (!gold) {
       await deleteR2Object(key)
-      return { skipped: "gold live quote is unavailable" }
+      return { skipped: "XAU/USD spot quote is unavailable" }
     }
     if (!isRecentIso(gold.updatedAt, GOLD_MAX_AGE_MS)) {
       await deleteR2Object(key)
@@ -388,7 +443,7 @@ async function publishHourlyGold(now: Date): Promise<PublishedAlert | { skipped:
       hourlyChange == null ? "So với 1 giờ trước: chưa có mốc hợp lệ" : `So với 1 giờ trước: ${signedPercent(hourlyChange)}`,
       `So với đóng cửa trước: ${signedPercent(gold.changePercent)}`,
       "",
-      "Nguồn: Yahoo Finance · Gold Futures (GC=F)",
+      "Nguồn: Twelve Data · XAU/USD Spot Forex",
     ]
     const result = await publishTelegramMarketAlert(lines.join("\n"))
     if (!result.ok) throw new Error(result.error)
@@ -398,7 +453,7 @@ async function publishHourlyGold(now: Date): Promise<PublishedAlert | { skipped:
       body: JSON.stringify({ price: gold.price, updatedAt: gold.updatedAt, publishedAt: now.toISOString() } satisfies GoldState),
       contentType: "application/json",
     })
-    return { kind: "gold", source: "Yahoo Finance", messageId: result.messageId }
+    return { kind: "gold", source: "Twelve Data XAU/USD", messageId: result.messageId }
   } catch (error) {
     await deleteR2Object(key)
     throw error
@@ -472,7 +527,8 @@ async function publishCandidate(candidate: Candidate): Promise<PublishedAlert | 
       source = candidate.item.source
     }
 
-    const result = await publishTelegramMarketAlert(text)
+    const imageUrl = candidate.kind === "news" ? candidate.item.imageUrl : undefined
+    const result = await publishTelegramMarketAlert(text, imageUrl)
     if (!result.ok) throw new Error(result.error)
     return { kind: candidate.kind, source, messageId: result.messageId }
   } catch (error) {
@@ -503,6 +559,10 @@ export async function runTelegramMarketAlerts(
   const published: PublishedAlert[] = []
   const skippedReasons: string[] = []
   try {
+    const monitorResult = await monitorMorningBriefing(now)
+    if ("skipped" in monitorResult) skippedReasons.push(monitorResult.skipped)
+    else published.push(monitorResult)
+
     if (plan.lanes.includes("gold")) {
       const goldResult = await publishHourlyGold(now)
       if ("skipped" in goldResult) skippedReasons.push(goldResult.skipped)

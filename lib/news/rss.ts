@@ -10,6 +10,7 @@ export type NormalizedNewsItem = {
   url: string
   publishedAt: string
   category: string
+  imageUrl?: string
 }
 
 const RSS_FEEDS: {
@@ -69,9 +70,37 @@ export type FetchNewsFromRssOptions = {
 
 const parser = new Parser({
   customFields: {
-    item: [["media:content", "mediaContent"]],
+    item: [
+      ["media:content", "mediaContent"],
+      ["media:thumbnail", "mediaThumbnail"],
+    ],
   },
 })
+
+type RssMediaValue = string | { $?: { url?: string }; url?: string } | undefined
+
+function mediaUrl(value: RssMediaValue): string | undefined {
+  const raw = typeof value === "string" ? value : value?.$?.url ?? value?.url
+  if (!raw) return undefined
+  try {
+    const url = new URL(raw)
+    return url.protocol === "https:" ? url.toString() : undefined
+  } catch {
+    return undefined
+  }
+}
+
+function originalImageUrl(item: Parser.Item & {
+  mediaContent?: RssMediaValue
+  mediaThumbnail?: RssMediaValue
+}): string | undefined {
+  const enclosure = item.enclosure?.url
+  return (
+    mediaUrl(item.mediaContent) ??
+    mediaUrl(item.mediaThumbnail) ??
+    mediaUrl(typeof enclosure === "string" ? enclosure : undefined)
+  )
+}
 
 function itemLink(item: Parser.Item): string {
   if (typeof item.link === "string" && item.link) return item.link
@@ -86,7 +115,10 @@ function itemPublishedAt(item: Parser.Item): string {
 }
 
 function parseFeed(
-  feed: Parser.Output<{ mediaContent?: string }>,
+  feed: Parser.Output<{
+    mediaContent?: RssMediaValue
+    mediaThumbnail?: RssMediaValue
+  }>,
   source: string,
   sourceTier: 1 | 2,
   category: string,
@@ -106,6 +138,7 @@ function parseFeed(
       url,
       publishedAt: itemPublishedAt(item),
       category,
+      imageUrl: originalImageUrl(item),
     })
   }
 

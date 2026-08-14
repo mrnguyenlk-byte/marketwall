@@ -192,9 +192,18 @@ export async function publishDailyAnalysisToTelegram(
 /** Publish a short, source-attributed market alert to the configured channel. */
 export async function publishTelegramMarketAlert(
   text: string,
+  imageUrl?: string,
 ): Promise<TelegramPublishResult> {
   const env = telegramEnv()
   if (!env) return { ok: false, error: "skipped: missing env" }
+
+  if (imageUrl) {
+    const photoResult = await sendPhoto(env.token, env.channelId, imageUrl, text)
+    if (photoResult.ok) return photoResult
+    console.warn("[telegram] original news image failed; falling back to text", {
+      error: photoResult.error,
+    })
+  }
 
   const result = await telegramRequest<TelegramSendPhotoResponse>(
     env.token,

@@ -18,7 +18,12 @@ if (-not $ConfigPath) {
   $ConfigPath = Join-Path $scriptDirectory "..\..\.vps-daily-analysis.env"
 }
 
-$script:LogPath = Join-Path $env:TEMP "btrading-daily-analysis-runner.log"
+$script:LogPath = "C:\BTradingData\logs\daily-analysis-runner.log"
+$script:Stage = "initializing"
+$script:LastError = $null
+$script:ExpectedSession = $null
+$script:VnindexSession = $null
+$script:GoldSession = $null
 
 function Write-RunLog([string]$Message) {
   $line = "[$((Get-Date).ToString('yyyy-MM-dd HH:mm:ss'))] $Message"
@@ -128,6 +133,7 @@ try {
   if ($config["LOG_PATH"]) { $script:LogPath = $config["LOG_PATH"] }
   Rotate-RunLog $script:LogPath
   Write-RunLog "START publish=$Publish config=$ConfigPath"
+  $script:Stage = "config-loaded"
 
   $vnindexImage = Require-Config $config "VNINDEX_IMAGE_PATH"
   $goldImage = Require-Config $config "GOLD_IMAGE_PATH"
@@ -136,6 +142,8 @@ try {
   $healthPath = if ($config["HEALTH_PATH"]) { $config["HEALTH_PATH"] } else { "C:\BTradingData\logs\daily-analysis-health.json" }
   $timezoneId = if ($config["TIMEZONE_ID"]) { $config["TIMEZONE_ID"] } else { "SE Asia Standard Time" }
   $maxImageAgeMinutes = if ($config["MAX_IMAGE_AGE_MINUTES"]) { [int]$config["MAX_IMAGE_AGE_MINUTES"] } else { 90 }
+  $dataRetryCount = if ($config["DATA_READY_RETRY_COUNT"]) { [int]$config["DATA_READY_RETRY_COUNT"] } else { 4 }
+  $dataRetryDelaySeconds = if ($config["DATA_READY_RETRY_DELAY_SECONDS"]) { [int]$config["DATA_READY_RETRY_DELAY_SECONDS"] } else { 120 }
   $lockPath = if ($config["LOCK_PATH"]) { $config["LOCK_PATH"] } else { Join-Path $env:TEMP "btrading-daily-analysis.lock" }
 
   $mutex = New-Object -TypeName System.Threading.Mutex -ArgumentList @($false, "BTradingDailyAnalysis")
@@ -157,12 +165,24 @@ try {
     } else {
       $reportDate = $today.ToString("yyyy-MM-dd")
       $expectedSession = Get-ExpectedSessionDate $today
-      $vnindexSession = Get-LatestCsvDate $vnindexCsv "VNINDEX"
-      $goldSession = Get-LatestCsvDate $goldCsv "XAUUSD"
+      $script:ExpectedSession = $expectedSession.ToString("yyyy-MM-dd")
+      $script:Stage = "waiting-for-market-data"
+      for ($attempt = 1; $attempt -le $dataRetryCount; $attempt++) {
+        $vnindexSession = Get-LatestCsvDate $vnindexCsv "VNINDEX"
+        $goldSession = Get-LatestCsvDate $goldCsv "XAUUSD"
+        $script:VnindexSession = $vnindexSession.ToString("yyyy-MM-dd")
+        $script:GoldSession = $goldSession.ToString("yyyy-MM-dd")
+        if ($vnindexSession -eq $expectedSession -and $goldSession -eq $expectedSession) { break }
+        if ($attempt -lt $dataRetryCount) {
+          Write-RunLog "DATA_WAIT attempt=$attempt/$dataRetryCount expected=$script:ExpectedSession vnindex=$script:VnindexSession gold=$script:GoldSession retrySeconds=$dataRetryDelaySeconds"
+          Start-Sleep -Seconds $dataRetryDelaySeconds
+        }
+      }
       if ($vnindexSession -ne $expectedSession -or $goldSession -ne $expectedSession) {
         throw "SESSION_BLOCKED expected=$($expectedSession.ToString('yyyy-MM-dd')) vnindex=$($vnindexSession.ToString('yyyy-MM-dd')) gold=$($goldSession.ToString('yyyy-MM-dd'))"
       }
       Write-RunLog "SESSION_OK expected=$($expectedSession.ToString('yyyy-MM-dd')) vnindex=$($vnindexSession.ToString('yyyy-MM-dd')) gold=$($goldSession.ToString('yyyy-MM-dd'))"
+      $script:Stage = "capturing-charts"
       if (-not $SkipCapture) {
         & (Join-Path $scriptDirectory "capture-ami-broker-charts.ps1") -ConfigPath $ConfigPath
         if (-not $?) { throw "AmiBroker chart capture failed." }
@@ -171,6 +191,7 @@ try {
       Test-FreshImage $goldImage $maxImageAgeMinutes
       Test-ChartImageQuality $vnindexImage "VNINDEX"
       Test-ChartImageQuality $goldImage "XAUUSD"
+      $script:Stage = "charts-validated"
 
       if (-not $Publish) {
         Write-RunLog "DRY_RUN_OK charts captured and validated; no HTTP request was made."
@@ -192,6 +213,7 @@ try {
             $form.Add($content, $upload.Name, [System.IO.Path]::GetFileName($upload.Path))
           }
           Write-RunLog "POST_START date=$reportDate endpoint=$endpoint"
+          $script:Stage = "uploading"
           $response = $client.PostAsync($endpoint, $form).GetAwaiter().GetResult()
           $body = $response.Content.ReadAsStringAsync().GetAwaiter().GetResult()
           if (-not $response.IsSuccessStatusCode) { throw "Automation API HTTP $([int]$response.StatusCode): $body" }
@@ -200,6 +222,7 @@ try {
           if ($result.status -eq "in_progress") { throw "Automation API is still in progress; no publish success was confirmed." }
           $status = if ($result.status) { $result.status } else { "processed" }
           Write-RunLog "PUBLISH_CONFIRMED date=$reportDate status=$status"
+          $script:Stage = "published"
         } finally {
           $form.Dispose()
           $client.Dispose()
@@ -209,6 +232,8 @@ try {
   }
 } catch {
   $exitCode = 1
+  $script:LastError = $_.Exception.Message
+  $script:Stage = "failed"
   Write-RunLog "FAILED $($_.Exception.Message)"
 } finally {
   if ($lockPath -and (Test-Path -LiteralPath $lockPath)) { Remove-Item -LiteralPath $lockPath -Force -ErrorAction SilentlyContinue }
@@ -220,7 +245,16 @@ try {
   try {
     $healthDirectory = Split-Path -Parent $healthPath
     if ($healthDirectory) { New-Item -ItemType Directory -Path $healthDirectory -Force | Out-Null }
-    @{ checkedAt = (Get-Date).ToString("o"); exitCode = $exitCode; logPath = $script:LogPath } | ConvertTo-Json | Set-Content -LiteralPath $healthPath -Encoding UTF8
+    @{
+      checkedAt = (Get-Date).ToString("o")
+      exitCode = $exitCode
+      stage = $script:Stage
+      error = $script:LastError
+      expectedSession = $script:ExpectedSession
+      vnindexSession = $script:VnindexSession
+      goldSession = $script:GoldSession
+      logPath = $script:LogPath
+    } | ConvertTo-Json | Set-Content -LiteralPath $healthPath -Encoding UTF8
   } catch { }
 }
 
