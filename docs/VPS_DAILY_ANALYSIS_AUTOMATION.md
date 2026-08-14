@@ -38,6 +38,11 @@ Before capture, the runner reads the latest `Date` value directly from `VNINDEX_
 
 ## 3. Task Scheduler registration
 
+Lịch chuẩn gồm kiểm tra kín lúc 06:45 và xuất bản lúc 07:00 (giờ Việt Nam):
+
+- `BTrading Morning Readiness` kiểm tra ngày nến, CSV, cửa sổ AmiBroker, độ mới và chất lượng hai ảnh; kết quả chỉ được lưu vào health JSON/log và endpoint trạng thái, không đăng Telegram/Facebook.
+- `BTrading Daily Analysis` xác minh lại toàn bộ điều kiện lúc 07:00 rồi mới xuất bản; dữ liệu sai hoặc thiếu ngày bị chặn trước mọi upload và bài đăng.
+
 Run this once in an elevated PowerShell session. The task runs at 07:00 Vietnam time on weekdays. It creates both PNGs, validates them, then sends one authenticated request.
 
 ```powershell

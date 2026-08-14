@@ -3,7 +3,8 @@ param(
   [string]$RepositoryPath = "C:\btrading-code",
   [string]$ConfigPath = "C:\btrading-code\.vps-daily-analysis.env",
   [string]$PublishTaskName = "BTrading Daily Analysis",
-  [string]$UpdateTaskName = "BTrading Automation Update"
+  [string]$UpdateTaskName = "BTrading Automation Update",
+  [string]$ReadinessTaskName = "BTrading Morning Readiness"
 )
 
 $ErrorActionPreference = "Stop"
@@ -11,7 +12,8 @@ $ErrorActionPreference = "Stop"
 $runner = Join-Path $RepositoryPath "scripts\vps\run-daily-analysis.ps1"
 $updater = Join-Path $RepositoryPath "scripts\vps\update-runner.ps1"
 $health = Join-Path $RepositoryPath "scripts\vps\test-btrading-vps-health.ps1"
-foreach ($path in @($runner, $updater, $health, $ConfigPath)) {
+$readinessInstaller = Join-Path $RepositoryPath "scripts\vps\install-morning-readiness-task.ps1"
+foreach ($path in @($runner, $updater, $health, $readinessInstaller, $ConfigPath)) {
   if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "Required file was not found: $path" }
 }
 
@@ -35,9 +37,10 @@ $updatePrincipal = New-ScheduledTaskPrincipal -UserId "$env:USERDOMAIN\$env:USER
 
 Register-ScheduledTask -TaskName $UpdateTaskName -Action $updateAction -Trigger $updateTrigger -Settings $updateSettings -Principal $updatePrincipal -Description "Fast-forward BTrading VPS automation code at 06:40." -Force | Out-Null
 Register-ScheduledTask -TaskName $PublishTaskName -Action $publishAction -Trigger $publishTrigger -Settings $publishSettings -Principal $publishPrincipal -Description "Validate candle dates, capture charts and publish at 07:00. Invalid dates never reach the API." -Force | Out-Null
+& $readinessInstaller -RepositoryPath $RepositoryPath -ConfigPath $ConfigPath -TaskName $ReadinessTaskName
 
-& $health -ConfigPath $ConfigPath -PublishTaskName $PublishTaskName -UpdateTaskName $UpdateTaskName
+& $health -ConfigPath $ConfigPath -PublishTaskName $PublishTaskName -UpdateTaskName $UpdateTaskName -ReadinessTaskName $ReadinessTaskName
 if ($LASTEXITCODE -ne 0) { throw "VPS health check failed after task installation." }
 
-Get-ScheduledTask -TaskName $UpdateTaskName,$PublishTaskName | Select-Object TaskName,State
+Get-ScheduledTask -TaskName $UpdateTaskName,$ReadinessTaskName,$PublishTaskName | Select-Object TaskName,State
 

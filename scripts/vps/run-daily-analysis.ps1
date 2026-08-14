@@ -3,6 +3,7 @@ param(
   [string]$ConfigPath,
   [switch]$Force,
   [switch]$Publish,
+  [switch]$ReadinessCheck,
   [switch]$SkipCapture
 )
 
@@ -24,6 +25,8 @@ $script:LastError = $null
 $script:ExpectedSession = $null
 $script:VnindexSession = $null
 $script:GoldSession = $null
+$config = $null
+$reportDate = $null
 
 function Write-RunLog([string]$Message) {
   $line = "[$((Get-Date).ToString('yyyy-MM-dd HH:mm:ss'))] $Message"
@@ -123,6 +126,30 @@ function Get-LatestCsvDate([string]$Path, [string]$Market) {
   return $latest
 }
 
+function Send-ReadinessStatus($Config, [hashtable]$Payload) {
+  if ($null -eq $Config) { return }
+  $secret = $Config["DAILY_AUTOMATION_SECRET"]
+  if (-not $secret) { return }
+  $endpoint = $Config["DAILY_ANALYSIS_STATUS_ENDPOINT"]
+  if (-not $endpoint -and $Config["DAILY_ANALYSIS_ENDPOINT"]) {
+    $endpoint = $Config["DAILY_ANALYSIS_ENDPOINT"] -replace '/run$', '/status'
+  }
+  if (-not $endpoint) { return }
+
+  $client = New-Object System.Net.Http.HttpClient
+  $client.Timeout = [TimeSpan]::FromSeconds(30)
+  try {
+    $client.DefaultRequestHeaders.Add("x-btrading-secret", $secret)
+    $content = New-Object System.Net.Http.StringContent(($Payload | ConvertTo-Json -Depth 3), [Text.Encoding]::UTF8, "application/json")
+    $response = $client.PostAsync($endpoint, $content).GetAwaiter().GetResult()
+    if (-not $response.IsSuccessStatusCode) { throw "HTTP $([int]$response.StatusCode)" }
+    Write-RunLog "STATUS_REPORTED mode=$($Payload.mode) stage=$($Payload.stage)"
+  } finally {
+    if ($content) { $content.Dispose() }
+    $client.Dispose()
+  }
+}
+
 $exitCode = 0
 $mutex = $null
 $lockPath = $null
@@ -132,7 +159,7 @@ try {
   $config = Read-Config $ConfigPath
   if ($config["LOG_PATH"]) { $script:LogPath = $config["LOG_PATH"] }
   Rotate-RunLog $script:LogPath
-  Write-RunLog "START publish=$Publish config=$ConfigPath"
+  Write-RunLog "START publish=$Publish readiness=$ReadinessCheck config=$ConfigPath"
   $script:Stage = "config-loaded"
 
   $vnindexImage = Require-Config $config "VNINDEX_IMAGE_PATH"
@@ -245,8 +272,9 @@ try {
   try {
     $healthDirectory = Split-Path -Parent $healthPath
     if ($healthDirectory) { New-Item -ItemType Directory -Path $healthDirectory -Force | Out-Null }
-    @{
+    $health = @{
       checkedAt = (Get-Date).ToString("o")
+      reportDate = $reportDate
       exitCode = $exitCode
       stage = $script:Stage
       error = $script:LastError
@@ -254,7 +282,10 @@ try {
       vnindexSession = $script:VnindexSession
       goldSession = $script:GoldSession
       logPath = $script:LogPath
-    } | ConvertTo-Json | Set-Content -LiteralPath $healthPath -Encoding UTF8
+      mode = if ($ReadinessCheck) { "readiness" } elseif ($Publish) { "publish" } else { "dry-run" }
+    }
+    $health | ConvertTo-Json | Set-Content -LiteralPath $healthPath -Encoding UTF8
+    try { Send-ReadinessStatus $config $health } catch { Write-RunLog "STATUS_REPORT_FAILED $($_.Exception.Message)" }
   } catch { }
 }
 

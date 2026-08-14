@@ -4,7 +4,6 @@ import { createHash } from "crypto"
 import OpenAI from "openai"
 
 import { fetchNewsFromRss, type NormalizedNewsItem } from "@/lib/news/rss"
-import { getDailyAnalysisByDate } from "@/lib/daily-analysis/storage"
 import { getFreshData as getCalendarData } from "@/lib/providers/calendar-provider"
 import { getQuote } from "@/lib/twelvedata/client"
 import type { EconomicEventRecord } from "@/lib/providers/types"
@@ -86,7 +85,7 @@ type EconomicScheduleState = {
 }
 
 type PublishedAlert = {
-  kind: Candidate["kind"] | "gold" | "morning-monitor"
+  kind: Candidate["kind"] | "gold"
   source: string
   messageId: number
 }
@@ -216,52 +215,6 @@ function isEconomicReleaseWindow(
     const delta = now.getTime() - releaseAt
     return delta >= -ECONOMIC_EARLY_POLL_MS && delta <= ECONOMIC_LATE_POLL_MS
   })
-}
-
-async function monitorMorningBriefing(now: Date): Promise<PublishedAlert | { skipped: string }> {
-  const local = getVietnamDateHour(now)
-  const weekday = new Intl.DateTimeFormat("en-US", {
-    timeZone: "Asia/Ho_Chi_Minh",
-    weekday: "short",
-  }).format(now)
-  if (weekday === "Sat" || weekday === "Sun" || local.hour !== 7 || local.minute < 15) {
-    return { skipped: "morning briefing monitor is outside its weekday alert window" }
-  }
-
-  const key = `${ALERT_PREFIX}morning-monitor-${local.date}.json`
-  const claimed = await putR2ObjectIfAbsent({
-    key,
-    body: JSON.stringify({ status: "checking", checkedAt: now.toISOString() }),
-    contentType: "application/json",
-  })
-  if (!claimed) return { skipped: "morning briefing status already checked" }
-
-  const article = await getDailyAnalysisByDate(local.date)
-  if (article) {
-    await putR2Object({
-      key,
-      body: JSON.stringify({ status: "ok", checkedAt: now.toISOString(), slug: article.slug }),
-      contentType: "application/json",
-    })
-    return { skipped: "07:00 morning briefing is present" }
-  }
-
-  const result = await publishTelegramMarketAlert([
-    "⚠️ <b>Bản tin 07:00 đang tạm hoãn</b>",
-    "",
-    "Hệ thống chưa nhận đủ hai chart VNINDEX và XAUUSD đúng phiên. Bản tin sẽ không được đăng bằng dữ liệu cũ.",
-    "Kỹ thuật đã ghi nhận để kiểm tra tác vụ VPS và nguồn nến.",
-  ].join("\n"))
-  if (!result.ok) {
-    await deleteR2Object(key)
-    throw new Error(result.error)
-  }
-  await putR2Object({
-    key,
-    body: JSON.stringify({ status: "alerted", checkedAt: now.toISOString(), messageId: result.messageId }),
-    contentType: "application/json",
-  })
-  return { kind: "morning-monitor", source: "BTrading automation", messageId: result.messageId }
 }
 
 async function getEconomicCandidatesForRun(
@@ -559,10 +512,6 @@ export async function runTelegramMarketAlerts(
   const published: PublishedAlert[] = []
   const skippedReasons: string[] = []
   try {
-    const monitorResult = await monitorMorningBriefing(now)
-    if ("skipped" in monitorResult) skippedReasons.push(monitorResult.skipped)
-    else published.push(monitorResult)
-
     if (plan.lanes.includes("gold")) {
       const goldResult = await publishHourlyGold(now)
       if ("skipped" in goldResult) skippedReasons.push(goldResult.skipped)

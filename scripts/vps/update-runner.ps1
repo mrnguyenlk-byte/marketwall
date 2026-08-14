@@ -27,9 +27,17 @@ if ($LASTEXITCODE -ne 0) { throw "Fast-forward update failed." }
 
 Write-Host "Updated BTrading runner to $(git rev-parse --short HEAD)"
 
+# Keep the private 06:45 readiness check installed on existing VPS instances.
+# It only validates data/charts and reports health; it never publishes social posts.
+$readinessInstaller = Join-Path $RepositoryPath "scripts\vps\install-morning-readiness-task.ps1"
+$configPath = Join-Path $RepositoryPath ".vps-daily-analysis.env"
+if ((Test-Path -LiteralPath $readinessInstaller) -and (Test-Path -LiteralPath $configPath)) {
+  & $readinessInstaller -RepositoryPath $RepositoryPath -ConfigPath $configPath
+  if (-not $?) { throw "Could not install the private 06:45 readiness task." }
+}
+
 # The user explicitly requested an independent 07:30 flow. Install/update it
 # only when its VPS-local access token is present; never disturb the 07:00 task.
-$configPath = Join-Path $RepositoryPath ".vps-daily-analysis.env"
 $installerPath = Join-Path $RepositoryPath "scripts\vps\install-command-center-briefing-task.ps1"
 if ((Test-Path -LiteralPath $configPath) -and (Test-Path -LiteralPath $installerPath)) {
   $hasAccessToken = $false

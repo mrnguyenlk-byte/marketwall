@@ -2,7 +2,8 @@
 param(
   [string]$ConfigPath = "C:\btrading-code\.vps-daily-analysis.env",
   [string]$PublishTaskName = "BTrading Daily Analysis",
-  [string]$UpdateTaskName = "BTrading Automation Update"
+  [string]$UpdateTaskName = "BTrading Automation Update",
+  [string]$ReadinessTaskName = "BTrading Morning Readiness"
 )
 
 $ErrorActionPreference = "Stop"
@@ -25,7 +26,7 @@ $config = Read-Config $ConfigPath
 foreach ($name in @("DAILY_ANALYSIS_ENDPOINT", "DAILY_AUTOMATION_SECRET", "VNINDEX_IMAGE_PATH", "GOLD_IMAGE_PATH")) {
   if (-not $config.ContainsKey($name) -or -not $config[$name]) { [void]$failures.Add("Missing config value: $name") }
 }
-foreach ($name in @($PublishTaskName, $UpdateTaskName)) {
+foreach ($name in @($PublishTaskName, $UpdateTaskName, $ReadinessTaskName)) {
   if (-not (Get-ScheduledTask -TaskName $name -ErrorAction SilentlyContinue)) { [void]$failures.Add("Missing task: $name") }
 }
 if (-not $config["VNINDEX_CSV_PATH"]) { $config["VNINDEX_CSV_PATH"] = "C:\AmiBroker_AutoData\VNINDEX_D1_AB.csv" }
@@ -41,6 +42,7 @@ $result = @{
   failures = @($failures)
   publishTask = $PublishTaskName
   updateTask = $UpdateTaskName
+  readinessTask = $ReadinessTaskName
   logPath = $config["LOG_PATH"]
 }
 $healthPath = if ($config["HEALTH_PATH"]) { $config["HEALTH_PATH"] } else { "C:\BTradingData\logs\daily-analysis-health.json" }
