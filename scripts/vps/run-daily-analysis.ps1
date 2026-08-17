@@ -9,7 +9,6 @@ param(
 
 $ErrorActionPreference = "Stop"
 Add-Type -AssemblyName System.Drawing
-Add-Type -AssemblyName System.Net.Http
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 $scriptPath = $MyInvocation.MyCommand.Path
@@ -126,28 +125,20 @@ function Get-LatestCsvDate([string]$Path, [string]$Market) {
   return $latest
 }
 
-function Send-ReadinessStatus($Config, [hashtable]$Payload) {
-  if ($null -eq $Config) { return }
-  $secret = $Config["DAILY_AUTOMATION_SECRET"]
-  if (-not $secret) { return }
-  $endpoint = $Config["DAILY_ANALYSIS_STATUS_ENDPOINT"]
-  if (-not $endpoint -and $Config["DAILY_ANALYSIS_ENDPOINT"]) {
-    $endpoint = $Config["DAILY_ANALYSIS_ENDPOINT"] -replace '/run$', '/status'
-  }
-  if (-not $endpoint) { return }
+function Invoke-PythonTransport([string[]]$Arguments) {
+  $python = if ($config -and $config["PYTHON_EXECUTABLE"]) { $config["PYTHON_EXECUTABLE"] } else { "python" }
+  $helper = Join-Path $scriptDirectory "daily-analysis-http.py"
+  if (-not (Test-Path -LiteralPath $helper -PathType Leaf)) { throw "HTTP helper was not found: $helper" }
+  $output = @(& $python $helper @Arguments 2>&1)
+  if ($LASTEXITCODE -ne 0) { throw ($output -join " ") }
+  return ($output -join "`n")
+}
 
-  $client = New-Object System.Net.Http.HttpClient
-  $client.Timeout = [TimeSpan]::FromSeconds(30)
-  try {
-    $client.DefaultRequestHeaders.Add("x-btrading-secret", $secret)
-    $content = New-Object System.Net.Http.StringContent(($Payload | ConvertTo-Json -Depth 3), [Text.Encoding]::UTF8, "application/json")
-    $response = $client.PostAsync($endpoint, $content).GetAwaiter().GetResult()
-    if (-not $response.IsSuccessStatusCode) { throw "HTTP $([int]$response.StatusCode)" }
-    Write-RunLog "STATUS_REPORTED mode=$($Payload.mode) stage=$($Payload.stage)"
-  } finally {
-    if ($content) { $content.Dispose() }
-    $client.Dispose()
-  }
+function Send-ReadinessStatus($Config, [string]$HealthPath, [string]$Mode, [string]$Stage) {
+  if ($null -eq $Config) { return }
+  if (-not $Config["DAILY_AUTOMATION_SECRET"] -or -not $Config["DAILY_ANALYSIS_ENDPOINT"]) { return }
+  [void](Invoke-PythonTransport @("status", "--config", $ConfigPath, "--health", $HealthPath))
+  Write-RunLog "STATUS_REPORTED mode=$Mode stage=$Stage"
 }
 
 $exitCode = 0
@@ -190,15 +181,16 @@ try {
     if (-not $Force -and ($today.DayOfWeek -eq [DayOfWeek]::Saturday -or $today.DayOfWeek -eq [DayOfWeek]::Sunday)) {
       Write-RunLog "SKIPPED weekend in $timezoneId."
     } else {
-      $reportDate = $today.ToString("yyyy-MM-dd")
-      $expectedSession = Get-ExpectedSessionDate $today
-      $script:ExpectedSession = $expectedSession.ToString("yyyy-MM-dd")
+      [DateTime]$todayDate = $today
+      $reportDate = $todayDate.ToString("yyyy-MM-dd", [Globalization.CultureInfo]::InvariantCulture)
+      [DateTime]$expectedSession = Get-ExpectedSessionDate $todayDate
+      $script:ExpectedSession = $expectedSession.ToString("yyyy-MM-dd", [Globalization.CultureInfo]::InvariantCulture)
       $script:Stage = "waiting-for-market-data"
       for ($attempt = 1; $attempt -le $dataRetryCount; $attempt++) {
-        $vnindexSession = Get-LatestCsvDate $vnindexCsv "VNINDEX"
-        $goldSession = Get-LatestCsvDate $goldCsv "XAUUSD"
-        $script:VnindexSession = $vnindexSession.ToString("yyyy-MM-dd")
-        $script:GoldSession = $goldSession.ToString("yyyy-MM-dd")
+        [DateTime]$vnindexSession = Get-LatestCsvDate $vnindexCsv "VNINDEX"
+        [DateTime]$goldSession = Get-LatestCsvDate $goldCsv "XAUUSD"
+        $script:VnindexSession = $vnindexSession.ToString("yyyy-MM-dd", [Globalization.CultureInfo]::InvariantCulture)
+        $script:GoldSession = $goldSession.ToString("yyyy-MM-dd", [Globalization.CultureInfo]::InvariantCulture)
         if ($vnindexSession -eq $expectedSession -and $goldSession -eq $expectedSession) { break }
         if ($attempt -lt $dataRetryCount) {
           Write-RunLog "DATA_WAIT attempt=$attempt/$dataRetryCount expected=$script:ExpectedSession vnindex=$script:VnindexSession gold=$script:GoldSession retrySeconds=$dataRetryDelaySeconds"
@@ -206,9 +198,9 @@ try {
         }
       }
       if ($vnindexSession -ne $expectedSession -or $goldSession -ne $expectedSession) {
-        throw "SESSION_BLOCKED expected=$($expectedSession.ToString('yyyy-MM-dd')) vnindex=$($vnindexSession.ToString('yyyy-MM-dd')) gold=$($goldSession.ToString('yyyy-MM-dd'))"
+        throw "SESSION_BLOCKED expected=$script:ExpectedSession vnindex=$script:VnindexSession gold=$script:GoldSession"
       }
-      Write-RunLog "SESSION_OK expected=$($expectedSession.ToString('yyyy-MM-dd')) vnindex=$($vnindexSession.ToString('yyyy-MM-dd')) gold=$($goldSession.ToString('yyyy-MM-dd'))"
+      Write-RunLog "SESSION_OK expected=$script:ExpectedSession vnindex=$script:VnindexSession gold=$script:GoldSession"
       $script:Stage = "capturing-charts"
       if (-not $SkipCapture) {
         & (Join-Path $scriptDirectory "capture-ami-broker-charts.ps1") -ConfigPath $ConfigPath
@@ -224,36 +216,14 @@ try {
         Write-RunLog "DRY_RUN_OK charts captured and validated; no HTTP request was made."
       } else {
         $endpoint = Require-Config $config "DAILY_ANALYSIS_ENDPOINT"
-        $secret = Require-Config $config "DAILY_AUTOMATION_SECRET"
-        $client = New-Object System.Net.Http.HttpClient
-        $client.Timeout = [TimeSpan]::FromMinutes(5)
-        $form = New-Object System.Net.Http.MultipartFormDataContent
-        try {
-          $form.Add((New-Object System.Net.Http.StringContent($secret)), "secret")
-          $form.Add((New-Object System.Net.Http.StringContent($reportDate)), "date")
-          $form.Add((New-Object System.Net.Http.StringContent($vnindexSession.ToString("yyyy-MM-dd"))), "vnindexSessionDate")
-          $form.Add((New-Object System.Net.Http.StringContent($goldSession.ToString("yyyy-MM-dd"))), "goldSessionDate")
-          foreach ($upload in @(@{ Name = "vnindexImage"; Path = $vnindexImage }, @{ Name = "goldImage"; Path = $goldImage })) {
-            $stream = [System.IO.File]::OpenRead($upload.Path)
-            $content = New-Object System.Net.Http.StreamContent($stream)
-            $content.Headers.ContentType = [System.Net.Http.Headers.MediaTypeHeaderValue]::Parse("image/png")
-            $form.Add($content, $upload.Name, [System.IO.Path]::GetFileName($upload.Path))
-          }
-          Write-RunLog "POST_START date=$reportDate endpoint=$endpoint"
-          $script:Stage = "uploading"
-          $response = $client.PostAsync($endpoint, $form).GetAwaiter().GetResult()
-          $body = $response.Content.ReadAsStringAsync().GetAwaiter().GetResult()
-          if (-not $response.IsSuccessStatusCode) { throw "Automation API HTTP $([int]$response.StatusCode): $body" }
-          try { $result = $body | ConvertFrom-Json } catch { throw "Automation API returned invalid JSON: $body" }
-          if (-not $result.success) { throw "Automation API did not confirm success: $body" }
-          if ($result.status -eq "in_progress") { throw "Automation API is still in progress; no publish success was confirmed." }
-          $status = if ($result.status) { $result.status } else { "processed" }
-          Write-RunLog "PUBLISH_CONFIRMED date=$reportDate status=$status"
-          $script:Stage = "published"
-        } finally {
-          $form.Dispose()
-          $client.Dispose()
-        }
+        [void](Require-Config $config "DAILY_AUTOMATION_SECRET")
+        Write-RunLog "POST_START date=$reportDate endpoint=$endpoint transport=python-requests"
+        $script:Stage = "uploading"
+        $body = Invoke-PythonTransport @("publish", "--config", $ConfigPath, "--date", $reportDate, "--vnindex-session", $script:VnindexSession, "--gold-session", $script:GoldSession)
+        try { $result = $body | ConvertFrom-Json } catch { throw "Automation API returned invalid JSON: $body" }
+        $status = if ($result.status) { $result.status } else { "processed" }
+        Write-RunLog "PUBLISH_CONFIRMED date=$reportDate status=$status"
+        $script:Stage = "published"
       }
     }
   }
@@ -285,7 +255,7 @@ try {
       mode = if ($ReadinessCheck) { "readiness" } elseif ($Publish) { "publish" } else { "dry-run" }
     }
     $health | ConvertTo-Json | Set-Content -LiteralPath $healthPath -Encoding UTF8
-    try { Send-ReadinessStatus $config $health } catch { Write-RunLog "STATUS_REPORT_FAILED $($_.Exception.Message)" }
+    try { Send-ReadinessStatus $config $healthPath $health.mode $health.stage } catch { Write-RunLog "STATUS_REPORT_FAILED $($_.Exception.Message)" }
   } catch { }
 }
 
