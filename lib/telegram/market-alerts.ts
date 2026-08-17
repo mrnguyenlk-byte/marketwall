@@ -3,7 +3,11 @@ import "server-only"
 import { createHash } from "crypto"
 import OpenAI from "openai"
 
-import { fetchNewsFromRss, type NormalizedNewsItem } from "@/lib/news/rss"
+import {
+  fetchNewsFromRss,
+  resolveNewsImageUrl,
+  type NormalizedNewsItem,
+} from "@/lib/news/rss"
 import { getFreshData as getCalendarData } from "@/lib/providers/calendar-provider"
 import { getQuote } from "@/lib/twelvedata/client"
 import type { EconomicEventRecord } from "@/lib/providers/types"
@@ -35,6 +39,8 @@ const ECONOMIC_EARLY_POLL_MS = 2 * 60 * 1000
 const ECONOMIC_LATE_POLL_MS = 30 * 60 * 1000
 const IMPORTANT_PATTERN =
   /\b(fed|fomc|central bank|interest rates?|rate decision|cpi|inflation|pce|payrolls?|nonfarm|nfp|unemployment|jobless|gdp|pmi|tariff|trade war|sanctions?|ceasefire|war|attack|missile|oil|opec|gold|treasury|yield|currency|dollar|euro|yen|ecb|boj|boe|pboc|china|russia|ukraine|iran|israel|election|government|president|prime minister|debt|budget|default|bank|financial crisis)\b/i
+const VIETNAM_MARKET_PATTERN =
+  /\b(vn-?index|chứng khoán|cổ phiếu|thị trường|ngân hàng|lãi suất|tỷ giá|tín dụng|trái phiếu|bất động sản|xuất khẩu|nhập khẩu|đầu tư công|fdI|gdp|cpi|lạm phát|doanh nghiệp|khối ngoại|hoSE|hNX|upcom|ngân hàng nhà nước|bộ tài chính)\b/i
 const SENSITIVE_PATTERN =
   /\b(war|attack|killed|death|ceasefire|sanctions?|missile|invasion|coup|terror)\b/i
 const TRUMP_MARKET_PATTERN =
@@ -176,11 +182,16 @@ function hasIndependentCorroboration(item: NormalizedNewsItem, items: Normalized
 function chooseNewsCandidates(items: NormalizedNewsItem[]): NewsCandidate[] {
   return items
     .filter((row) => row.category !== "trump" && row.sourceTier === 1)
-    .filter((row) => IMPORTANT_PATTERN.test(`${row.title} ${row.description ?? ""}`))
+    .filter((row) => {
+      const content = `${row.title} ${row.description ?? ""}`
+      return row.category === "vietnam"
+        ? VIETNAM_MARKET_PATTERN.test(content)
+        : IMPORTANT_PATTERN.test(content)
+    })
     .filter((row) => isRecentIso(row.publishedAt, NEWS_MAX_AGE_MS))
     .filter((row) => !SENSITIVE_PATTERN.test(row.title) || hasIndependentCorroboration(row, items))
     .sort((a, b) => Date.parse(a.publishedAt) - Date.parse(b.publishedAt))
-    .slice(0, 5)
+    .slice(0, 8)
     .map((item) => ({ kind: "news" as const, item, key: newsKey(item) }))
 }
 
@@ -335,7 +346,11 @@ async function translateAndSummarize(candidate: NewsCandidate): Promise<AlertDra
 }
 
 function formatNewsAlert(candidate: NewsCandidate, draft: AlertDraft): string {
-  const label = candidate.kind === "trump" ? "🇺🇸 BÀI ĐĂNG CỦA TRUMP" : "⚡ TIN THỊ TRƯỜNG QUỐC TẾ"
+  const label = candidate.kind === "trump"
+    ? "🇺🇸 BÀI ĐĂNG CỦA TRUMP"
+    : candidate.item.category === "vietnam"
+      ? "🇻🇳 TIN THỊ TRƯỜNG VIỆT NAM"
+      : "⚡ TIN THỊ TRƯỜNG QUỐC TẾ"
   const note = candidate.kind === "trump"
     ? "Lưu ý: Đây là nội dung ông Trump đăng tải; các tuyên bố bên trong chưa mặc nhiên được xem là dữ kiện độc lập đã xác minh."
     : ""
@@ -396,7 +411,7 @@ async function publishHourlyGold(now: Date): Promise<PublishedAlert | { skipped:
       hourlyChange == null ? "So với 1 giờ trước: chưa có mốc hợp lệ" : `So với 1 giờ trước: ${signedPercent(hourlyChange)}`,
       `So với đóng cửa trước: ${signedPercent(gold.changePercent)}`,
       "",
-      "Nguồn: Twelve Data · XAU/USD Spot Forex",
+      "Nguồn giá: XAU/USD Spot Forex",
     ]
     const result = await publishTelegramMarketAlert(lines.join("\n"))
     if (!result.ok) throw new Error(result.error)
@@ -422,7 +437,7 @@ async function chooseCandidates(
   const [economic, internationalNews, trumpNews] = await Promise.all([
     getEconomicCandidatesForRun(now),
     pollInternational
-      ? fetchNewsFromRss({ categories: ["markets", "world"] })
+      ? fetchNewsFromRss({ categories: ["markets", "world", "vietnam"] })
       : Promise.resolve([]),
     pollTrump
       ? fetchNewsFromRss({ categories: ["trump"] })
@@ -480,7 +495,9 @@ async function publishCandidate(candidate: Candidate): Promise<PublishedAlert | 
       source = candidate.item.source
     }
 
-    const imageUrl = candidate.kind === "news" ? candidate.item.imageUrl : undefined
+    const imageUrl = candidate.kind === "economic"
+      ? undefined
+      : await resolveNewsImageUrl(candidate.item)
     const result = await publishTelegramMarketAlert(text, imageUrl)
     if (!result.ok) throw new Error(result.error)
     return { kind: candidate.kind, source, messageId: result.messageId }

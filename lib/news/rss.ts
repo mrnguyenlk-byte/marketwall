@@ -50,6 +50,18 @@ const RSS_FEEDS: {
     category: "world",
   },
   {
+    url: "https://vnexpress.net/rss/kinh-doanh.rss",
+    source: "VnExpress Kinh doanh",
+    sourceTier: 1,
+    category: "vietnam",
+  },
+  {
+    url: "https://vneconomy.vn/chung-khoan.rss",
+    source: "VnEconomy Chứng khoán",
+    sourceTier: 1,
+    category: "vietnam",
+  },
+  {
     // Public archive of @realDonaldTrump posts. Items remain subject to the
     // market-impact gate before publication; this feed is never treated as
     // confirmation of claims made inside a post.
@@ -62,7 +74,7 @@ const RSS_FEEDS: {
 
 const MAX_ITEMS = 60
 
-export type NewsFeedCategory = "markets" | "world" | "trump"
+export type NewsFeedCategory = "markets" | "world" | "trump" | "vietnam"
 
 export type FetchNewsFromRssOptions = {
   categories?: NewsFeedCategory[]
@@ -73,6 +85,7 @@ const parser = new Parser({
     item: [
       ["media:content", "mediaContent"],
       ["media:thumbnail", "mediaThumbnail"],
+      ["content:encoded", "contentEncoded"],
     ],
   },
 })
@@ -93,12 +106,16 @@ function mediaUrl(value: RssMediaValue): string | undefined {
 function originalImageUrl(item: Parser.Item & {
   mediaContent?: RssMediaValue
   mediaThumbnail?: RssMediaValue
+  contentEncoded?: string
 }): string | undefined {
   const enclosure = item.enclosure?.url
+  const html = `${item.contentEncoded ?? ""} ${item.content ?? ""}`
+  const embedded = html.match(/<img[^>]+src=["']([^"']+)["']/i)?.[1]
   return (
     mediaUrl(item.mediaContent) ??
     mediaUrl(item.mediaThumbnail) ??
-    mediaUrl(typeof enclosure === "string" ? enclosure : undefined)
+    mediaUrl(typeof enclosure === "string" ? enclosure : undefined) ??
+    mediaUrl(embedded)
   )
 }
 
@@ -118,6 +135,7 @@ function parseFeed(
   feed: Parser.Output<{
     mediaContent?: RssMediaValue
     mediaThumbnail?: RssMediaValue
+    contentEncoded?: string
   }>,
   source: string,
   sourceTier: 1 | 2,
@@ -143,6 +161,48 @@ function parseFeed(
   }
 
   return items
+}
+
+function decodeHtmlUrl(value: string): string {
+  return value
+    .replaceAll("&amp;", "&")
+    .replaceAll("&#38;", "&")
+    .replaceAll("&quot;", '"')
+}
+
+function metaImage(html: string, articleUrl: string): string | undefined {
+  const tags = html.match(/<meta\s+[^>]*>/gi) ?? []
+  for (const tag of tags) {
+    if (!/(?:property|name)=["'](?:og:image|twitter:image(?::src)?)["']/i.test(tag)) continue
+    const raw = tag.match(/content=["']([^"']+)["']/i)?.[1]
+    if (!raw) continue
+    try {
+      const resolved = new URL(decodeHtmlUrl(raw), articleUrl)
+      if (resolved.protocol === "https:") return resolved.toString()
+    } catch {
+      // Ignore malformed publisher metadata and continue to the next tag.
+    }
+  }
+  return undefined
+}
+
+/** Resolve the publisher's original image only for an item that passed news gates. */
+export async function resolveNewsImageUrl(item: NormalizedNewsItem): Promise<string | undefined> {
+  if (item.imageUrl) return item.imageUrl
+  try {
+    const response = await fetchWithTimeout(item.url, {
+      headers: {
+        Accept: "text/html,application/xhtml+xml",
+        "User-Agent": "Mozilla/5.0 (compatible; BTradingMarketInsights/1.0)",
+      },
+      cache: "no-store",
+    })
+    if (!response.ok || !response.headers.get("content-type")?.includes("text/html")) return undefined
+    const html = (await response.text()).slice(0, 400_000)
+    return metaImage(html, item.url)
+  } catch {
+    return undefined
+  }
 }
 
 function dedupeByTitle(items: NormalizedNewsItem[]): NormalizedNewsItem[] {

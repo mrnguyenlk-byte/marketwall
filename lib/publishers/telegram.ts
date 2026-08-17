@@ -86,6 +86,7 @@ async function sendPhoto(
   }
   if (caption) {
     body.caption = caption
+    body.parse_mode = "HTML"
   }
 
   const result = await telegramRequest<TelegramSendPhotoResponse>(token, "sendPhoto", body)
@@ -100,6 +101,49 @@ async function sendPhoto(
   }
 
   return { ok: true, messageId: payload.result.message_id }
+}
+
+async function uploadPhoto(
+  token: string,
+  channelId: string,
+  imageUrl: string,
+  caption: string,
+): Promise<TelegramPublishResult> {
+  try {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 12_000)
+    const response = await fetch(imageUrl, {
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; BTradingMarketInsights/1.0)" },
+      signal: controller.signal,
+      cache: "no-store",
+    }).finally(() => clearTimeout(timeout))
+    const type = response.headers.get("content-type")?.split(";")[0] ?? ""
+    const declaredSize = Number(response.headers.get("content-length") ?? "0")
+    if (!response.ok || !type.startsWith("image/") || declaredSize > 8_000_000) {
+      return { ok: false, error: `Publisher image unavailable (HTTP ${response.status})` }
+    }
+    const bytes = await response.arrayBuffer()
+    if (!bytes.byteLength || bytes.byteLength > 8_000_000) {
+      return { ok: false, error: "Publisher image is empty or too large" }
+    }
+
+    const body = new FormData()
+    body.set("chat_id", channelId)
+    body.set("caption", caption)
+    body.set("parse_mode", "HTML")
+    body.set("photo", new Blob([bytes], { type }), "news-image")
+    const telegram = await fetch(`${TELEGRAM_API_BASE}/bot${token}/sendPhoto`, {
+      method: "POST",
+      body,
+    })
+    const payload = (await telegram.json()) as TelegramSendPhotoResponse
+    if (!telegram.ok || !payload.ok || !payload.result?.message_id) {
+      return { ok: false, error: payload.description ?? `HTTP ${telegram.status}` }
+    }
+    return { ok: true, messageId: payload.result.message_id }
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Image upload failed" }
+  }
 }
 
 async function sendMediaGroup(
@@ -200,8 +244,11 @@ export async function publishTelegramMarketAlert(
   if (imageUrl) {
     const photoResult = await sendPhoto(env.token, env.channelId, imageUrl, text)
     if (photoResult.ok) return photoResult
+    const uploadResult = await uploadPhoto(env.token, env.channelId, imageUrl, text)
+    if (uploadResult.ok) return uploadResult
     console.warn("[telegram] original news image failed; falling back to text", {
-      error: photoResult.error,
+      urlError: photoResult.error,
+      uploadError: uploadResult.error,
     })
   }
 
