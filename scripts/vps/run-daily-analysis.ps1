@@ -183,21 +183,21 @@ try {
     } else {
       [DateTime]$todayDate = $today
       $reportDate = $todayDate.ToString("yyyy-MM-dd", [Globalization.CultureInfo]::InvariantCulture)
-      [DateTime]$expectedSession = Get-ExpectedSessionDate $todayDate
-      $script:ExpectedSession = $expectedSession.ToString("yyyy-MM-dd", [Globalization.CultureInfo]::InvariantCulture)
+      [DateTime]$expectedSessionDate = Get-ExpectedSessionDate $todayDate
+      $script:ExpectedSession = $expectedSessionDate.ToString("yyyy-MM-dd", [Globalization.CultureInfo]::InvariantCulture)
       $script:Stage = "waiting-for-market-data"
       for ($attempt = 1; $attempt -le $dataRetryCount; $attempt++) {
-        [DateTime]$vnindexSession = Get-LatestCsvDate $vnindexCsv "VNINDEX"
-        [DateTime]$goldSession = Get-LatestCsvDate $goldCsv "XAUUSD"
-        $script:VnindexSession = $vnindexSession.ToString("yyyy-MM-dd", [Globalization.CultureInfo]::InvariantCulture)
-        $script:GoldSession = $goldSession.ToString("yyyy-MM-dd", [Globalization.CultureInfo]::InvariantCulture)
-        if ($vnindexSession -eq $expectedSession -and $goldSession -eq $expectedSession) { break }
+        [DateTime]$vnindexSessionDate = Get-LatestCsvDate $vnindexCsv "VNINDEX"
+        [DateTime]$goldSessionDate = Get-LatestCsvDate $goldCsv "XAUUSD"
+        $script:VnindexSession = $vnindexSessionDate.ToString("yyyy-MM-dd", [Globalization.CultureInfo]::InvariantCulture)
+        $script:GoldSession = $goldSessionDate.ToString("yyyy-MM-dd", [Globalization.CultureInfo]::InvariantCulture)
+        if ($vnindexSessionDate -eq $expectedSessionDate -and $goldSessionDate -eq $expectedSessionDate) { break }
         if ($attempt -lt $dataRetryCount) {
           Write-RunLog "DATA_WAIT attempt=$attempt/$dataRetryCount expected=$script:ExpectedSession vnindex=$script:VnindexSession gold=$script:GoldSession retrySeconds=$dataRetryDelaySeconds"
           Start-Sleep -Seconds $dataRetryDelaySeconds
         }
       }
-      if ($vnindexSession -ne $expectedSession -or $goldSession -ne $expectedSession) {
+      if ($vnindexSessionDate -ne $expectedSessionDate -or $goldSessionDate -ne $expectedSessionDate) {
         throw "SESSION_BLOCKED expected=$script:ExpectedSession vnindex=$script:VnindexSession gold=$script:GoldSession"
       }
       Write-RunLog "SESSION_OK expected=$script:ExpectedSession vnindex=$script:VnindexSession gold=$script:GoldSession"
