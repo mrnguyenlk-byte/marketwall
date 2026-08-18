@@ -16,7 +16,9 @@ $arguments = '-NoProfile -ExecutionPolicy Bypass -File "' + $runner + '" -Config
 $action = New-ScheduledTaskAction -Execute $powerShell -Argument $arguments
 $trigger = New-ScheduledTaskTrigger -Weekly -DaysOfWeek Monday,Tuesday,Wednesday,Thursday,Friday -At 6:45AM
 $settings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit (New-TimeSpan -Minutes 10) -MultipleInstances IgnoreNew -StartWhenAvailable
-$principal = New-ScheduledTaskPrincipal -UserId "$env:USERDOMAIN\$env:USERNAME" -LogonType S4U -RunLevel Highest
+# Use the same desktop session as the 07:00 publisher so readiness can verify
+# the actual AmiBroker windows, rather than reporting a false ready state.
+$principal = New-ScheduledTaskPrincipal -UserId "$env:USERDOMAIN\$env:USERNAME" -LogonType Interactive -RunLevel Highest
 
 Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger -Settings $settings -Principal $principal -Description "Private 06:45 market-data and chart readiness check. Never publishes to Telegram or Facebook." -Force | Out-Null
 Get-ScheduledTask -TaskName $TaskName | Select-Object TaskName,State

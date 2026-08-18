@@ -49,10 +49,11 @@ Run this once in an elevated PowerShell session. The task runs at 07:00 Vietnam 
 $action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -ExecutionPolicy Bypass -File C:\btrading-code\scripts\vps\run-daily-analysis.ps1 -ConfigPath C:\btrading-code\.vps-daily-analysis.env -Publish"
 $trigger = New-ScheduledTaskTrigger -Weekly -DaysOfWeek Monday,Tuesday,Wednesday,Thursday,Friday -At 7:00AM
 $settings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit (New-TimeSpan -Minutes 10) -MultipleInstances IgnoreNew -StartWhenAvailable
-Register-ScheduledTask -TaskName "BTrading Daily Analysis" -Action $action -Trigger $trigger -Settings $settings -Description "Uploads AmiBroker charts and runs BTrading Daily Analysis" -Force
+$principal = New-ScheduledTaskPrincipal -UserId "$env:USERDOMAIN\$env:USERNAME" -LogonType Interactive -RunLevel Highest
+Register-ScheduledTask -TaskName "BTrading Daily Analysis" -Action $action -Trigger $trigger -Settings $settings -Principal $principal -Description "Uploads AmiBroker charts and runs BTrading Daily Analysis" -Force
 ```
 
-Use an account that can access both the export folder and the network.
+Use an account that can access both the export folder and the network. Keep that account signed in with AmiBroker open; disconnecting RDP is fine, but do not sign out because Windows then has no AmiBroker desktop to capture.
 
 ```powershell
 Start-ScheduledTask -TaskName "BTrading Daily Analysis"

@@ -29,6 +29,13 @@ foreach ($name in @("DAILY_ANALYSIS_ENDPOINT", "DAILY_AUTOMATION_SECRET", "VNIND
 foreach ($name in @($PublishTaskName, $UpdateTaskName, $ReadinessTaskName)) {
   if (-not (Get-ScheduledTask -TaskName $name -ErrorAction SilentlyContinue)) { [void]$failures.Add("Missing task: $name") }
 }
+$interactiveTasks = @($PublishTaskName, $ReadinessTaskName)
+foreach ($name in $interactiveTasks) {
+  $task = Get-ScheduledTask -TaskName $name -ErrorAction SilentlyContinue
+  if ($task -and $task.Principal.LogonType -ne "Interactive") {
+    [void]$failures.Add("Task must use an interactive desktop session for AmiBroker capture: $name")
+  }
+}
 if (-not $config["VNINDEX_CSV_PATH"]) { $config["VNINDEX_CSV_PATH"] = "C:\AmiBroker_AutoData\VNINDEX_D1_AB.csv" }
 if (-not $config["GOLD_CSV_PATH"]) { $config["GOLD_CSV_PATH"] = "C:\AmiBroker_AutoData\XAUUSD_D1_AB.csv" }
 if (-not $config["LOG_PATH"]) { $config["LOG_PATH"] = "C:\BTradingData\logs\daily-analysis-runner.log" }

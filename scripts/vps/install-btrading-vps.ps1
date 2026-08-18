@@ -27,7 +27,9 @@ $publishArguments = '-NoProfile -ExecutionPolicy Bypass -File "' + $runner + '" 
 $publishAction = New-ScheduledTaskAction -Execute $powerShell -Argument $publishArguments
 $publishTrigger = New-ScheduledTaskTrigger -Weekly -DaysOfWeek Monday,Tuesday,Wednesday,Thursday,Friday -At 7:00AM
 $publishSettings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit (New-TimeSpan -Minutes 15) -MultipleInstances IgnoreNew -StartWhenAvailable
-$publishPrincipal = New-ScheduledTaskPrincipal -UserId "$env:USERDOMAIN\$env:USERNAME" -LogonType S4U -RunLevel Highest
+# Chart capture uses AmiBroker child windows. It must run in the signed-in
+# desktop session; an S4U/background task cannot see those windows.
+$publishPrincipal = New-ScheduledTaskPrincipal -UserId "$env:USERDOMAIN\$env:USERNAME" -LogonType Interactive -RunLevel Highest
 
 $updateArguments = '-NoProfile -ExecutionPolicy Bypass -File "' + $updater + '" -RepositoryPath "' + $RepositoryPath + '" -Branch main'
 $updateAction = New-ScheduledTaskAction -Execute $powerShell -Argument $updateArguments
