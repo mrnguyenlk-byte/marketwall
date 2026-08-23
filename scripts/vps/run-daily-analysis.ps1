@@ -125,6 +125,13 @@ function Get-LatestCsvDate([string]$Path, [string]$Market) {
   return $latest
 }
 
+function Resolve-RelayEndpoint([string]$Endpoint) {
+  if ($Endpoint -match '^https?://(www\.)?btrading\.org(?=/|$)') {
+    return ($Endpoint -replace '^https?://(www\.)?btrading\.org', 'https://marketwall.vercel.app')
+  }
+  return $Endpoint
+}
+
 function Invoke-PythonTransport([string[]]$Arguments) {
   $python = if ($config -and $config["PYTHON_EXECUTABLE"]) { $config["PYTHON_EXECUTABLE"] } else { "python" }
   $helper = Join-Path $scriptDirectory "daily-analysis-http.py"
@@ -216,6 +223,7 @@ try {
         Write-RunLog "DRY_RUN_OK charts captured and validated; no HTTP request was made."
       } else {
         $endpoint = if ($config["DAILY_CHART_UPLOAD_ENDPOINT"]) { $config["DAILY_CHART_UPLOAD_ENDPOINT"] } else { (Require-Config $config "DAILY_ANALYSIS_ENDPOINT") -replace '/run$', '/charts' }
+        $endpoint = Resolve-RelayEndpoint $endpoint
         [void](Require-Config $config "DAILY_AUTOMATION_SECRET")
         Write-RunLog "POST_START date=$reportDate endpoint=$endpoint transport=python-requests"
         $script:Stage = "uploading"

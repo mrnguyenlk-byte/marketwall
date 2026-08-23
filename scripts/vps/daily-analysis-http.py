@@ -12,6 +12,7 @@ import json
 import sys
 from pathlib import Path
 from typing import Dict
+from urllib.parse import urlsplit, urlunsplit
 
 import requests
 
@@ -36,13 +37,21 @@ def required(config: Dict[str, str], name: str) -> str:
     return value
 
 
+def relay_host(endpoint: str) -> str:
+    """Keep the VPS ingress independent from the public btrading.org website."""
+    parsed = urlsplit(endpoint)
+    if parsed.netloc.lower() not in {"btrading.org", "www.btrading.org"}:
+        return endpoint
+    return urlunsplit(("https", "marketwall.vercel.app", parsed.path, parsed.query, parsed.fragment))
+
+
 def chart_upload_endpoint(config: Dict[str, str]) -> str:
     explicit = config.get("DAILY_CHART_UPLOAD_ENDPOINT", "").strip()
     if explicit:
-        return explicit
+        return relay_host(explicit)
     legacy = required(config, "DAILY_ANALYSIS_ENDPOINT")
     if legacy.endswith("/run"):
-        return f"{legacy[:-4]}/charts"
+        return relay_host(f"{legacy[:-4]}/charts")
     raise RuntimeError("Set DAILY_CHART_UPLOAD_ENDPOINT to the chart ingress URL")
 
 
@@ -81,6 +90,7 @@ def report_status(args: argparse.Namespace, config: Dict[str, str]) -> None:
         if endpoint.endswith("/run"):
             endpoint = endpoint[:-4]
         endpoint += "/status"
+    endpoint = relay_host(endpoint)
     secret = required(config, "DAILY_AUTOMATION_SECRET")
     payload = json.loads(Path(args.health).read_text(encoding="utf-8-sig"))
     response = requests.post(
