@@ -36,8 +36,18 @@ def required(config: Dict[str, str], name: str) -> str:
     return value
 
 
+def chart_upload_endpoint(config: Dict[str, str]) -> str:
+    explicit = config.get("DAILY_CHART_UPLOAD_ENDPOINT", "").strip()
+    if explicit:
+        return explicit
+    legacy = required(config, "DAILY_ANALYSIS_ENDPOINT")
+    if legacy.endswith("/run"):
+        return f"{legacy[:-4]}/charts"
+    raise RuntimeError("Set DAILY_CHART_UPLOAD_ENDPOINT to the chart ingress URL")
+
+
 def publish(args: argparse.Namespace, config: Dict[str, str]) -> None:
-    endpoint = required(config, "DAILY_ANALYSIS_ENDPOINT")
+    endpoint = chart_upload_endpoint(config)
     secret = required(config, "DAILY_AUTOMATION_SECRET")
     vnindex_path = Path(required(config, "VNINDEX_IMAGE_PATH"))
     gold_path = Path(required(config, "GOLD_IMAGE_PATH"))
@@ -59,8 +69,8 @@ def publish(args: argparse.Namespace, config: Dict[str, str]) -> None:
         )
     response.raise_for_status()
     payload = response.json()
-    if not payload.get("success") or payload.get("status") == "in_progress":
-        raise RuntimeError(f"Automation API did not confirm success: {payload}")
+    if not payload.get("success") or payload.get("status") != "charts_uploaded":
+        raise RuntimeError(f"Chart ingress did not confirm upload: {payload}")
     print(json.dumps(payload, ensure_ascii=False))
 
 

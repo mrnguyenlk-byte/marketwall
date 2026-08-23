@@ -215,15 +215,16 @@ try {
       if (-not $Publish) {
         Write-RunLog "DRY_RUN_OK charts captured and validated; no HTTP request was made."
       } else {
-        $endpoint = Require-Config $config "DAILY_ANALYSIS_ENDPOINT"
+        $endpoint = if ($config["DAILY_CHART_UPLOAD_ENDPOINT"]) { $config["DAILY_CHART_UPLOAD_ENDPOINT"] } else { (Require-Config $config "DAILY_ANALYSIS_ENDPOINT") -replace '/run$', '/charts' }
         [void](Require-Config $config "DAILY_AUTOMATION_SECRET")
         Write-RunLog "POST_START date=$reportDate endpoint=$endpoint transport=python-requests"
         $script:Stage = "uploading"
         $body = Invoke-PythonTransport @("publish", "--config", $ConfigPath, "--date", $reportDate, "--vnindex-session", $script:VnindexSession, "--gold-session", $script:GoldSession)
         try { $result = $body | ConvertFrom-Json } catch { throw "Automation API returned invalid JSON: $body" }
         $status = if ($result.status) { $result.status } else { "processed" }
-        Write-RunLog "PUBLISH_CONFIRMED date=$reportDate status=$status"
-        $script:Stage = "published"
+        if ($status -ne "charts_uploaded") { throw "Chart ingress did not confirm charts_uploaded: $body" }
+        Write-RunLog "CHART_UPLOAD_CONFIRMED date=$reportDate status=$status"
+        $script:Stage = "charts-uploaded"
       }
     }
   }
@@ -252,7 +253,7 @@ try {
       vnindexSession = $script:VnindexSession
       goldSession = $script:GoldSession
       logPath = $script:LogPath
-      mode = if ($ReadinessCheck) { "readiness" } elseif ($Publish) { "publish" } else { "dry-run" }
+      mode = if ($ReadinessCheck) { "readiness" } elseif ($Publish) { "chart-upload" } else { "dry-run" }
     }
     $health | ConvertTo-Json | Set-Content -LiteralPath $healthPath -Encoding UTF8
     try { Send-ReadinessStatus $config $healthPath $health.mode $health.stage } catch { Write-RunLog "STATUS_REPORT_FAILED $($_.Exception.Message)" }

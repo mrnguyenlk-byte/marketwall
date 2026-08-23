@@ -32,7 +32,7 @@ git pull --ff-only origin main
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\vps\run-daily-analysis.ps1 -ConfigPath C:\btrading-code\.vps-daily-analysis.env -Force
 ```
 
-The command must finish with `DRY_RUN_OK`. Only the scheduled task adds `-Publish`. A missing, ambiguous, stale, nearly black, or visually uniform/empty PNG deliberately fails before any production request; the same quality gate runs during a publish. Every execution writes `START`, `DRY_RUN_OK`/`PUBLISH_CONFIRMED`/`FAILED`, and `END exitCode=…` to `C:\BTradingData\logs\daily-analysis-runner.log`.
+The command must finish with `DRY_RUN_OK`. Only the scheduled task adds `-Publish`; this legacy switch now means **upload the two verified charts to R2 only**. It never creates a web article or sends Telegram/Facebook posts. A missing, ambiguous, stale, nearly black, or visually uniform/empty PNG deliberately fails before any production request. Every execution writes `START`, `DRY_RUN_OK`/`CHART_UPLOAD_CONFIRMED`/`FAILED`, and `END exitCode=…` to `C:\BTradingData\logs\daily-analysis-runner.log`. Command Center consumes `daily-analysis/charts/latest.json` (and the date manifest) after the relay succeeds.
 
 Before capture, the runner reads the latest `Date` value directly from `VNINDEX_CSV_PATH` and `GOLD_CSV_PATH`. Both must equal the latest completed weekday before the report date (Friday for a Monday report). A missing, invalid or mismatched CSV logs `SESSION_BLOCKED`/`FAILED` and exits before creating an HTTP client. The same two dates are included in the upload, and the website validates them again before any image is written to R2.
 

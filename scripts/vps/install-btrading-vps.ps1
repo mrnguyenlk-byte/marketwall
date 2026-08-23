@@ -38,7 +38,7 @@ $updateSettings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit (New-TimeSpan
 $updatePrincipal = New-ScheduledTaskPrincipal -UserId "$env:USERDOMAIN\$env:USERNAME" -LogonType S4U -RunLevel Highest
 
 Register-ScheduledTask -TaskName $UpdateTaskName -Action $updateAction -Trigger $updateTrigger -Settings $updateSettings -Principal $updatePrincipal -Description "Fast-forward BTrading VPS automation code at 06:40." -Force | Out-Null
-Register-ScheduledTask -TaskName $PublishTaskName -Action $publishAction -Trigger $publishTrigger -Settings $publishSettings -Principal $publishPrincipal -Description "Validate candle dates, capture charts and publish at 07:00. Invalid dates never reach the API." -Force | Out-Null
+Register-ScheduledTask -TaskName $PublishTaskName -Action $publishAction -Trigger $publishTrigger -Settings $publishSettings -Principal $publishPrincipal -Description "Validate candle dates, capture charts and upload them to R2 at 07:00. Command Center owns briefing and social publishing." -Force | Out-Null
 & $readinessInstaller -RepositoryPath $RepositoryPath -ConfigPath $ConfigPath -TaskName $ReadinessTaskName
 
 & $health -ConfigPath $ConfigPath -PublishTaskName $PublishTaskName -UpdateTaskName $UpdateTaskName -ReadinessTaskName $ReadinessTaskName
